@@ -1,0 +1,103 @@
+[
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/MfeJnxkJaszErmn6wKG07"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/DxGAj1Y9REBYYW6aSX8WT"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/luZXEqDfZJjdJY3aXNSzC"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/2g0egvOF0eIj3_7zEbe5G"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/DGufHv43zQ-F1-FuAzn0g"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/z6A4MKrYwdhUer0XgO1Q6"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/eb0TdfsRJ1YOY1teA_tgD"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/vKrlrBqGUBno8L4U5gwpL"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/QzltsLCOhWvrGAqLziEkN"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/Z_lfnk7MfJEyxuB4vZfrC"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/eYJU2TZdKQeYe7Coe7JXT"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/YhoE5ESI4HT7nngBkFpRB"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/nzd06EVHdZv4zu8ZBXKZK"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/2NKAkMsthh8XNaum0Iat1"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/oRbBajqTA3Gs8KwZ3K-FH"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/Z_nMoIDf_jk9Ua9y8v2Y_"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/roqIgtMlY6gfpKK8kYhS0"
+  },
+  {
+    "user": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y",
+    "relation": "parent",
+    "object": "asset:astsc/xpcLjvD2K4sVQRTmyhRWe"
+  },
+
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y"
+  }
+]

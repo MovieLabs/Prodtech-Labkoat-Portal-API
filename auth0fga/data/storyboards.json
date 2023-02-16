@@ -1,0 +1,523 @@
+[
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/8bb0yQX3cgN4AvaKRw8Yi"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/JizmeOWC_hDYhF_PVb5GN"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/qnvsR-6Gh7PCGBrqFUYDd"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/BOxjsvVtgkgbHysfz600C"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/oYRAnyt0BAiyfkPqCtJtZ"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/UMB10xYbaf47RFtttY8rr"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/BU9dtmxyb3f9kg7N-uyqV"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/DtUp_B8B_2DAV4nOPD9Hs"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/2vu3qc0f45CcqZdUOJ2si"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/TjA4CkxmwLt01nF3-9CuG"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/6ePBbU3kB0lbOs_T5rO3N"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/ZtFOEIqAH-hnExttsuMIT"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/mbdyjj8H5lvDJt4ShhL4s"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/vP5cILzZl2dY1hokFbpnw"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/aDyqSdbAq9WJ0ojmIbDR9"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/b5DjQvDPdMMGkKrz_Z_uv"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/EfHvJseMwec4EpGwoKnST"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/lVqVtyT7PfFIwjz1aGNkx"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/hRSsaQYO1gd3iHIuNDg0K"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/2QfjoxEENz4vbSvfDMLRa"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/iH_VgD0dUYNOvb7xVSGqK"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/GeL51Jbncr6ehJVEB-Odl"
+  },
+  {
+    "user": "asset:ast/4yV4UXA-3NoP7ejnYFr6N",
+    "relation": "parent",
+    "object": "asset:astsc/MmdHTfCc63Lz1JnwDlTdR"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/t4JRzj_NvA1IeWOAwGQiJ"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/_ERbpZ-wkWWXXtn9QUpQM"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/c16UKQ2zxCaw_A6rA7AXg"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/lTtWuJLHBXc0w8v1X8pX2"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/mqUti-ZjM0WF-rihVtjyw"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/N8ax67kK1PwN3nAD_mXOv"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/NcpnyzOONuqFNCAn1r3jB"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/04JEVLzJfwQDf2qOLOBkH"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/oOykSUUMDfMnkhJMZMkJK"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/bq_dJ_aDCp-kZPmPrSgoB"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/wApk8PP-ZJdFluJiZs_gG"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/4qM-nxEsp6oC5DXPtr6hj"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/exG_lPqh8HGgwmVAL43OD"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/jFBWYJoXI_aLjr4jsdlzl"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/s6fVS4-NmG8Tg31ukgeyi"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/jzriGwQzkXfWGZ7UPBcS_"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/Mnr7Ip5VTFJOa0v04Y1L7"
+  },
+  {
+    "user": "asset:ast/WkR4sUnDWYYMuL4NozMxm",
+    "relation": "parent",
+    "object": "asset:astsc/zWeZSxiNSfOa0tavtknb7"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/AVF652gBw7UxcrJpZ62QU"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/OJg19pD7mCa_lkkwXgU0S"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/h_S6FDPEni4MFBuhr_C55"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/CFdKJkXShsMxXGVFPqiVQ"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/0y4h5FFTYoDbVXvE-QQaQ"
+  },
+  {
+    "user": "asset:ast/19rF_hHtLQjBVquEYoS_A",
+    "relation": "parent",
+    "object": "asset:astsc/Qyq9BRFBlA2a5GXgbXv4u"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/Mr10j3fTGMF6pPKaIxUzG"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/E5x8bQVzCLvIqQcUtWwep"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/c6BC5GQLNZxU3yyAOL4ax"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/JTJrSfOWBVX6Hhbx-M3XN"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/w3wW9McdJSvT_broDNXO_"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/g7Q8FaKgevuLmY9-CxN5H"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/uv3jTQFcCfqSr8NUXliU8"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/541flgxhcrGnTnBa4jVHs"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/05dOdScTuEViJ68mr1wyB"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/5cYegEOKha8q0QCJr0FTf"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/9lEM_pFgbIdepifJeyVTm"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/EkW5GmAnpTi0Ybk9r_T9P"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/AsWE_LVmQQiFYNB2Fr4Kv"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/p5r220J0UhyIw2XZWw9MI"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/6QiaYVPovZdOKm6bAJNLU"
+  },
+  {
+    "user": "asset:ast/VvEtLxRZy0o-fQGLiKBQW",
+    "relation": "parent",
+    "object": "asset:astsc/ofMBzrcoFrkQgucEMYyZD"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/wSo_GP6uF1TIFvJKw66P6"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/9OfUNlzPGmjpk7c5XgTq_"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/q_flH9GdwQ5w0ZVzfgcXf"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/RrHiatMFJ5ZtUCSP4mJAe"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/WLF5oaSd3ETh4ORA-_7Zq"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/TX9_1wR5wz56CbLs4_rIh"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/pu9Y--OdS0TXZaGz6DYi1"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/_HeDAxw8gtOphQQL8NJYf"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/wv7Df8AWVBe0CWkVmbl1L"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/epWDZ6BXpH_Bbhsc4kc0P"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/17UtisA2m7DVk_sfM1GYC"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/dPcl1zTJHrX2jNzPmtOyt"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/oWZ-TJ2wMdRaOJO5_IyuB"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/7KehFS589vco6padE1Z--"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/Kt_PP-RIpUjX6qLCtOdJG"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/UGul3Akm0rCo2vI0xJ8IG"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/YTkNaxbAkkYPGDS_vhnJ-"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/QKjtOULJluUakjilAGB2W"
+  },
+  {
+    "user": "asset:ast/fLvgTj15mKC4yXihewXU3",
+    "relation": "parent",
+    "object": "asset:astsc/GcrHRnADNt4ESpG1guKRm"
+  },
+  {
+    "user": "asset:ast/APm-V9cJt6QnuruM6CKSY",
+    "relation": "parent",
+    "object": "asset:astsc/oZ4VQMDVCfNqHZVQX-P8h"
+  },
+  {
+    "user": "asset:ast/APm-V9cJt6QnuruM6CKSY",
+    "relation": "parent",
+    "object": "asset:astsc/Zh3iFMq39KbTa1ypf2y-e"
+  },
+  {
+    "user": "asset:ast/APm-V9cJt6QnuruM6CKSY",
+    "relation": "parent",
+    "object": "asset:astsc/UO3UJbF12mibarOjprQgi"
+  },
+  {
+    "user": "function:artwork#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast-artwork"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "organization:labkoat.media#member",
+    "relation": "owner",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  },
+  {
+    "user": "function:artwork.storyboard#functionalType",
+    "relation": "canEdit",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  },
+  {
+    "user": "asset:ast-artwork",
+    "relation": "parent",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  }
+]
+

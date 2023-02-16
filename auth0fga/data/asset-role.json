@@ -1,0 +1,97 @@
+[
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "role:director#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "role:artDirector#hasRole",
+    "relation": "editor",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/4yV4UXA-3NoP7ejnYFr6N"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/WkR4sUnDWYYMuL4NozMxm"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/19rF_hHtLQjBVquEYoS_A"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/VvEtLxRZy0o-fQGLiKBQW"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/fLvgTj15mKC4yXihewXU3"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:ast/APm-V9cJt6QnuruM6CKSY"
+  },
+  {
+    "user": "role:producer#hasRole",
+    "relation": "viewer",
+    "object": "asset:asgp/6ijmAYmCMY86OQtX4cZ_y"
+  }
+]
