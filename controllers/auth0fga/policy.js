@@ -15,7 +15,7 @@ const modelId = process.env.FGA_MODEL_ID;
 
 /**
  * Delete a policy tuple or set of tuples
- * @param tuple
+ * @param tuples
  * @return {Promise<string|any>}
  */
 async function deleteTuple(tuples) {
