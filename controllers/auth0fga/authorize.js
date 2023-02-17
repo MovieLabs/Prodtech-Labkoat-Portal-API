@@ -16,7 +16,7 @@ async function admin(req, res, next) {
         body,
     } = req;
     // console.log(body);
-    const user = `${auth.email}`; // Use the email address as the primary identifier
+    const user = `${auth.sub}`; // Use the email address as the primary identifier, held in the sub claim
 
     const { allowed } = await fgaClient.check({
         authorization_model_id: modelId,
@@ -41,7 +41,7 @@ async function view(req, res, next) {
         body,
     } = req;
     // const user = body.user;
-    const user = `user:${auth.email}`;
+    const user = `user:${auth.sub}`;
     const { relation, object } = body;
     const tuple = {
         user,

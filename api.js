@@ -11,12 +11,9 @@ const {
 const jwksRsa = require('jwks-rsa');
 const cors = require('cors');
 
-const {
-    admin,
-    view,
-} = require('./auth0fga/authorize');
-const { updatePolicy } = require('./auth0fga/policy');
-const { serveImage } = require('./serve-image');
+const auth0fga = require('./routes/auth0fga-router');
+const okta = require('./routes/okta-router');
+const jwtValidator = require('./util/JwtValidator');
 
 const app = express();
 
@@ -48,20 +45,27 @@ const checkAserto = (async (req, res, next) => {
     next();
 });
 
-const checkJwt = jwt({
-    // Dynamically provide a signing key based on the kid in the header and the signing keys provided by the JWKS endpoint
-    secret: jwksRsa.expressJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: process.env.JWKS_URI,
-    }),
+// const checkJwt = jwt({
+//     // Dynamically provide a signing key based on the kid in the header and the signing keys provided by the JWKS endpoint
+//     secret: jwksRsa.expressJwtSecret({
+//         cache: true,
+//         rateLimit: true,
+//         jwksRequestsPerMinute: 5,
+//         jwksUri: process.env.JWKS_URI,
+//     }),
+//
+//     // Validate the audience and the issuer
+//     audience: process.env.AUDIENCE,
+//     issuer: process.env.ISSUER,
+//     algorithms: ['RS256'],
+// });
 
-    // Validate the audience and the issuer
+const checkJwt = jwtValidator({
+    jwksUri: process.env.JWKS_URI,
     audience: process.env.AUDIENCE,
     issuer: process.env.ISSUER,
-    algorithms: ['RS256'],
-});
+})
+
 
 let modelId = null;
 
@@ -77,6 +81,9 @@ console.log(process.env.JWKS_URI);
 app.use(bodyParser.json()); // Use the body parser set to JSON
 app.use(express.static('public')); // Folder for images
 app.use(cors()); // Enable CORS
+
+app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
+app.use('/api/okta', okta) // Add the route controllers for Okta
 
 // Protected API endpoint
 app.get('/api/protected', checkJwt, async (req, res) => {
@@ -105,48 +112,6 @@ app.get('/api/protected', checkJwt, async (req, res) => {
         res.json({
             secretMessage: 'Not Authorized',
         });
-    }
-});
-
-app.get('/api/auth0fga/asset', checkJwt, view, async (req, res) => {
-    console.log('auth0fga/asset');
-    res.status = 200;
-    res.json({
-        secretMessage: 'The asset is all yours',
-    });
-});
-
-app.post('/api/auth0fga/asset', checkJwt, view, (req, res) => {
-    // console.log('auth0fga/asset');
-    const { body } = req;
-    serveImage(req, res);
-});
-
-app.get('/api/auth0fga/image', checkJwt, view, async (req, res) => {
-    console.log('auth0fga/image');
-    res.status = 200;
-    res.json({
-        secretMessage: 'The asset is all yours',
-    });
-});
-
-app.get('/api/auth0fga/admin', checkJwt, admin, async (req, res) => {
-    console.log('auth0fga/admin');
-    res.status = 200;
-    res.json({
-        secretMessage: 'Policy updated',
-    });
-});
-
-app.post('/api/auth0fga/admin', checkJwt, admin, async (req, res, next) => {
-    const { body } = req;
-    try {
-        const policy = await updatePolicy(body); // The policy to update
-        console.log(`Result of policy update: ${policy}`);
-        res.send('Updated the admin');
-    } catch (err) {
-        res.status(500)
-            .send(err);
     }
 });
 
