@@ -1,48 +1,41 @@
 const okta = require('@okta/okta-sdk-nodejs');
 
+const { OKTA_API_TOKEN } = process.env;
+const oktaClient = new okta.Client({
+    orgUrl: 'https://movielabs.okta.com/',
+    token: OKTA_API_TOKEN,
+});
+
 async function oktaDirectory(req, res) {
-    const { OKTA_API_TOKEN } = process.env;
-
-    const oktaClient = new okta.Client({
-        orgUrl: 'https://movielabs.okta.com/',
-        token: OKTA_API_TOKEN,
-    });
-
     const { uid, sub } = req.auth;
     const staffClaim = req.auth['labkoat.api.staff'] || [];
-    const { authorization } = req.headers;
-    const token = authorization.replace('Bearer ', ''); // Extract bearer token
+    // const { authorization } = req.headers;
+    // const token = authorization.replace('Bearer ', ''); // Extract bearer token
+
     console.log(`Okta Uid: ${uid}`);
     console.log(`Email: ${sub}`);
     console.log(`Claims: ${staffClaim}`);
-    console.log(`Token: ${token}`);
-
-    const staff = [];
-    let staffErr = null;
 
     try {
-        // if (clnClaims['labkoat.api.staff'].includes('Directory')) {
+        if (staffClaim.includes('Directory')) {
             const orgUsersCollection = oktaClient.listUsers();
+            const staff = [];
             await orgUsersCollection.each((user) => staff.push(user.profile));
-
-            // If authorized add the payroll information
-            if (staffClaim.includes('Payroll')) {
-                staff.forEach((stf) => {
-                    stf.payroll = '$1,000';
-                });
-            //}
+            res.json({
+                staff,
+                error: null,
+                success: 'Directory call succeeded!',
+                url: req.url,
+            });
         }
     } catch (err) {
-        staffErr = err;
+        res.json({
+            error: err,
+            success: null,
+            url: req.url,
+        });
     }
-
-    res.json({
-        // token: OKTA_API_TOKEN,
-        staff,
-        error: staffErr,
-        success: 'get call succeed!',
-        url: req.url,
-    });
+    res.status(401).send('Unauthorized');
 }
 
 module.exports = oktaDirectory;
