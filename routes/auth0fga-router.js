@@ -2,9 +2,9 @@ const express = require('express');
 
 const jwtValidator = require('../util/JwtValidator')
 
-const { view, admin } = require('../controllers/auth0fga/authorize');
+const { view, admin } = require('../controllers/admin/authorize');
 const { serveImage } = require('../serve-image');
-const { updatePolicy } = require('../controllers/auth0fga/policy');
+const { updatePolicy } = require('../controllers/admin/policy');
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ const checkJwt = jwtValidator({
 })
 
 router.get('/asset', checkJwt, view, async (req, res) => {
-    console.log('auth0fga/asset');
+    console.log('admin/asset');
     res.status = 200;
     res.json({
         secretMessage: 'The asset is all yours',
@@ -23,13 +23,13 @@ router.get('/asset', checkJwt, view, async (req, res) => {
 });
 
 router.post('/asset', checkJwt, view, (req, res) => {
-    // console.log('auth0fga/asset');
+    // console.log('admin/asset');
     const { body } = req;
     serveImage(req, res);
 });
 
 router.get('/image', checkJwt, view, async (req, res) => {
-    console.log('auth0fga/image');
+    console.log('admin/image');
     res.status = 200;
     res.json({
         secretMessage: 'The asset is all yours',
@@ -37,7 +37,7 @@ router.get('/image', checkJwt, view, async (req, res) => {
 });
 
 router.get('/admin', checkJwt, admin, async (req, res) => {
-    console.log('auth0fga/admin');
+    console.log('admin/admin');
     res.status = 200;
     res.json({
         secretMessage: 'Policy updated',
