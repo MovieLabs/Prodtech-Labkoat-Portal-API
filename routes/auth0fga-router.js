@@ -8,14 +8,16 @@ const { updatePolicy } = require('../controllers/admin/policy');
 
 const router = express.Router();
 
+const config = require('../config');
+
 const checkJwt = jwtValidator({
-    jwksUri: process.env.JWKS_URI,
-    audience: process.env.AUDIENCE,
-    issuer: process.env.ISSUER,
+    jwksUri: config.JWKS_URI,
+    audience: config.AUDIENCE,
+    issuer: config.ISSUER,
 })
 
 router.get('/asset', checkJwt, view, async (req, res) => {
-    console.log('admin/asset');
+    console.log('GET: admin/asset');
     res.status = 200;
     res.json({
         secretMessage: 'The asset is all yours',
@@ -23,7 +25,7 @@ router.get('/asset', checkJwt, view, async (req, res) => {
 });
 
 router.post('/asset', checkJwt, view, (req, res) => {
-    // console.log('admin/asset');
+    console.log('POST: admin/asset');
     const { body } = req;
     serveImage(req, res);
 });

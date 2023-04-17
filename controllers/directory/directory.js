@@ -11,7 +11,8 @@ const { listUsers } = require('../oktaInterface');
 async function oktaDirectory(req, res) {
     console.log('Route: /directory');
     const { uid, sub } = req.auth; // User id or sub from the authorization token
-    const staffClaim = req.auth['labkoat.api.staff'] || [];
+    // const staffClaim = req.auth['labkoat.api.staff'] || [];
+    const staffClaim = ['Directory'];
     // const { authorization } = req.headers;
     // const token = authorization.replace('Bearer ', ''); // Extract bearer token
 

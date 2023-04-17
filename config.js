@@ -5,9 +5,9 @@
 
 const configEnv = {
     'local': {
-        JWKS_URI: 'https://movielabs.okta.com/oauth2/default/v1/keys',
-        ISSUER: 'https://movielabs.okta.com/oauth2/default',
-        AUDIENCE: 'api://default',
+        JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
+        ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
+        AUDIENCE: 'https://service.labkoat.media',
         FMAM_URL: 'http://localhost:4001/graphql',
         ASERTO_POLICY_ID: '830240b0-95f3-11ed-ae53-01847ec4b2c9',
         ASERTO_POLICY_INSTANCE_NAME: 'reactinstance',

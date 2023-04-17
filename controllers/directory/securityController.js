@@ -15,7 +15,8 @@ const labkoatId = ((p) => (
 async function oktaSecurity(req, res) {
     console.log('Path: directory/security');
     const participants = await allParticipants(); // Test call to grab the participants that should be in Okta
-    const oktaUpdate = participants.map((p) => oktaInterface.oktaParticipant(p));
+    const people = participants.filter((p) => p.structuralCharacteristics.structuralType === 'participant.person')
+    const oktaUpdate = people.map((p) => oktaInterface.oktaParticipant(p));
     const oktaResult = await Promise.all(oktaUpdate);
 
     const labkoatParticipants = labkoatMembers(participants); // Which participants are members of Labkoat

@@ -2,14 +2,10 @@ require('dotenv')
     .config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const { expressjwt: jwt } = require('express-jwt');
-const {
-    jwtAuthz,
-    ds,
-} = require('@aserto/aserto-node');
+// const { expressjwt: jwt } = require('express-jwt');
 const cors = require('cors');
 
-const secrets = require('./awsSecrets');
+const secrets = require('./awsSecrets'); // Runs the code to populate secrets from AWS secrets manager
 const config = require('./config');
 const auth0fga = require('./routes/auth0fga-router');
 const admin = require('./routes/admin-router')
@@ -17,23 +13,7 @@ const okta = require('./routes/directory-router');
 const { opaRouter } = require('./routes/opa-router');
 const jwtValidator = require('./util/JwtValidator');
 
-// Test push
 const app = express();
-
-// const checkJwt = jwt({
-//     // Dynamically provide a signing key based on the kid in the header and the signing keys provided by the JWKS endpoint
-//     secret: jwksRsa.expressJwtSecret({
-//         cache: true,
-//         rateLimit: true,
-//         jwksRequestsPerMinute: 5,
-//         jwksUri: process.env.JWKS_URI,
-//     }),
-//
-//     // Validate the audience and the issuer
-//     audience: process.env.AUDIENCE,
-//     issuer: process.env.ISSUER,
-//     algorithms: ['RS256'],
-// });
 
 const checkJwt = jwtValidator({
     jwksUri: config.JWKS_URI,

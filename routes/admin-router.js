@@ -7,10 +7,12 @@ const { updatePolicy } = require('../controllers/admin/policy');
 
 const router = express.Router();
 
+const config = require('../config');
+
 const checkJwt = jwtValidator({
-    jwksUri: process.env.JWKS_URI,
-    audience: process.env.AUDIENCE,
-    issuer: process.env.ISSUER,
+    jwksUri: config.JWKS_URI,
+    audience: config.AUDIENCE,
+    issuer: config.ISSUER,
 })
 
 router.get('/policy', checkJwt, adminRouter, async (req, res) => {

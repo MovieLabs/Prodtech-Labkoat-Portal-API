@@ -96,9 +96,9 @@ async function updatePerson(omcParticipant, oktaUser) {
             identifierScope: 'okta',
             identifierValue: oktaUser.id,
         })
+        console.log('Updateing participant in fMam');
         const res = await mutateOmcPerson(omcPerson);
     }
-    console.log('Id checked');
 }
 
 /**
@@ -110,14 +110,18 @@ async function updatePerson(omcParticipant, oktaUser) {
 async function oktaParticipant(omcParticipant) {
     const userProfile = await omcToOktaProfile(omcParticipant); // Convert a single user
     const oktaId = userProfile.id ? userProfile.id : userProfile.profile.email; // Use the directory id or email
-    // const oktaId = 'rubbish';
 
+    if (oktaId === null || oktaId === undefined) {
+        console.log(`Missing profile identifier for ${userProfile.labkoatId}`)
+        return null
+    }
+
+    console.log(`Processing: ${oktaId}`);
     let oktaUser = null; // Check if there is a record in Okta and either update or add the participant
     try {
-        console.log(oktaId);
         oktaUser = await oktaClient.getUser(oktaId);
-        await updateUser(userProfile, oktaUser);
-        await updatePerson(omcParticipant, oktaUser);
+        await updateUser(userProfile, oktaUser); // Update user in Okta
+        await updatePerson(omcParticipant, oktaUser); // Update the fMam with the Okta subscriber id
     } catch (err) {
         if (err.status === 404) {
             oktaUser = await addUser(userProfile); // Record did not exist, so add a new participant
@@ -129,8 +133,6 @@ async function oktaParticipant(omcParticipant) {
     }
     return oktaUser;
 }
-
-
 
 module.exports = {
     oktaSetup,
