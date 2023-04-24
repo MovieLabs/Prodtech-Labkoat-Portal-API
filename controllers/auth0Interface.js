@@ -36,7 +36,7 @@ async function fgaSetup(secrets) {
  * @return {Promise<string|any>}
  */
 async function deleteTuple(t) {
-    if (typeof t === 'undefined' || t.length === 0 ) return 'No-Operation'; // Avoid error when no policy updates
+    if (typeof t === 'undefined' || t.length === 0 ) return 'No/op'; // Avoid error when no policy updates
     const tuples = makeArray(t)
 
     while (tuples.length > 0) {
@@ -57,10 +57,7 @@ async function deleteTuple(t) {
 }
 
 async function writeTuple(t) {
-    // Avoid error when no policy updates
-    if (!t || t.length === 0) {
-        return 'No-Operation';
-    }
+    if (!t || t.length === 0) return 'No/op'; // Avoid error when no policy updates
 
     const tuples = makeArray(t)
     while (tuples.length > 0) {
@@ -79,8 +76,6 @@ async function writeTuple(t) {
     }
     return 'Success';
 }
-
-
 
 async function check(tuple) {
     const { allowed } = await fgaClient.check({

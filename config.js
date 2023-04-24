@@ -22,6 +22,9 @@ const configEnv = {
         // ASERTO_AUTHORIZER_API_KEY: '6cba0f317698e1593bfaf8fd4208a3587ef1b80d6aa64f62f8d22ef4c28ddbf8',
     },
     'aws': {
+        JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
+        ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
+        AUDIENCE: 'https://service.labkoat.media',
         FMAM_URL: 'https://service.labkoat.media/fmam/api',
         ASERTO_POLICY_ID: '830240b0-95f3-11ed-ae53-01847ec4b2c9',
         ASERTO_POLICY_INSTANCE_NAME: 'reactinstance',
@@ -30,6 +33,10 @@ const configEnv = {
         ASERTO_AUTHORIZER_API_KEY: '6cba0f317698e1593bfaf8fd4208a3587ef1b80d6aa64f62f8d22ef4c28ddbf8',
         ASERTO_AUTHORIZER_SERVICE_URL: 'authorizer.prod.aserto.com:8443',
         ASERTO_POLICY_ROOT: 'asertodemo',
+        LABKOAT_FGA_ENVIRONMENT: 'us',
+        LABKOAT_FGA_STORE_ID: '01GV1FDKDKR1PY90EAZFEHNZFN',
+        LABKOAT_FGA_CLIENT_ID: 'uDtbJrMM58QgP6e4QVKqU1HKMtGGPnVu',
+        LABKOAT_FGA_API_URL: 'https://api.us1.fga.dev',
     },
 };
 

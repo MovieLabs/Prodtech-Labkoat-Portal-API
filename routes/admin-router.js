@@ -31,6 +31,7 @@ router.post('/policy', checkJwt, adminRouter, async (req, res, next) => {
         console.log(`Result of policy update: ${policy}`);
         res.send('Updated the adminRouter');
     } catch (err) {
+        console.log(err);
         res.status(500)
             .send(err);
     }

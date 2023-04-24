@@ -25,7 +25,7 @@ async function updatePolicy(policy) {
         if (p.action === 'create') createPolicy.push(tuple);
     });
 
-    return Promise.all(deleteTuple(deletePolicy), writeTuple(createPolicy));
+    return Promise.all([deleteTuple(deletePolicy), writeTuple(createPolicy)]);
 }
 
 module.exports = {
