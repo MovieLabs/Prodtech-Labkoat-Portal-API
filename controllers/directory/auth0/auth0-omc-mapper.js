@@ -15,7 +15,7 @@ async function omcToAuth0User(input) {
         }
         : ()
     )
-    `
+    `,
     );
     return expression.evaluate(input);
 }
@@ -36,7 +36,7 @@ async function omcToAuth0Organization(input) {
             }
         )
     )
-    `
+    `,
     );
     return expression.evaluate(input);
 }
@@ -65,10 +65,8 @@ function labkoatMembers(participants) {
     return participants.filter((p) => (labkoatMemberId.includes(labkoatId(p))));
 }
 
-
-
 module.exports = {
     omcToAuth0User,
     omcToAuth0Organization,
     labkoatMembers,
-}
+};

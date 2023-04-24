@@ -12,7 +12,7 @@ let modelId = null;
 let fgaClient = null;
 
 /**
- * Setup a client for accessing the auth0fga instance, called after secrets are loaded
+ * Set up a client for accessing the auth0fga instance, called after secrets are loaded
  * @param secrets {object}
  * @return {Promise<void>}
  */
@@ -36,8 +36,8 @@ async function fgaSetup(secrets) {
  * @return {Promise<string|any>}
  */
 async function deleteTuple(t) {
-    if (typeof t === 'undefined' || t.length === 0 ) return 'No/op'; // Avoid error when no policy updates
-    const tuples = makeArray(t)
+    if (typeof t === 'undefined' || t.length === 0) return 'No/op'; // Avoid error when no policy updates
+    const tuples = makeArray(t);
 
     while (tuples.length > 0) {
         const writeSet = tuples.splice(0, 1);
@@ -59,7 +59,7 @@ async function deleteTuple(t) {
 async function writeTuple(t) {
     if (!t || t.length === 0) return 'No/op'; // Avoid error when no policy updates
 
-    const tuples = makeArray(t)
+    const tuples = makeArray(t);
     while (tuples.length > 0) {
         const writeSet = tuples.splice(0, 1);
         const printable = `user: ${writeSet[0].user} / relation:${writeSet[0].relation} / object:${writeSet[0].object}`;
@@ -80,12 +80,11 @@ async function writeTuple(t) {
 async function check(tuple) {
     const { allowed } = await fgaClient.check({
         authorization_model_id: modelId,
-        tuple_key: tuple
+        tuple_key: tuple,
     });
     console.log(`FGA Authorization: ${allowed ? 'Allowed' : 'Denied'}`);
     return allowed;
 }
-
 
 /**
  * Check an OMC Participant against the Okta directory and update or add any differences
@@ -106,4 +105,4 @@ module.exports = {
     deleteTuple,
     auth0Participant,
     check,
-}
+};

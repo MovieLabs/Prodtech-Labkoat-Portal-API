@@ -1,6 +1,6 @@
 const express = require('express');
 
-const jwtValidator = require('../util/JwtValidator')
+const jwtValidator = require('../util/JwtValidator');
 
 const { view, admin } = require('../controllers/admin/authorize');
 const { serveImage } = require('../serve-image');
@@ -14,7 +14,7 @@ const checkJwt = jwtValidator({
     jwksUri: config.JWKS_URI,
     audience: config.AUDIENCE,
     issuer: config.ISSUER,
-})
+});
 
 router.get('/asset', checkJwt, view, async (req, res) => {
     console.log('GET: admin/asset');
@@ -46,7 +46,7 @@ router.get('/admin', checkJwt, admin, async (req, res) => {
     });
 });
 
-router.post('/admin', checkJwt, admin, async (req, res, next) => {
+router.post('/admin', checkJwt, admin, async (req, res) => {
     const { body } = req;
     try {
         const policy = await updatePolicy(body); // The policy to update

@@ -22,4 +22,4 @@ function jwtValidator({ audience, issuer, jwksUri }) {
     });
 }
 
-module.exports = jwtValidator
+module.exports = jwtValidator;

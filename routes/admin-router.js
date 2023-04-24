@@ -1,6 +1,6 @@
 const express = require('express');
 
-const jwtValidator = require('../util/JwtValidator')
+const jwtValidator = require('../util/JwtValidator');
 
 const { admin: adminRouter } = require('../controllers/admin/authorize');
 const { updatePolicy } = require('../controllers/admin/policy');
@@ -13,7 +13,7 @@ const checkJwt = jwtValidator({
     jwksUri: config.JWKS_URI,
     audience: config.AUDIENCE,
     issuer: config.ISSUER,
-})
+});
 
 router.get('/policy', checkJwt, adminRouter, async (req, res) => {
     console.log('GET: /adminRouter/policy');
@@ -23,7 +23,7 @@ router.get('/policy', checkJwt, adminRouter, async (req, res) => {
     });
 });
 
-router.post('/policy', checkJwt, adminRouter, async (req, res, next) => {
+router.post('/policy', checkJwt, adminRouter, async (req, res) => {
     console.log('POST: /adminRouter/policy');
     const { body } = req;
     try {

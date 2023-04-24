@@ -16,5 +16,55 @@
     "express-jwt-aserto": "^1.0.75",
     "jsonata": "^2.0.1",
     "jwks-rsa": "^3.0.1"
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "extends": [
+      "airbnb"
+    ],
+    "env": {
+      "browser": true
+    },
+    "rules": {
+      "func-names": [
+        "error",
+        "as-needed"
+      ],
+      "linebreak-style": 0,
+      "indent": [
+        "warn",
+        4,
+        {
+          "VariableDeclarator": 1,
+          "SwitchCase": 1
+        }
+      ],
+      "react/jsx-indent": [
+        "warn",
+        4
+      ],
+      "react/jsx-indent-props": [
+        "error",
+        4
+      ],
+      "no-underscore-dangle": [
+        0
+      ],
+      "no-console": "off",
+      "max-len": [
+        "warn",
+        {
+          "comments": 150,
+          "code": 120
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "eslint": "^8.38.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.27.5"
   }
 }

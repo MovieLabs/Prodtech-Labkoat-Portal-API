@@ -5,12 +5,14 @@ const config = require('../config');
 
 const router = express.Router();
 let checkAuthz = (req, res, next) => {
-    console.log('Test')
-    next ()
+    console.log('Test');
+    next();
 };
 let checkAserto = () => {};
 
-// TODO: This is not being setup correctly because the checkAuthZ needs the secret before the router is setup!
+/**
+ * TODO: This is not being setup correctly because the checkAuthZ needs the secret before the router is setup!
+ */
 async function opaSetup(secrets) {
     const authzOptions = {
         authorizerServiceUrl: config.ASERTO_AUTHORIZER_SERVICE_URL,
@@ -22,7 +24,7 @@ async function opaSetup(secrets) {
         authorizerApiKey: secrets.ASERTO_AUTHORIZER_API_KEY,
     };
 
-// Aserto authorizer middleware function
+    // Aserto authorizer middleware function
     checkAuthz = jwtAuthz(authzOptions);
     checkAserto = (async (req, res, next) => {
         const authorization = await checkAuthz(req, res, next);

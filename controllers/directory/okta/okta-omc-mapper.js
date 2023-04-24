@@ -14,7 +14,7 @@ async function omcToOktaProfile(input) {
                 "mobilePhone": $.structuralCharacteristics.Person.contact.telephone.business
             }
         }
-    `
+    `,
     );
     return expression.evaluate(input);
 }
@@ -25,7 +25,7 @@ async function omcParticipantToPerson(input) {
     $.{
         "Person": $.structuralCharacteristics.Person
     }
-    `
+    `,
     );
     return expression.evaluate(input);
 }
@@ -33,4 +33,4 @@ async function omcParticipantToPerson(input) {
 module.exports = {
     omcToOktaProfile,
     omcParticipantToPerson,
-}
+};
