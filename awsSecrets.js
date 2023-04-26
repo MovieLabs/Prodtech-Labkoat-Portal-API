@@ -24,6 +24,25 @@ const awsClient = new SecretsManagerClient({ region: AWS_REGION });
 
 let awsSecrets = {}
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function retryPromise(promiseFunction, maxRetries, delayMs) {
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    try {
+      const result = await promiseFunction();
+      return result;
+    } catch (error) {
+      retries++;
+      console.log(`Attempt ${retries} failed. Retrying...`);
+      await delay(delayMs);
+    }
+  }
+
+  throw new Error(`Failed after ${maxRetries} attempts`);
+}
+
 async function fetchSecret(SecretId, secretKey) {
     const command = new GetSecretValueCommand({ SecretId });
     try {
@@ -55,7 +74,7 @@ async function setupSecrets() {
     await opaSetup(awsSecrets);
 }
 
-setupSecrets().then((res) => {
+retryPromise(setupSecrets, 10, 5000).then((res) => {
     console.log('Got AWS secrets');
 }).catch((err) => {
     console.log('Error retrieving AWS secrets');
