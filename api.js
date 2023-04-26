@@ -8,8 +8,9 @@ const cors = require('cors');
 const secrets = require('./awsSecrets'); // Runs the code to populate secrets from AWS secrets manager
 const config = require('./config');
 const auth0fga = require('./routes/auth0fga-router');
-const admin = require('./routes/admin-router')
+const admin = require('./routes/admin-router');
 const okta = require('./routes/directory-router');
+const service = require('./routes/service');
 const { opaRouter } = require('./routes/opa-router');
 const jwtValidator = require('./util/JwtValidator');
 
@@ -30,10 +31,10 @@ async function setup() {
     app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
     app.use('/api/okta', okta); // Add the route controllers for Okta
     app.use('/api/opa', opaRouter); // Add the route controllers for the OPA policy tests using Aserto
+    app.use('/api/service', service); // Route and controllers for testing the service token
 
 // Launch the API Server at localhost:8080
     app.listen(8080);
 }
 
 setup().catch((err) => {console.log(err)}) // Setup and start the server
-
