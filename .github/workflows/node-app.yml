@@ -47,4 +47,4 @@ jobs:
           token: ${{ secrets.PAT }}
           repository: MovieLabs/Prodtech-ServiceMesh
           event-type: new-image
-          client-payload: '{"service": "workflow", "image": "${{ env.ECR }}/${{ env.IMAGE_NAME }}", "tag":"dev-${{ github.sha }}"}'
+          client-payload: '{"service": "portal-api", "image": "${{ env.ECR }}/${{ env.IMAGE_NAME }}", "tag":"dev-${{ github.sha }}"}'
