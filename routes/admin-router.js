@@ -1,6 +1,6 @@
 const express = require('express');
 
-const jwtValidator = require('../util/JwtValidator');
+const jwtValidator = require('../helpers/JwtValidator');
 
 const { admin: adminRouter } = require('../controllers/admin/authorize');
 const { updatePolicy } = require('../controllers/admin/policy');

@@ -4,7 +4,9 @@
 
 const fetch = require('node-fetch');
 
-const { makeArray, hasProp } = require('../../../util/util');
+const btoa = require('btoa');
+const request = require('request-promise');
+const { makeArray, hasProp } = require('../../../helpers/util');
 
 const config = require('../../../config');
 const allCharactersQuery = require('../query/allCharacters');
@@ -21,10 +23,54 @@ const queryOptions = {
 
 const fMamUrl = config.FMAM_URL; // Base Url for the fMam
 
+const {
+    LABKOAT_ISSUER,
+    LABKOAT_DEFAULT_SCOPE,
+    LABKOAT_CLIENT_ID,
+} = config;
+
 // Secrets are obtained from AWS secrets manager asynchronously
 let awsSecrets = null;
+let fMamBearerToken = null;
 async function fMamSetup(secrets) {
     awsSecrets = secrets.FMAM;
+}
+
+async function fMamToken() {
+    if (fMamBearerToken !== null) {
+        console.log('Check the token expiration');
+        const base64Url = fMamBearerToken.split('.')[1];
+        const buff = Buffer.from(base64Url, 'base64');
+        const claims = JSON.parse(buff.toString('ascii'));
+        const dateNow = new Date();
+        if (claims.exp > dateNow.getTime() / 1000) return fMamBearerToken;
+    }
+
+    const issuer = LABKOAT_ISSUER; // The URL for the Authorization server that is issuing the token
+    const scope = LABKOAT_DEFAULT_SCOPE; // The scopes being requested
+    const clientId = LABKOAT_CLIENT_ID;
+    const clientSecret = awsSecrets.LABKOAT_CLIENT_SECRET;
+
+    const token = btoa(`${clientId}:${clientSecret}`); // Base 64 encode
+    try {
+        const grant = await request({
+            uri: `${issuer}/v1/token`, // Full path to request a token
+            json: true,
+            method: 'POST',
+            headers: {
+                authorization: `Basic ${token}`,
+            },
+            form: {
+                grant_type: 'client_credentials',
+                scope,
+            },
+        });
+        fMamBearerToken = grant.access_token; // Retrieve the token and its type from the response
+    } catch (err) {
+        console.log('Error retrieving fMam access token');
+        console.log(err);
+    }
+    return fMamBearerToken;
 }
 
 /**
@@ -52,16 +98,18 @@ function extractEntity(entity, entityPath) {
  */
 
 async function allParticipants() {
-    const storageToken = awsSecrets.FMAM_TOKEN || 'temp';
     const queryName = 'allParticipants';
     const graphQlQuery = queryOptions[queryName]; // Pick one of the graphql queries and variables
     const { responsePath } = graphQlQuery; // Variables to navigate the response
+
+    const bearerToken = await fMamToken();
+    // console.log(`Bearer Token: ${bearerToken}`);
 
     const qlOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${storageToken}`,
+            Authorization: `Bearer ${bearerToken}`,
         },
         body: JSON.stringify(graphQlQuery),
     };
@@ -79,11 +127,12 @@ async function allParticipants() {
     } else {
         console.log(`Query failed: ${fMamResponse.statusText} (${fMamResponse.status})`);
     }
+    console.log(entities);
     return entities;
 }
 
 async function mutateOmcPerson(omc) {
-    const storageToken = awsSecrets.FMAM_TOKEN || 'temp';
+    const bearerToken = await fMamToken();
     const queryName = 'mutatePerson';
     const graphQlMutation = queryOptions[queryName]; // Pick one of the graphql queries and variables
     // delete omc.Person.entityType;
@@ -97,7 +146,7 @@ async function mutateOmcPerson(omc) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${storageToken}`,
+            Authorization: `Bearer ${bearerToken}`,
         },
         body: JSON.stringify(graphQlBody),
     };
@@ -118,7 +167,7 @@ async function mutateOmcPerson(omc) {
         return entities;
     }
 
-    const identifier = omc.identifier.filter((id) => id.identifierScope === 'labkoat');
+    const identifier = omc.Person.identifier.filter((id) => id.identifierScope === 'labkoat');
     console.log(`Update the fMam ${identifier[0].identifierValue}`);
     return entities;
 }

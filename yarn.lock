@@ -3027,7 +3027,7 @@
     "ecdsa-sig-formatter" "^1.0.5"
     "uuid" "^8.3.2"
 
-"node-fetch@^2.6.7":
+"node-fetch@^2.6.7", "node-fetch@^2.6.9":
   "integrity" "sha512-DJm/CJkZkRjKKj4Zi4BsKVZh3ValV5IR5s7LVZnW+6YMh0W1BfNA8XSs6DLMGYlId5F3KnA70uu2qepcR08Qqg=="
   "resolved" "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.9.tgz"
   "version" "2.6.9"

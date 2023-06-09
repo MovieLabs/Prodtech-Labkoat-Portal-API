@@ -20,7 +20,6 @@ async function admin(req, res, next) {
 }
 
 async function view(req, res, next) {
-    console.log('Authorize view');
     const {
         auth,
         body,
@@ -28,6 +27,7 @@ async function view(req, res, next) {
     // const user = body.user;
     const user = `user:${auth.uid}`;
     const { relation, object } = body;
+    console.log(`Authorize: ${user}, ${object}, ${relation}`);
     const tuple = {
         user,
         relation,

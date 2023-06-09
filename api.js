@@ -10,9 +10,11 @@ const config = require('./config');
 const auth0fga = require('./routes/auth0fga-router');
 const admin = require('./routes/admin-router');
 const okta = require('./routes/directory-router');
+const approval = require('./routes/approval-router');
+const assets = require('./routes/asset-router');
 const test = require('./routes/test-router');
 const { opaRouter } = require('./routes/opa-router');
-const jwtValidator = require('./util/JwtValidator');
+const jwtValidator = require('./helpers/JwtValidator');
 
 const app = express();
 
@@ -24,6 +26,8 @@ async function setup() {
     app.use('/api/admin', admin); // Add the route controllers for Auth0Fga
     app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
     app.use('/api/okta', okta); // Add the route controllers for Okta
+    app.use('/api/approval', approval); // Add the route controllers for the Approvals page
+    app.use('/api/asset', assets);
     app.use('/api/opa', opaRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/test', test); // Route and controllers for testing the test token
 

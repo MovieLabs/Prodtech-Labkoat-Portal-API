@@ -5,7 +5,7 @@
 
 const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 
-const { fgaSetup } = require('./controllers/auth0Interface')
+const { fgaSetup } = require('./controllers/auth0Interface');
 const { oktaSetup } = require('./controllers/oktaInterface');
 const { fMamSetup } = require('./controllers/directory/okta/fMam');
 const { opaSetup } = require('./routes/opa-router');
@@ -22,25 +22,25 @@ const awsClient = new SecretsManagerClient({ region: AWS_REGION });
 // Local dev: $HOME/.aws/credentials will be mounted in the container
 // Service mesh: Pod's IAM Role
 
-let awsSecrets = {}
+let awsSecrets = {};
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function retryPromise(promiseFunction, maxRetries, delayMs) {
-  let retries = 0;
+    let retries = 0;
 
-  while (retries < maxRetries) {
-    try {
-      const result = await promiseFunction();
-      return result;
-    } catch (error) {
-      retries++;
-      console.log(`Attempt ${retries} failed. Retrying...`);
-      await delay(delayMs);
+    while (retries < maxRetries) {
+        try {
+            const result = await promiseFunction();
+            return result;
+        } catch (error) {
+            retries += 1;
+            console.log(`Attempt ${retries} failed. Retrying...`);
+            await delay(delayMs);
+        }
     }
-  }
 
-  throw new Error(`Failed after ${maxRetries} attempts`);
+    throw new Error(`Failed after ${maxRetries} attempts`);
 }
 
 async function fetchSecret(SecretId, secretKey) {
@@ -61,7 +61,7 @@ async function setupSecrets() {
     // Add the secrets using getters to the secrets object
     awsSecrets = res.reduce((obj, [key, v]) => {
         return Object.defineProperty(obj, key, {
-            get: function () {
+            get() {
                 return v;
             },
         });
@@ -81,6 +81,4 @@ retryPromise(setupSecrets, 10, 5000).then((res) => {
     console.log(err);
 });
 
-
 module.exports = awsSecrets;
-

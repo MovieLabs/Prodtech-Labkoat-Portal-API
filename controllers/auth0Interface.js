@@ -5,7 +5,7 @@
 const { Auth0FgaApi } = require('@auth0/fga');
 
 const { omcToAuth0User, omcToAuth0Organization } = require('./directory/auth0/auth0-omc-mapper');
-const { makeArray } = require('../util/util');
+const { makeArray } = require('../helpers/util');
 const config = require('../config');
 
 let modelId = null;

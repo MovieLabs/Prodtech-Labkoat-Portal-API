@@ -15,10 +15,10 @@ const okta = require('@okta/okta-sdk-nodejs');
 const { omcToOktaProfile, omcParticipantToPerson } = require('./directory/okta/okta-omc-mapper');
 const { mutateOmcPerson } = require('./directory/okta/fMam');
 
-let oktaClient = null
+let oktaClient = null;
 
 async function oktaSetup(secrets) {
-    const { LABKOAT } = secrets
+    const { LABKOAT } = secrets;
     oktaClient = new okta.Client({
         orgUrl: 'https://movielabs.okta.com/',
         token: LABKOAT.OKTA_API_TOKEN,
@@ -34,11 +34,10 @@ async function oktaSetup(secrets) {
 async function listUsers(userProfile) {
     try {
         return oktaClient.listUsers();
-    } catch(err) {
-        console.log(err)
+    } catch (err) {
+        console.log(err);
     }
 }
-
 
 /**
  * Add a new user to the Okta directory
@@ -50,17 +49,17 @@ async function addUser(userProfile) {
     const newUser = {
         profile: userProfile.profile,
         groupIds: [
-            "00g3blcctMq98tDnU696", // labkoat.media
+            '00g3blcctMq98tDnU696', // labkoat.media
         ],
-    }
+    };
     try {
         const res = await oktaClient.createUser(newUser);
         console.log(`Created new user in Okta ${res.id}`);
         return res;
-    } catch(err) {
-        console.log(err)
+    } catch (err) {
+        console.log(err);
     }
-    return null
+    return null;
 }
 
 /**
@@ -74,7 +73,7 @@ async function updateUser(userProfile, oktaUser) {
     const changes = Object.keys(userProfile.profile).filter((k) => oktaUser.profile[k] !== userProfile.profile[k]);
     if (changes.length) {
         console.log(`Update user in Okta: ${oktaUser.id} / ${changes}`);
-        changes.forEach((k) => oktaUser.profile[k] = userProfile.profile[k]) // Update the profile
+        changes.forEach((k) => oktaUser.profile[k] = userProfile.profile[k]); // Update the profile
         return oktaUser.update(); // Update the profile
     }
     return oktaUser;
@@ -88,15 +87,15 @@ async function updateUser(userProfile, oktaUser) {
  */
 
 async function updatePerson(omcParticipant, oktaUser) {
-   const omcPerson = await omcParticipantToPerson(omcParticipant);
-    const oktaId = omcPerson.Person.identifier.filter((identifier) => identifier.identifierScope === 'okta')
+    const omcPerson = await omcParticipantToPerson(omcParticipant);
+    const oktaId = omcPerson.Person.identifier.filter((identifier) => identifier.identifierScope === 'okta');
     // If there is currently no Okta id in the OMC record, then add one
     if (oktaId.length === 0) {
         omcPerson.Person.identifier.push({
             identifierScope: 'okta',
             identifierValue: oktaUser.id,
-        })
-        console.log('Updateing participant in fMam');
+        });
+        console.log('Updating participant in fMam');
         const res = await mutateOmcPerson(omcPerson);
     }
 }
@@ -112,8 +111,8 @@ async function oktaParticipant(omcParticipant) {
     const oktaId = userProfile.id ? userProfile.id : userProfile.profile.email; // Use the directory id or email
 
     if (oktaId === null || oktaId === undefined) {
-        console.log(`Missing profile identifier for ${userProfile.labkoatId}`)
-        return null
+        console.log(`Missing profile identifier for ${userProfile.labkoatId}`);
+        return null;
     }
 
     console.log(`Processing: ${oktaId}`);
@@ -128,7 +127,7 @@ async function oktaParticipant(omcParticipant) {
             await updatePerson(omcParticipant, oktaUser);
         } else {
             // console.log(err.message);
-            throw (err)
+            throw (err);
         }
     }
     return oktaUser;
@@ -140,4 +139,4 @@ module.exports = {
     addUser,
     updateUser,
     oktaParticipant,
-}
+};

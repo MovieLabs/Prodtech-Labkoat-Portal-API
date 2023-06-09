@@ -11,19 +11,15 @@ const { listUsers } = require('../oktaInterface');
 async function oktaDirectory(req, res) {
     console.log('Route: /directory');
     const { uid, sub } = req.auth; // User id or sub from the authorization token
-    // const staffClaim = req.auth['labkoat.api.staff'] || [];
-    const staffClaim = ['Directory'];
-    // const { authorization } = req.headers;
-    // const token = authorization.replace('Bearer ', ''); // Extract bearer token
-
+    const authorized = true; // TODO: Check if user is authorized to view directory
     const participants = await allParticipants(); // Test call to grab the participants that should be in Okta
 
     try {
-        if (staffClaim.includes('Directory')) {
+        if (authorized) {
             const orgUsersCollection = await listUsers();
             const staff = [];
             await orgUsersCollection.each((user) => staff.push(user.profile));
-            res.json({
+            res.status(200).json({
                 participants,
                 staff,
                 error: null,

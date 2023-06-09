@@ -10,7 +10,7 @@ const { omcToAuth0User, omcToAuth0Organization, labkoatMembers } = require('./au
 async function oktaSecurity(req, res) {
     console.log('Path: directory/security');
     const participants = await allParticipants(); // Test call to grab the participants that should be in Okta
-    const people = participants.filter((p) => p.structuralCharacteristics.structuralType === 'participant.person');
+    const people = participants.filter((p) => p.structuralCharacteristics.structuralType === 'person');
     const oktaUpdate = people.map((p) => oktaInterface.oktaParticipant(p));
     const oktaResult = await Promise.all(oktaUpdate);
 

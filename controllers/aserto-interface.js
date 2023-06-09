@@ -24,4 +24,4 @@ async function checkIs() {
     }
 }
 
-checkIs()
+checkIs();

@@ -1,6 +1,6 @@
 const express = require('express');
 
-const jwtValidator = require('../util/JwtValidator');
+const jwtValidator = require('../helpers/JwtValidator');
 
 const { view, admin } = require('../controllers/admin/authorize');
 const { serveImage } = require('../serve-image');

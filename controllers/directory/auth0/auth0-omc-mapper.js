@@ -52,9 +52,9 @@ function labkoatMembers(participants) {
             .map((i) => i.identifierValue)
     )[0]);
 
-    const orgs = participants.filter((p) => p.structuralCharacteristics.structuralType === 'participant.organization');
+    const orgs = participants.filter((p) => p.structuralCharacteristics.structuralType === 'organization');
     const labkoatOrg = orgs.filter((o) => (
-        o.structuralCharacteristics.Organization.organizationName.alternateName === 'labkoat.media'
+        o.structuralCharacteristics.Organization.organizationName.alternateName === 'labkoat'
     ))[0];
 
     const labkoatMemberId = labkoatOrg.Participant.flatMap((p) => (

@@ -3,8 +3,7 @@ const jwtValidator = require('../helpers/JwtValidator');
 
 const config = require('../config');
 
-const directoryController = require('../controllers/directory/directory');
-const securityController = require('../controllers/directory/securityController');
+const approvalController = require('../controllers/approval/approvalController');
 
 const router = express.Router();
 
@@ -14,7 +13,6 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/directory', checkJwt, directoryController);
-router.get('/directory/security', checkJwt, securityController);
+router.get('/events', checkJwt, approvalController);
 
 module.exports = router;
