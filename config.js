@@ -8,7 +8,7 @@ const configEnv = {
         JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
         ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         AUDIENCE: 'https://service.labkoat.media',
-        FMAM_URL: 'https://service.labkoat.media/fmam',
+        FMAM_URL: 'https://service.labkoat.media/fmam/api',
         ASERTO_POLICY_ID: '830240b0-95f3-11ed-ae53-01847ec4b2c9',
         ASERTO_POLICY_INSTANCE_NAME: 'reactinstance',
         ASERTO_POLICY_INSTANCE_LABEL: 'reactinstance',
@@ -24,7 +24,7 @@ const configEnv = {
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
     },
     local: {
-        FMAM_URL: 'http://localhost:4001/fmam/api',
+        // FMAM_URL: 'http://localhost:4001/fmam/api',
     },
     aws: {},
 };

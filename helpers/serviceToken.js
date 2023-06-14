@@ -32,7 +32,6 @@ async function serviceToken() {
         console.log('Make request for access token for service account');
         const url = `${issuer}/v1/token`; // Full path to request a token
         console.log(`Okta service token URL: ${issuer}`);
-        console.log(clientSecret);
         const formData = new URLSearchParams();
         formData.append('grant_type', 'client_credentials');
         formData.append('scope', scope);
@@ -46,11 +45,9 @@ async function serviceToken() {
         const res = await fetch(url, options);
         // Retrieve the token and its type from the response
         const grant = JSON.parse(await res.text());
-        console.log(grant);
         const { token_type: tokenType, access_token: subjectToken } = grant;
         bearerToken = subjectToken;
     } catch (err) {
-        console.log('Error retrieving fMam access token');
         console.log(err);
     }
     return bearerToken;

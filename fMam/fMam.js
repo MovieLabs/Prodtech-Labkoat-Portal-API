@@ -54,6 +54,7 @@ async function fMamQuery(graphQlQuery) {
     try {
         fMamResponse = await fetch(fMamUrl, qlOptions); // POST the graphql query
     } catch (err) {
+        console.log('fMam Error');
         console.log(err);
     }
 
