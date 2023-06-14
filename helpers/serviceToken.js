@@ -6,9 +6,9 @@ const fetch = require('node-fetch');
 
 const config = require('../config');
 
-const issuer = config.LABKOAT_ISSUER; // The URL for the Authorization server that is issuing the token
-const scope = config.LABKOAT_DEFAULT_SCOPE; // The scopes being requested, given our authorization is separate this not really applicable
-const clientId = config.LABKOAT_CLIENT_ID;
+const issuer = config.OKTA_LABKOAT_SERVICE_API_ISSUER; // The URL for the Authorization server that is issuing the token
+const scope = config.OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE; // Scopes are not applicable in our application
+const clientId = config.OKTA_LABKOAT_SERVICE_API_CLIENT_ID;
 // const clientSecret = process.env.LABKOAT_CLIENT_SECRET;
 let clientSecret;
 
