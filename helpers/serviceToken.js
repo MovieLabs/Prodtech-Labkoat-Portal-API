@@ -4,10 +4,19 @@
 
 const fetch = require('node-fetch');
 
-const issuer = process.env.LABKOAT_ISSUER; // The URL for the Authorization server that is issuing the token
-const scope = process.env.LABKOAT_DEFAULT_SCOPE; // The scopes being requested, given our authorization is separate this not really applicable
-const clientId = process.env.LABKOAT_CLIENT_ID;
-const clientSecret = process.env.LABKOAT_CLIENT_SECRET;
+const config = require('../config');
+
+const issuer = config.LABKOAT_ISSUER; // The URL for the Authorization server that is issuing the token
+const scope = config.LABKOAT_DEFAULT_SCOPE; // The scopes being requested, given our authorization is separate this not really applicable
+const clientId = config.LABKOAT_CLIENT_ID;
+// const clientSecret = process.env.LABKOAT_CLIENT_SECRET;
+let clientSecret;
+
+async function serviceSetup(secrets) {
+    const { LABKOAT } = secrets;
+    clientSecret = LABKOAT.LABKOAT_SERVICE_API;
+    console.log('Service Token secret setup');
+}
 
 let bearerToken = null;
 async function serviceToken() {
@@ -47,4 +56,7 @@ async function serviceToken() {
     return bearerToken;
 }
 
-module.exports = serviceToken;
+module.exports = {
+    serviceSetup,
+    serviceToken,
+};

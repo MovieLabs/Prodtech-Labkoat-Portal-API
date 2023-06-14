@@ -2,11 +2,9 @@ require('dotenv')
     .config();
 const express = require('express');
 const bodyParser = require('body-parser');
-// const { expressjwt: jwt } = require('express-jwt');
 const cors = require('cors');
 
 require('./awsSecrets'); // Runs the code to populate secrets from AWS secrets manager
-const config = require('./config');
 const auth0fga = require('./routes/auth0fga-router');
 const admin = require('./routes/admin-router');
 const okta = require('./routes/directory-router');

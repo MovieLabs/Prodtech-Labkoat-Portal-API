@@ -9,6 +9,7 @@ const { fgaSetup } = require('./controllers/auth0Interface');
 const { oktaSetup } = require('./controllers/oktaInterface');
 const { fMamSetup } = require('./controllers/directory/okta/fMam');
 const { opaSetup } = require('./routes/opa-router');
+const { serviceSetup } = require('./helpers/serviceToken');
 
 const AWS_REGION = 'us-west-2';
 const secretEnv = {
@@ -72,6 +73,7 @@ async function setupSecrets() {
     await oktaSetup(awsSecrets);
     await fMamSetup(awsSecrets);
     await opaSetup(awsSecrets);
+    await serviceSetup(awsSecrets);
 }
 
 retryPromise(setupSecrets, 10, 5000).then((res) => {

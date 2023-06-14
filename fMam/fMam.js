@@ -4,7 +4,7 @@
 
 const fetch = require('node-fetch');
 
-const serviceToken = require('../helpers/serviceToken');
+const { serviceToken } = require('../helpers/serviceToken');
 const { makeArray, hasProp } = require('../helpers/util');
 
 const config = require('../config');
