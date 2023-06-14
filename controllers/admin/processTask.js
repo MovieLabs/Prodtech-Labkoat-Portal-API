@@ -9,8 +9,8 @@ const { recursiveDeepCopy, hasProp, makeArray } = require('../../helpers/util');
 const { identifierOfScope } = require('../../helpers/omc');
 const { updatePolicy } = require('./policy');
 
-const externalUser = '00u4dm2mnhf0m6enO697'; // Grosvner Eudora
-// const externalUser = '00u55sz1a81S9Bavw697'; // Matt Daw
+// const externalUser = '00u4dm2mnhf0m6enO697'; // Grosvner Eudora
+const externalUser = '00u55sz1a81S9Bavw697'; // Matt Daw
 
 /**
  * Set a publish task
