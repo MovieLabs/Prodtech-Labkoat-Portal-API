@@ -44,7 +44,6 @@ async function serviceToken() {
             body: formData,
         };
         const res = await fetch(url, options);
-
         // Retrieve the token and its type from the response
         const grant = JSON.parse(await res.text());
         const { token_type: tokenType, access_token: subjectToken } = grant;

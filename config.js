@@ -20,7 +20,7 @@ const configEnv = {
         LABKOAT_FGA_STORE_ID: '01H0874SH174XKCCA3BD0JA0GF', // FunctionalTest store
         LABKOAT_FGA_CLIENT_ID: 'ecqIaRxBJTYPTjfCqINeAqfrfyof7EOt', // FunctionalTest Store
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
-        OKTA_LABKOAT_SERVICE__API_DEFAULT_SCOPE: 'labkoat_api',
+        OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
     },
     local: {
