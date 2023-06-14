@@ -6,6 +6,18 @@
 const { makeArray, hasProp } = require('./util');
 
 /**
+ * Return the functional and structural type of an entity
+ */
+
+const functionalType = ((ent) => ent?.functionalCharacteristics?.functionalType);
+
+const structuralType = ((ent) => ent?.structuralCharacteristics?.structuralType);
+
+const functionalProperties = ((ent) => ent?.functionalCharacteristics?.functionalProperties);
+
+const structuralProperties = ((ent) => ent?.structuralCharacteristics?.structuralProperties);
+
+/**
  * Extract nested elements from OMC entities
  * @param entity {object} - An OMC entity
  * @param entityPath {string} - A dot notated string of the path to extract
@@ -18,7 +30,7 @@ function extractFromEntity(entity, entityPath) {
     return entities.flatMap((ent) => {
         if (!hasProp(ent, target)) return null; // If no relevant property return null
         return (levels.length !== 0) // Recurse down, until end of path has been reached
-            ? extractEntity(ent[target], levels.join('.'))
+            ? extractFromEntity(ent[target], levels.join('.'))
             : ent[target];
     }).filter((ent) => ent !== null);
 }
@@ -29,12 +41,41 @@ function extractFromEntity(entity, entityPath) {
  * @param scope {string} - The source for which you wish the identifiers
  * @return {string} - A single identifier value
  */
-function identifierOfScope (identifier, scope) {
+function identifierOfScope(identifier, scope) {
     return identifier.filter((id) => id.identifierScope === scope)
-        .map((id) => id.identifierValue)[0]
+        .map((id) => id.identifierValue)[0];
+}
+
+/**
+ * Asset security could be based on the essence identifier, or for asset groups the main identifier
+ * This method will return the appropriate one based on whether this is an Asset Group
+ * @param assetOmc {object}
+ * @param scope {string}
+ */
+
+function securityIdentifier(assetOmc, scope) {
+    if (hasProp(assetOmc.structuralCharacteristics, 'structuralProperties')
+        && assetOmc.structuralCharacteristics.structuralProperties !== null
+        && (
+            hasProp(assetOmc.structuralCharacteristics.structuralProperties, 'assetGroup')
+            && assetOmc.structuralCharacteristics.structuralProperties.assetGroup !== null
+        )
+        && hasProp(assetOmc, 'Asset') && assetOmc.Asset !== null
+    ) {
+        console.log('Asset Group');
+        return identifierOfScope(assetOmc, scope);
+    } if (hasProp(assetOmc.structuralCharacteristics, 'identifier')) {
+        return identifierOfScope(assetOmc.structuralCharacteristics.identifier, scope);
+    }
+    return null;
 }
 
 module.exports = {
+    functionalType,
+    structuralType,
+    functionalProperties,
+    structuralProperties,
     extractFromEntity,
     identifierOfScope,
-}
+    securityIdentifier,
+};

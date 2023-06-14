@@ -13,7 +13,6 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/storyboard', checkJwt, assetController.storyboard);
-router.get('/concept', checkJwt, assetController.concept);
+router.get('/info', checkJwt, assetController.info);
 
 module.exports = router;

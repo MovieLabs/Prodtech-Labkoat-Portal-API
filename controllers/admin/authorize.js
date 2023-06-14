@@ -34,11 +34,16 @@ async function view(req, res, next) {
         object,
     };
     const printable = `${tuple.user} / ${tuple.relation} / ${tuple.object}`;
-    const allowed = await check(tuple);
-    console.log(`${allowed ? 'Authorized:' : 'Denied'}: ${printable}`);
-    if (allowed) {
-        next();
-    } else {
+    try {
+        const allowed = await check(tuple);
+        console.log(`${allowed ? 'Authorized:' : 'Denied'}: ${printable}`);
+        if (allowed) {
+            next();
+        } else {
+            res.status(401).send('Unauthorized');
+        }
+    } catch (err) {
+        console.log('Auth0fga threw an error');
         res.status(401).send('Unauthorized');
     }
 }
