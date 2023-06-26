@@ -13,7 +13,7 @@ query ($structuralType: String, $functionalType: String) {
     }
     name
     description
-    structuralCharacteristics {
+    AssetSC {
       structuralType
       structuralProperties {
         assetGroup {
@@ -21,7 +21,7 @@ query ($structuralType: String, $functionalType: String) {
         }
       }
     }
-    functionalCharacteristics {
+    AssetFC {
       functionalType
       functionalProperties {
         ... on artwork_storyboard {
@@ -36,7 +36,7 @@ query ($structuralType: String, $functionalType: String) {
       }
       name
       description
-      structuralCharacteristics {
+      AssetSC {
         structuralType
         identifier {
           ...idFields
@@ -53,7 +53,7 @@ query ($structuralType: String, $functionalType: String) {
           }
         }
       }
-      functionalCharacteristics {
+      AssetFC {
         functionalType
         functionalProperties {
           ... on artwork_storyboard_frame {

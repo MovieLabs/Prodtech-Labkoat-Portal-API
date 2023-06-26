@@ -9,9 +9,9 @@ const { hasProp } = require('../../helpers/util');
 
 // If this is an Asset Group the primary Identifier is return, otherwise the essence identifier
 const essenceId = ((ent) => (
-    ent.structuralCharacteristics.structuralType.toLowerCase() === 'assetgroup'
+    ent.AssetSC.structuralType.toLowerCase() === 'assetgroup'
         ? omc.identifierOfScope(ent.identifier, 'labkoat')
-        : omc.identifierOfScope(ent.structuralCharacteristics.identifier, 'labkoat')
+        : omc.identifierOfScope(ent.AssetSC.identifier, 'labkoat')
 ));
 
 const stripAsset = ((ent) => ({

@@ -46,6 +46,7 @@ async function serviceToken() {
         // Retrieve the token and its type from the response
         const grant = JSON.parse(await res.text());
         const { token_type: tokenType, access_token: subjectToken } = grant;
+        // console.log(subjectToken);
         bearerToken = subjectToken;
     } catch (err) {
         console.log(err);

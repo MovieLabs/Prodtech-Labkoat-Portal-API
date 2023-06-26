@@ -7,6 +7,7 @@ const fetch = require('node-fetch');
 const btoa = require('btoa');
 const request = require('request-promise');
 const { makeArray, hasProp } = require('../../../helpers/util');
+const { serviceToken } = require('../../../helpers/serviceToken');
 
 const config = require('../../../config');
 const allCharactersQuery = require('../query/allCharacters');
@@ -22,56 +23,6 @@ const queryOptions = {
 };
 
 const fMamUrl = config.FMAM_URL; // Base Url for the fMam
-
-const {
-    LABKOAT_ISSUER,
-    LABKOAT_DEFAULT_SCOPE,
-    LABKOAT_CLIENT_ID,
-} = config;
-
-// Secrets are obtained from AWS secrets manager asynchronously
-let awsSecrets = null;
-let fMamBearerToken = null;
-async function fMamSetup(secrets) {
-    awsSecrets = secrets.FMAM;
-}
-
-async function fMamToken() {
-    if (fMamBearerToken !== null) {
-        console.log('Check the token expiration');
-        const base64Url = fMamBearerToken.split('.')[1];
-        const buff = Buffer.from(base64Url, 'base64');
-        const claims = JSON.parse(buff.toString('ascii'));
-        const dateNow = new Date();
-        if (claims.exp > dateNow.getTime() / 1000) return fMamBearerToken;
-    }
-
-    const issuer = LABKOAT_ISSUER; // The URL for the Authorization server that is issuing the token
-    const scope = LABKOAT_DEFAULT_SCOPE; // The scopes being requested
-    const clientId = LABKOAT_CLIENT_ID;
-    const clientSecret = awsSecrets.LABKOAT_CLIENT_SECRET;
-
-    const token = btoa(`${clientId}:${clientSecret}`); // Base 64 encode
-    try {
-        const grant = await request({
-            uri: `${issuer}/v1/token`, // Full path to request a token
-            json: true,
-            method: 'POST',
-            headers: {
-                authorization: `Basic ${token}`,
-            },
-            form: {
-                grant_type: 'client_credentials',
-                scope,
-            },
-        });
-        fMamBearerToken = grant.access_token; // Retrieve the token and its type from the response
-    } catch (err) {
-        console.log('Error retrieving fMam access token');
-        console.log(err);
-    }
-    return fMamBearerToken;
-}
 
 /**
  * Navigate a path through a set of entities to extract and return all entities at the end of that path
@@ -102,7 +53,8 @@ async function allParticipants() {
     const graphQlQuery = queryOptions[queryName]; // Pick one of the graphql queries and variables
     const { responsePath } = graphQlQuery; // Variables to navigate the response
 
-    const bearerToken = await fMamToken();
+    // const bearerToken = await fMamToken();
+    const bearerToken = await serviceToken();
     // console.log(`Bearer Token: ${bearerToken}`);
 
     const qlOptions = {
@@ -132,7 +84,7 @@ async function allParticipants() {
 }
 
 async function mutateOmcPerson(omc) {
-    const bearerToken = await fMamToken();
+    const bearerToken = await serviceToken();
     const queryName = 'mutatePerson';
     const graphQlMutation = queryOptions[queryName]; // Pick one of the graphql queries and variables
     // delete omc.Person.entityType;
@@ -173,7 +125,6 @@ async function mutateOmcPerson(omc) {
 }
 
 module.exports = {
-    fMamSetup,
     allParticipants,
     mutateOmcPerson,
 };

@@ -9,8 +9,10 @@ const { recursiveDeepCopy, hasProp, makeArray } = require('../../helpers/util');
 const { identifierOfScope } = require('../../helpers/omc');
 const { updatePolicy } = require('./policy');
 
-// const externalUser = '00u4dm2mnhf0m6enO697'; // Grosvner Eudora
-const externalUser = '00u55sz1a81S9Bavw697'; // Matt Daw
+const GrosvnerEudora = '00u4dm2mnhf0m6enO697';
+const HermanMalinalli = '00u3bk42mac7miomA696';
+const MattDaw = '00u55sz1a81S9Bavw697';
+const externalUser = [MattDaw, HermanMalinalli];
 
 /**
  * Set a publish task
@@ -35,7 +37,7 @@ const taskSetup = {
     publish: setupPublish,
 };
 
-const executePublish = ((ent) => {
+const executePublish = (async (ent) => {
     console.log('Execute Publish task');
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
@@ -48,24 +50,28 @@ const executePublish = ((ent) => {
     }];
     db.add(externalUser, reviewTask);
     const asset = ent?.functionalCharacteristics?.functionalProperties?.Asset;
-    const policy = {
-        user: externalUser,
-        action: 'allow',
-    };
-    updatePolicy(policy, asset);
+    externalUser.forEach((user) => {
+        const policy = {
+            user,
+            action: 'allow',
+        };
+        updatePolicy(policy, asset);
+    });
 });
 
-const executeRevoke = ((ent) => {
+const executeRevoke = (async (ent) => {
     console.log('Execute Revoke task');
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
     db.remove(externalUser, 'rev-1'); // User id with the review task and the id to remove.
     const asset = ent?.functionalCharacteristics?.functionalProperties?.Asset;
-    const policy = {
-        user: externalUser,
-        action: 'deny',
-    };
-    updatePolicy(policy, asset);
+    externalUser.forEach((user) => {
+        const policy = {
+            user,
+            action: 'deny',
+        };
+        updatePolicy(policy, asset); // ToDo: async action
+    });
 });
 
 const taskExecute = {
@@ -77,25 +83,27 @@ const taskExecute = {
  * Initilize or setup a new task
  * @param omcJson
  */
-function newTask(omcJson) {
-    omcJson.forEach((ent) => {
+async function newTask(omcJson) {
+    const task = omcJson.map((ent) => {
         const functionalType = omc.functionalType(ent);
         console.log(functionalType);
-        taskSetup[functionalType](ent);
+        return taskSetup[functionalType](ent);
     });
+    await Promise.all(task);
 }
 
 /**
  * Execute or run a task
  * @param omcJson
  */
-function runTask(omcJson) {
+async function runTask(omcJson) {
     const allTasks = makeArray(omcJson);
-    allTasks.forEach((ent) => {
+    const task = allTasks.map((ent) => {
         const functionalType = omc.functionalType(ent);
         console.log(functionalType);
-        taskExecute[functionalType](ent);
+        return taskExecute[functionalType](ent);
     });
+    await Promise.all(task);
     return null;
 }
 

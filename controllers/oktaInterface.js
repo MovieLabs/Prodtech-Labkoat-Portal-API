@@ -27,16 +27,16 @@ async function oktaSetup(secrets) {
 
 /**
  * List the current users in the Okta directory
- * @param userProfile
  * @return {Promise<void>}
  */
 
-async function listUsers(userProfile) {
+async function listUsers() {
     try {
         return oktaClient.listUsers();
     } catch (err) {
         console.log(err);
     }
+    return null;
 }
 
 /**

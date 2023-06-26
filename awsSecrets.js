@@ -7,7 +7,6 @@ const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client
 
 const { fgaSetup } = require('./controllers/auth0Interface');
 const { oktaSetup } = require('./controllers/oktaInterface');
-const { fMamSetup } = require('./controllers/directory/okta/fMam');
 const { opaSetup } = require('./routes/opa-router');
 const { serviceSetup } = require('./helpers/serviceToken');
 
@@ -71,7 +70,6 @@ async function setupSecrets() {
     // Pass the secrets into the various interfaces that need to setup clients
     await fgaSetup(awsSecrets);
     await oktaSetup(awsSecrets);
-    await fMamSetup(awsSecrets);
     await opaSetup(awsSecrets);
     await serviceSetup(awsSecrets);
 }

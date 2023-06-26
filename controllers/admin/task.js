@@ -31,7 +31,7 @@ async function taskExecute(req, res, next) {
     const user = `${auth.uid}`; // Use the email address as the primary identifier, held in the sub claim
     console.log(user);
     const taskEnt = db.get(user, body[0]);
-    processTask.runTask(taskEnt);
+    await processTask.runTask(taskEnt);
 }
 
 module.exports = {

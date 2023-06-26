@@ -11,7 +11,7 @@ query ($structuralType: String, $functionalType: String){
         identifier {...idFields}
         name
         description
-    structuralCharacteristics {
+    AssetSC{
       structuralType
       structuralProperties {
         assetGroup {
@@ -19,7 +19,7 @@ query ($structuralType: String, $functionalType: String){
         }
       }
     }
-    functionalCharacteristics {
+    AssetFC {
       functionalType
     }
       Asset {
@@ -27,7 +27,7 @@ query ($structuralType: String, $functionalType: String){
         identifier {...idFields}
         name
         description
-        structuralCharacteristics {
+        AssetSC {
           structuralType
           identifier {...idFields}
           structuralProperties {
@@ -42,7 +42,7 @@ query ($structuralType: String, $functionalType: String){
             }
           }
         }
-        functionalCharacteristics {
+        AssetFC {
           functionalType
         }
 

@@ -54,18 +54,18 @@ function identifierOfScope(identifier, scope) {
  */
 
 function securityIdentifier(assetOmc, scope) {
-    if (hasProp(assetOmc.structuralCharacteristics, 'structuralProperties')
-        && assetOmc.structuralCharacteristics.structuralProperties !== null
+    if (hasProp(assetOmc.AssetSC, 'structuralProperties')
+        && assetOmc.AssetSC.structuralProperties !== null
         && (
-            hasProp(assetOmc.structuralCharacteristics.structuralProperties, 'assetGroup')
-            && assetOmc.structuralCharacteristics.structuralProperties.assetGroup !== null
+            hasProp(assetOmc.AssetSC.structuralProperties, 'assetGroup')
+            && assetOmc.AssetSC.structuralProperties.assetGroup !== null
         )
         && hasProp(assetOmc, 'Asset') && assetOmc.Asset !== null
     ) {
         console.log('Asset Group');
         return identifierOfScope(assetOmc, scope);
-    } if (hasProp(assetOmc.structuralCharacteristics, 'identifier')) {
-        return identifierOfScope(assetOmc.structuralCharacteristics.identifier, scope);
+    } if (hasProp(assetOmc.AssetSC, 'identifier')) {
+        return identifierOfScope(assetOmc.AssetSC.identifier, scope);
     }
     return null;
 }
