@@ -21,7 +21,11 @@ const app = express();
 async function setup() {
     app.use(bodyParser.json()); // Use the body parser set to JSON
     app.use(express.static('public')); // Folder for images
-    app.use(cors()); // Enable CORS
+    app.use(cors([
+        'https://staging.labkoat.media/',
+        'https://labkoat.media/',
+        'http://localhost:3000/',
+    ])); // Enable CORS
 
     app.use('/api/admin', admin); // Add the route controllers for Auth0Fga
     app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
