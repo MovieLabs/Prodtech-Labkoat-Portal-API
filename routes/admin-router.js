@@ -5,6 +5,7 @@ const jwtValidator = require('../helpers/JwtValidator');
 const { admin } = require('../controllers/admin/authorize');
 const { updatePolicy } = require('../controllers/admin/policy');
 const { taskList, taskExecute } = require('../controllers/admin/task');
+const { isAdministrator } = require('../controllers/auth0Interface');
 
 const router = express.Router();
 
@@ -18,9 +19,12 @@ const checkJwt = jwtValidator({
 
 router.get('/check', checkJwt, admin, async (req, res) => {
     console.log('GET: api/admin/check');
+    const { auth } = req;
+    const user = `${auth.uid}`;
+    const isAdmin = await isAdministrator(user);
     res.status = 200;
     res.json({
-        isAdministrator: true,
+        isAdministrator: isAdmin,
     });
 });
 

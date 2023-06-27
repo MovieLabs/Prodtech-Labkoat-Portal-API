@@ -87,6 +87,19 @@ async function check(tuple) {
 }
 
 /**
+ * Checks if this user has administrator privileges
+ * @param user
+ * @return {Promise<true | false>}
+ */
+async function isAdministrator(user) {
+    return check({
+        user: `user:${user}`,
+        relation: 'hasRole',
+        object: 'role:admin',
+    });
+}
+
+/**
  * Check an OMC Participant against the Okta directory and update or add any differences
  * @param omcParticipant
  * @return {Promise<void>}
@@ -105,4 +118,5 @@ module.exports = {
     deleteTuple,
     auth0Participant,
     check,
+    isAdministrator,
 };

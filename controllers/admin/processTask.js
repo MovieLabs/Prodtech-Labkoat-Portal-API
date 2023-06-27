@@ -38,6 +38,11 @@ const taskSetup = {
     publish: setupPublish,
 };
 
+/**
+ * Executes a request from the portal to publish a set of assets
+ * @type {(function(*): Promise<void>)|*}
+ */
+
 const executePublish = (async (ent) => {
     console.log('Execute Publish task');
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
@@ -61,6 +66,11 @@ const executePublish = (async (ent) => {
         updatePolicy(policy, asset);
     });
 });
+
+/**
+ * Executes a revoke request from the portal on a set of assets, removing permissions for a user to view them
+ * @type {(function(*): Promise<void>)|*}
+ */
 
 const executeRevoke = (async (ent) => {
     console.log('Execute Revoke task');
