@@ -22,13 +22,14 @@ const setupPublish = ((ent) => {
     const functionalProps = omc.functionalProperties(ent);
     const person = omc.extractFromEntity(functionalProps, 'Participant.structuralCharacteristics.Person');
     const personId = person.map((e) => omc.identifierOfScope(e.identifier, 'okta'))[0]; // This is who the task is for
+    const taskId = omc.identifierOfScope(ent.identifier, 'labkoat');
 
     const revokeTask = recursiveDeepCopy(ent); // Make a copy, which will be the revoke task
     revokeTask.functionalCharacteristics.functionalType = 'revoke'; // Everything is the same, but the task itself
     revokeTask.identifier = [{
         identifierScope: 'labkoat',
         // identifierValue: generateId.entity('tsk'),
-        identifierValue: 'pub-2', // ToDo: This really should be generated, but has to point to correct tuple set (Need to generate these from OMC)
+        identifierValue: `${taskId}-b`, // ToDo: This really should be generated, but has to point to correct tuple set (Need to generate these from OMC)
     }];
     db.add(personId, ent);
     db.add(personId, revokeTask);
