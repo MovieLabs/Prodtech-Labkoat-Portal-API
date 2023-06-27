@@ -10,9 +10,10 @@ const { identifierOfScope } = require('../../helpers/omc');
 const { updatePolicy } = require('./policy');
 
 const GrosvnerEudora = '00u4dm2mnhf0m6enO697';
+const VitalyPetrof = '00u667tedivZRlIhm697';
 const HermanMalinalli = '00u3bk42mac7miomA696';
 const MattDaw = '00u55sz1a81S9Bavw697';
-const externalUser = [MattDaw, HermanMalinalli];
+const externalUser = [MattDaw, VitalyPetrof, GrosvnerEudora];
 
 /**
  * Set a publish task
@@ -48,7 +49,9 @@ const executePublish = (async (ent) => {
         // identifierValue: generateId.entity('tsk'),
         identifierValue: 'rev-1', // ToDo: This really should be generated
     }];
-    db.add(externalUser, reviewTask);
+    externalUser.forEach((oktaId) => {
+        db.add(oktaId, reviewTask);
+    });
     const asset = ent?.functionalCharacteristics?.functionalProperties?.Asset;
     externalUser.forEach((user) => {
         const policy = {
@@ -63,7 +66,10 @@ const executeRevoke = (async (ent) => {
     console.log('Execute Revoke task');
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
-    db.remove(externalUser, 'rev-1'); // User id with the review task and the id to remove.
+    // User id with the review task and the id to remove.
+    externalUser.forEach((oktaId) => {
+        db.remove(oktaId, 'rev-1');
+    });
     const asset = ent?.functionalCharacteristics?.functionalProperties?.Asset;
     externalUser.forEach((user) => {
         const policy = {

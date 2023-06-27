@@ -58,15 +58,16 @@ async function fMamQuery(graphQlQuery) {
         console.log(err);
     }
 
-    let entities = []; // Process the response
-    if (fMamResponse.status === 200) {
-        const data = await fMamResponse.json();
-        entities = data.data[responsePath]; // Return only the entities from graphql formatted response
+    const data = fMamResponse.status === 200 ? await fMamResponse.json() : null;
+    const entities = data !== null ? data.data[responsePath] : null;
+    if (entities !== null) {
         console.log(`Retrieved ${entities.length} entities from fMam\n`);
-    } else {
-        console.log(`Query failed: ${fMamResponse.statusText} (${fMamResponse.status})\n`);
+        return entities;
     }
-    return entities;
+    // No data returned for the query
+    console.log(`fMam query failed: ${fMamResponse.statusText} (${fMamResponse.status})\n`);
+    console.log(`Entities: ${entities}`);
+    return [];
 }
 
 /**
@@ -77,9 +78,9 @@ async function fMamQuery(graphQlQuery) {
 async function getAssetType(queryVariables) {
     const queryName = 'getAssetType';
     const graphQlQuery = queryOptions[queryName]; // Pick one of the graphql queries and variables
-    graphQlQuery.variables = { ...queryVariables }
+    graphQlQuery.variables = { ...queryVariables };
     const type = Object.keys(queryVariables)[0];
-    console.log(`Query fMam for ${type}: ${queryVariables[type]}`)
+    console.log(`Query fMam for ${type}: ${queryVariables[type]}`);
     return fMamQuery(graphQlQuery);
 }
 
@@ -89,10 +90,10 @@ async function getAssetType(queryVariables) {
  * @param queryVariables {object} - Any query variables to be passed to the query
  * @return {Promise<*[]>}
  */
-async function query(queryName, queryVariables = {}){
+async function query(queryName, queryVariables = {}) {
     const graphQlQuery = queryOptions[queryName]; // Pick one of the graphql queries and variables
-    graphQlQuery.variables = { ...queryVariables }
-    console.log(`Query fMam for: ${queryName}`)
+    graphQlQuery.variables = { ...queryVariables };
+    console.log(`Query fMam for: ${queryName}`);
     return fMamQuery(graphQlQuery);
 }
 

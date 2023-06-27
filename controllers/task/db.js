@@ -11,6 +11,7 @@ const taskDb = {};
 
 function add(oktaId, ent) {
     if (!hasProp(taskDb, oktaId)) taskDb[oktaId] = [];
+    console.log(`Adding ${oktaId} to db`);
     taskDb[oktaId].push(ent); // ToDo: Should probably make sure the task with this Id is not already in db
     return true;
 }
@@ -32,7 +33,7 @@ function get(oktaId, params) {
     return response;
 }
 
-function remove(oktaId, identifierValue){
+function remove(oktaId, identifierValue) {
     if (!hasProp(taskDb, oktaId)) {
         console.log(`No user tasks in the db for ${oktaId}`);
         return [];

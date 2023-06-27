@@ -24,7 +24,7 @@ const configEnv = {
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
     },
     local: {
-        FMAM_URL: 'http://localhost:4001/fmam/api',
+        // FMAM_URL: 'http://localhost:4001/fmam/api',
     },
     aws: {},
 };

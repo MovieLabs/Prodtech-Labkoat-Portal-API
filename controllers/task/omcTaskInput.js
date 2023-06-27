@@ -30,7 +30,7 @@ const omcTaskInput = {
                             ],
                             name: 'HSM_project_7b71fc0c-e904-11ed-8916-d6ccebc81510_proxy.mp4',
                             description: ' ',
-                            structuralCharacteristics: {
+                            AssetSC: {
                                 structuralType: 'digital.movingImage',
                                 identifier: [
                                     {
@@ -42,7 +42,7 @@ const omcTaskInput = {
                                     assetGroup: null,
                                 },
                             },
-                            functionalCharacteristics: {
+                            AssetFC: {
                                 functionalType: 'proxy',
                             },
                             Asset: null,
@@ -57,7 +57,7 @@ const omcTaskInput = {
                             ],
                             name: 'SATL_0230_anim_v006_7a4ae33e-e904-11ed-a72c-d2dd591e3244_proxy.mp4',
                             description: ' ',
-                            structuralCharacteristics: {
+                            AssetSC: {
                                 structuralType: 'digital.movingImage',
                                 identifier: [
                                     {
@@ -69,7 +69,7 @@ const omcTaskInput = {
                                     assetGroup: null,
                                 },
                             },
-                            functionalCharacteristics: {
+                            AssetFC: {
                                 functionalType: 'proxy',
                             },
                             Asset: null,
@@ -84,7 +84,7 @@ const omcTaskInput = {
                             ],
                             name: 'SATL_0220_anim_v005_78a2b548-e904-11ed-9904-2a7b0734cd6b_proxy.mp4',
                             description: ' ',
-                            structuralCharacteristics: {
+                            AssetSC: {
                                 structuralType: 'digital.movingImage',
                                 identifier: [
                                     {
@@ -96,7 +96,7 @@ const omcTaskInput = {
                                     assetGroup: null,
                                 },
                             },
-                            functionalCharacteristics: {
+                            AssetFC: {
                                 functionalType: 'proxy',
                             },
                             Asset: null,
@@ -111,7 +111,7 @@ const omcTaskInput = {
                             ],
                             name: 'premiere_example_foo_57b8af10-e871-11ed-887e-7e5d05e19b8d.otio',
                             description: 'None',
-                            structuralCharacteristics: {
+                            AssetSC: {
                                 structuralType: 'digital.structuredDocument',
                                 identifier: [
                                     {
@@ -121,7 +121,7 @@ const omcTaskInput = {
                                 ],
                                 structuralProperties: null,
                             },
-                            functionalCharacteristics: {
+                            AssetFC: {
                                 functionalType: 'sequenceChronology',
                             },
                             Asset: null,
@@ -186,7 +186,7 @@ const omcTaskInput = {
             },
         },
     ],
-    '00u4dm2mnhf0m6enO697': [
+    '00u667lv8xYGbtcrv697': [
         {
             entityType: 'Task',
             identifier: [{
