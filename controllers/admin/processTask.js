@@ -13,7 +13,7 @@ const GrosvnerEudora = '00u4dm2mnhf0m6enO697';
 const VitalyPetrof = '00u667tedivZRlIhm697';
 const HermanMalinalli = '00u3bk42mac7miomA696';
 const MattDaw = '00u55sz1a81S9Bavw697';
-const externalUser = [MattDaw, VitalyPetrof, GrosvnerEudora];
+const externalUser = [MattDaw, VitalyPetrof];
 
 /**
  * Set a publish task
