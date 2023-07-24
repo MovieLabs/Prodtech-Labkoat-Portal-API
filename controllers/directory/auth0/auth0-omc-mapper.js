@@ -54,7 +54,7 @@ function labkoatMembers(participants) {
 
     const orgs = participants.filter((p) => p.structuralCharacteristics.structuralType === 'organization');
     const labkoatOrg = orgs.filter((o) => (
-        o.structuralCharacteristics.Organization.organizationName.alternateName === 'labkoat'
+        o.structuralCharacteristics.Organization.organizationName.altName === 'labkoat'
     ))[0];
 
     const labkoatMemberId = labkoatOrg.Participant.flatMap((p) => (

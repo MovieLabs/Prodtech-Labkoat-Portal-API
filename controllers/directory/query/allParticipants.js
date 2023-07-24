@@ -49,7 +49,7 @@ query {
         description
         organizationName {
           fullName
-          alternateName
+          altName
         }
       }
     }

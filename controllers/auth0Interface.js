@@ -72,6 +72,7 @@ async function writeTuple(t) {
             console.log(`Written: ${printable}`);
         } catch (err) {
             console.log(`Error: ${printable}`);
+            // console.log(err);
         }
     }
     return 'Success';
