@@ -501,37 +501,33 @@ const omcTaskInput = {
                                 },
                             ],
                             name: 'JRUN_SINGLE_4_1_Tuesday_56ccebe2-201c-11ee-8f6d-eec82ca92fed.otio',
-                            AssetSC: [
-                                {
-                                    entityType: 'AssetSC',
-                                    identifier: [
-                                        {
-                                            identifierScope: 'labkoat',
-                                            identifierValue: 'assetsc/BI3djCCyHOQG5PPsqR1er',
-                                        },
-                                    ],
-                                    structuralType: 'digital.structuredDocument',
-                                    structuralProperties: {
-                                        assetGroup: {
-                                            isOrdered: false,
-                                        },
-                                        linkset: {
-                                            recordType: 'item',
-                                            mediaType: 'application/json',
-                                        },
-                                        fileDetails: {
-                                            fileExtension: 'otio',
-                                            fileName: 'JRUN_SINGLE_4_1_Tuesday_56ccebe2-201c-11ee-8f6d-eec82ca92fed.otio',
-                                            filePath: '',
-                                        },
+                            AssetSC: {
+                                entityType: 'AssetSC',
+                                identifier: [
+                                    {
+                                        identifierScope: 'labkoat',
+                                        identifierValue: 'assetsc/BI3djCCyHOQG5PPsqR1er',
+                                    },
+                                ],
+                                structuralType: 'digital.structuredDocument',
+                                structuralProperties: {
+                                    assetGroup: {
+                                        isOrdered: false,
+                                    },
+                                    linkset: {
+                                        recordType: 'item',
+                                        mediaType: 'application/json',
+                                    },
+                                    fileDetails: {
+                                        fileExtension: 'otio',
+                                        fileName: 'JRUN_SINGLE_4_1_Tuesday_56ccebe2-201c-11ee-8f6d-eec82ca92fed.otio',
+                                        filePath: '',
                                     },
                                 },
-                            ],
-                            AssetFC: [
-                                {
-                                    functionalType: 'sequenceChronology',
-                                },
-                            ],
+                            },
+                            AssetFC: {
+                                functionalType: 'sequenceChronology',
+                            },
                         },
                         {
                             entityType: 'Asset',

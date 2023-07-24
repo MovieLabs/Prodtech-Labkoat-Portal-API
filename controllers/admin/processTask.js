@@ -49,11 +49,12 @@ const executePublish = (async (ent) => {
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
     const reviewTask = recursiveDeepCopy(ent);
+    const taskId = generateId.entity('tsk');
     reviewTask.functionalCharacteristics.functionalType = 'review'; // Everything is the same, but the task itself
     reviewTask.identifier = [{
         identifierScope: 'labkoat',
         // identifierValue: generateId.entity('tsk'),
-        identifierValue: 'rev-1', // ToDo: This really should be generated
+        identifierValue: taskId, // ToDo: This really should be generated
     }];
     externalUser.forEach((oktaId) => {
         db.add(oktaId, reviewTask);
