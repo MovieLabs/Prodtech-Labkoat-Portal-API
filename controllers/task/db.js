@@ -6,7 +6,6 @@
 
 const { hasProp } = require('../../helpers/util');
 const omc = require('../../helpers/omc');
-const { identifierOfScope } = require('../../helpers/omc');
 
 const taskDb = {};
 

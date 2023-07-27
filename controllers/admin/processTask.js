@@ -5,7 +5,7 @@
 const db = require('../task/db');
 const omc = require('../../helpers/omc');
 const generateId = require('../../helpers/generateID');
-const { recursiveDeepCopy, hasProp, makeArray } = require('../../helpers/util');
+const { recursiveDeepCopy, makeArray } = require('../../helpers/util');
 const { identifierOfScope } = require('../../helpers/omc');
 const { updatePolicy } = require('./policy');
 
@@ -49,14 +49,10 @@ const executePublish = (async (ent) => {
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
     const reviewTask = recursiveDeepCopy(ent);
-    const taskId = generateId.entity('tsk');
     reviewTask.functionalCharacteristics.functionalType = 'review'; // Everything is the same, but the task itself
     reviewTask.identifier = [{
         identifierScope: 'labkoat',
-        // identifierValue: generateId.entity('tsk'),
-        // identifierValue: 'rev-1', // ToDo: This really should be generated
-        // identifierValue: taskId,
-        identifierValue: `${labkoatId}-review`, // ToDo: Maybe this will stop multiple id's
+        identifierValue: `${labkoatId}-review`,
     }];
     externalUser.forEach((oktaId) => {
         db.add(oktaId, reviewTask);
