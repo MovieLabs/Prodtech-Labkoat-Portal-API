@@ -6,13 +6,21 @@
 
 const { hasProp } = require('../../helpers/util');
 const omc = require('../../helpers/omc');
+const { identifierOfScope } = require('../../helpers/omc');
 
 const taskDb = {};
 
 function add(oktaId, ent) {
     if (!hasProp(taskDb, oktaId)) taskDb[oktaId] = [];
     console.log(`Adding ${oktaId} to db`);
-    taskDb[oktaId].push(ent); // ToDo: Should probably make sure the task with this Id is not already in db
+    const taskIdScope = ent.identifier[0].identifierScope;
+    const taskIdValue = ent.identifier[0].identifierValue;
+    const inDb = taskDb[oktaId].filter((t) => {
+        const { identifier } = t;
+        const allIds = identifier.filter((id) => id.identifierScope === taskIdScope && id.identifierValue === taskIdValue);
+        return allIds.length;
+    });
+    if (inDb.length === 0) taskDb[oktaId].push(ent); // ToDo: Should probably make sure the task with this Id is not already in db
     return true;
 }
 

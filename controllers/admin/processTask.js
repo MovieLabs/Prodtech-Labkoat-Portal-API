@@ -29,7 +29,7 @@ const setupPublish = ((ent) => {
     revokeTask.identifier = [{
         identifierScope: 'labkoat',
         // identifierValue: generateId.entity('tsk'),
-        identifierValue: `${taskId}-b`, // ToDo: This really should be generated, but has to point to correct tuple set (Need to generate these from OMC)
+        identifierValue: `${taskId}-revoke`, // ToDo: This really should be generated, but has to point to correct tuple set (Need to generate these from OMC)
     }];
     db.add(personId, ent);
     db.add(personId, revokeTask);
@@ -54,7 +54,9 @@ const executePublish = (async (ent) => {
     reviewTask.identifier = [{
         identifierScope: 'labkoat',
         // identifierValue: generateId.entity('tsk'),
-        identifierValue: taskId, // ToDo: This really should be generated
+        // identifierValue: 'rev-1', // ToDo: This really should be generated
+        // identifierValue: taskId,
+        identifierValue: `${labkoatId}-review`, // ToDo: Maybe this will stop multiple id's
     }];
     externalUser.forEach((oktaId) => {
         db.add(oktaId, reviewTask);
@@ -78,9 +80,10 @@ const executeRevoke = (async (ent) => {
     console.log('Execute Revoke task');
     const labkoatId = identifierOfScope(ent.identifier, 'labkoat');
     console.log(labkoatId);
+    const revokeId = labkoatId.replace('revoke', 'review');
     // User id with the review task and the id to remove.
     externalUser.forEach((oktaId) => {
-        db.remove(oktaId, 'rev-1');
+        db.remove(oktaId, revokeId);
     });
     const asset = ent?.functionalCharacteristics?.functionalProperties?.Asset;
     externalUser.forEach((user) => {
