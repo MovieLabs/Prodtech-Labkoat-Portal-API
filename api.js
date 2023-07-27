@@ -38,6 +38,7 @@ async function setup() {
     await newTask(omcTask.input1);
     await newTask(omcTask.input2);
     await newTask(omcTask.input3);
+    await newTask(omcTask.input4);
 
     // Launch the API Server at localhost:8080
     app.listen(8080);
