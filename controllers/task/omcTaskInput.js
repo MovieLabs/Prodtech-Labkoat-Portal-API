@@ -11,7 +11,7 @@ const omcTaskInput = {
                 identifierScope: 'labkoat',
                 identifierValue: 'pub-1',
             }],
-            name: 'Scene 1 Clip 1',
+            name: 'SATL_0070',
             description: 'No reflection in Sven\'s mask',
             functionalCharacteristics: {
                 functionalType: 'publish',
@@ -193,7 +193,7 @@ const omcTaskInput = {
                 identifierScope: 'labkoat',
                 identifierValue: 'pub-2',
             }],
-            name: 'Scene 1 Clip 1',
+            name: 'SATL_0070',
             description: 'No reflection in Sven\'s mask',
             functionalCharacteristics: {
                 functionalType: 'publish',
@@ -483,8 +483,8 @@ const omcTaskInput = {
                 identifierScope: 'labkoat',
                 identifierValue: 'pub-3',
             }],
-            name: 'Scene 2 Clip 1',
-            description: 'Do a description here',
+            name: 'JRUN version 7',
+            description: 'Review deletion of JRUN_0030',
             functionalCharacteristics: {
                 functionalType: 'publish',
                 functionalProperties: {
@@ -747,8 +747,8 @@ const omcTaskInput = {
                 identifierScope: 'labkoat',
                 identifierValue: 'pub-3',
             }],
-            name: 'Scene 2 Clip 1',
-            description: 'Do a description here',
+            name: 'JRUN version 7',
+            description: 'Review deletion of JRUN_0030',
             functionalCharacteristics: {
                 functionalType: 'publish',
                 functionalProperties: {
