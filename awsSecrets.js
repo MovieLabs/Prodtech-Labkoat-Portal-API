@@ -8,6 +8,7 @@ const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client
 const { fgaSetup } = require('./controllers/auth0Interface');
 const { oktaSetup } = require('./controllers/oktaInterface');
 const { opaSetup } = require('./routes/opa-router');
+const { omcSetup } = require('./routes/omc-router');
 const { serviceSetup } = require('./helpers/serviceToken');
 
 const AWS_REGION = 'us-west-2';
@@ -68,9 +69,10 @@ async function setupSecrets() {
     }, {});
 
     // Pass the secrets into the various interfaces that need to setup clients
-    await fgaSetup(awsSecrets);
+    // await fgaSetup(awsSecrets);
     await oktaSetup(awsSecrets);
     await opaSetup(awsSecrets);
+    await omcSetup(awsSecrets);
     await serviceSetup(awsSecrets);
 }
 

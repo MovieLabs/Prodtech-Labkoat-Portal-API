@@ -22,6 +22,12 @@ const configEnv = {
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
+        FMAM_MONGO_URL: 'mongodb://${username}:${password}@service.labkoat.media/admin:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false',
+        FMAM_MONGO_DB: 'Europa1',
+        projects: {
+            europa: 'Europa1',
+            hsm: 'POC6',
+        },
     },
     local: {
         // FMAM_URL: 'http://localhost:4001/fmam/api',

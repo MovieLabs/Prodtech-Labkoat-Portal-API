@@ -70,6 +70,21 @@ function securityIdentifier(assetOmc, scope) {
     return null;
 }
 
+function OmcModel(omc) {
+    const model = Object.create({
+        identifierOfScope(scope) {
+            const identifier = this.identifier.filter((id) => id.identifierScope === scope);
+            return identifier[0] ? identifier[0] : null;
+        },
+        identifierValueOfScope(scope) {
+            const value = this.identifier.filter((id) => id.identifierScope === scope)
+                .map((id) => id.identifierValue);
+            return value[0] ? value[0] : null;
+        },
+    });
+    return Object.assign(model, omc);
+}
+
 module.exports = {
     functionalType,
     structuralType,
@@ -78,4 +93,5 @@ module.exports = {
     extractFromEntity,
     identifierOfScope,
     securityIdentifier,
+    OmcModel,
 };
