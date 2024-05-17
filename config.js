@@ -24,6 +24,9 @@ const configEnv = {
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
         FMAM_MONGO_URL: 'mongodb://${username}:${password}@service.labkoat.media/admin:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false',
         FMAM_MONGO_DB: 'Europa1',
+        AWS_NEO4J_URI: 'neo4j://35.85.154.154:7687',
+        AWS_NEO4J_USERNAME: 'neo4j',
+        AWS_NEO4J_DATABASE: 'neo4j',
         projects: {
             europa: 'Europa1',
             hsm: 'POC6',
@@ -36,7 +39,8 @@ const configEnv = {
 };
 
 const { argv } = process; // env argument should be set in the command line
-const argEnv = argv.filter((arg) => arg.includes('env=')).map((arg) => arg.replace('env=', ''))[0];
+const argEnv = argv.filter((arg) => arg.includes('env='))
+    .map((arg) => arg.replace('env=', ''))[0];
 const envNames = Object.keys(configEnv);
 const env = (envNames.includes(argEnv)) ? argEnv : 'default';
 const environment = { ...configEnv.default, ...configEnv[env] };
@@ -44,6 +48,10 @@ console.log(`Environment: ${env}`);
 
 // Add the environment variables using getters to the config object
 const config = Object.keys(environment)
-    .reduce((c, key) => Object.defineProperty(c, key, { get() { return environment[key]; } }), {});
+    .reduce((c, key) => Object.defineProperty(c, key, {
+        get() {
+            return environment[key];
+        },
+    }), {});
 
 module.exports = config;

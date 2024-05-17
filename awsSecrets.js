@@ -9,6 +9,7 @@ const { fgaSetup } = require('./controllers/auth0Interface');
 const { oktaSetup } = require('./controllers/oktaInterface');
 const { opaSetup } = require('./routes/opa-router');
 const { omcSetup } = require('./routes/omc-router');
+const { vocabSetup } = require('./routes/vocab-router');
 const { serviceSetup } = require('./helpers/serviceToken');
 
 const AWS_REGION = 'us-west-2';
@@ -59,6 +60,23 @@ async function setupSecrets() {
     const secretsPromise = Object.keys(secretEnv).map((key) => fetchSecret(secretEnv[key], key));
     const res = await Promise.all(secretsPromise);
 
+    // const tempCreds = [
+    //     'NEO4J',
+    //     // Localhost
+    //     // {
+    //     //     NEO4J_URI: process.env.NEO4J_URI,
+    //     //     NEO4J_USERNAME: process.env.NEO4J_USERNAME,
+    //     //     NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
+    //     // },
+    //     // AWS Hosted
+    //     {
+    //         NEO4J_URI: process.env.AWS_NEO4J_URI,
+    //         NEO4J_USERNAME: process.env.AWS_NEO4J_USERNAME,
+    //         NEO4J_PASSWORD: process.env.AWS_NEO4J_PASSWORD,
+    //     },
+    // ];
+    // res.push(tempCreds);
+
     // Add the secrets using getters to the secrets object
     awsSecrets = res.reduce((obj, [key, v]) => {
         return Object.defineProperty(obj, key, {
@@ -73,6 +91,7 @@ async function setupSecrets() {
     await oktaSetup(awsSecrets);
     await opaSetup(awsSecrets);
     await omcSetup(awsSecrets);
+    await vocabSetup(awsSecrets);
     await serviceSetup(awsSecrets);
 }
 
