@@ -1,4 +1,5 @@
 const { makeArray } = require('../helpers/util');
+
 /**
  * Internal cache of the Neo4J database, indexed by their internal element identifiers
  */

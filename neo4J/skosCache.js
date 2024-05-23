@@ -3,9 +3,9 @@
  */
 const neoCache = require('./neoCache');
 
-const skosMap = { nodes: {}, edges: {} };
+let skosMap;
 
-function setCache() {
+function computeCache() {
     // Retrieve the Skos data from the cache, formatted as Neo4J parameters
     const conceptScheme = neoCache.getConceptScheme();
     const concept = neoCache.getConcept();
@@ -17,24 +17,94 @@ function setCache() {
 
     const nodesArr = [...conceptScheme.ConceptScheme, ...concept.Concept, ...label.Label];
     const edgesArr = [...edgeLabel, ...edgeTopConcept, ...edgeNarrower, ...edgeScheme];
+
+    const cache = {
+        nodes: {},
+        edges: {},
+    };
+
     nodesArr.forEach((n) => {
-        skosMap.nodes[n.id] = n;
+        cache.nodes[n.id] = n;
     });
 
     edgesArr.forEach((e) => {
-        if (skosMap.edges[e.sourceId]) {
+        if (cache.edges[e.sourceId]) {
             const edgeString = JSON.stringify(e);
-            const edgeExists = skosMap.edges[e.sourceId].filter((se) => JSON.stringify(se) === edgeString);
+            const edgeExists = cache.edges[e.sourceId].filter((se) => JSON.stringify(se) === edgeString);
             if (edgeExists.length) return; // Skip duplicates
-            skosMap.edges[e.sourceId].push(e);
+            cache.edges[e.sourceId].push(e);
         } else {
-            skosMap.edges[e.sourceId] = [e];
+            cache.edges[e.sourceId] = [e];
         }
     });
+    return cache;
+}
+
+function setCache() {
+    skosMap = computeCache();
 }
 
 function getCache() {
     return skosMap;
+}
+
+function compareCache() {
+    const error = []; // Does the updated skosMap and the updates done to Neo4J mirror one another
+    const cache = computeCache();
+    const cacheNodes = Object.keys(cache.nodes).sort();
+    const skosNodes = Object.keys(skosMap.nodes).sort();
+    if (cacheNodes.toString() !== skosNodes.toString()) {
+        error.push({
+            message: 'The Edge keys do not match',
+            data: {
+                cache: cacheNodes,
+                skosMap: skosNodes,
+            },
+        });
+    }
+    const cacheEdges = Object.keys(cache.edges).sort();
+    const skosEdges = Object.keys(skosMap.edges).sort();
+    if (cacheEdges.toString() !== skosEdges.toString()) {
+        error.push({
+            message: 'The Edge keys do not match',
+            data: {
+                cache: cacheEdges,
+                skosMap: skosEdges,
+            },
+        });
+    }
+
+    const nodeCompare = [];
+    cacheNodes.forEach((key) => {
+        if (JSON.stringify(cache.nodes[key]) !== JSON.stringify(skosMap.nodes[key])) nodeCompare.push(key);
+    });
+
+    const edgeCompare = [];
+    cacheEdges.forEach((key) => {
+        const allCacheEdges = JSON.stringify(cache.edges[key].sort());
+        const allSkosEdges = JSON.stringify(skosMap.edges[key].sort());
+        if (allCacheEdges !== allSkosEdges) edgeCompare.push(key);
+    });
+
+    if (nodeCompare.length) {
+        error.push({
+            message: 'There are Nodes with discrepancies between them',
+            data: {
+                cache: nodeCompare.map((key) => ({ [key]: cacheNodes[key] })),
+                skosMap: nodeCompare.map((key) => ({ [key]: skosNodes[key] })),
+            },
+        });
+    }
+    if (edgeCompare.length) {
+        error.push({
+            message: 'There are Edges with discrepancies between them',
+            data: {
+                cache: edgeCompare.map((key) => ({ [key]: cacheEdges[key] })),
+                skosMap: edgeCompare.map((key) => ({ [key]: skosEdges[key] })),
+            },
+        });
+    }
+    return error.length ? null : error;
 }
 
 function updateAction(action) {
@@ -81,8 +151,27 @@ function updateAction(action) {
     return true;
 }
 
+async function loadCache(neo4JInterface) {
+    try {
+        // Load up the Skos graph into the cache
+        await neo4JInterface.query('getHierarchy'); // Top concepts and narrower
+        await neo4JInterface.query('getScheme'); // Setup the cache
+        await neo4JInterface.query('getConcept');
+        await neo4JInterface.query('getLabel');
+        setCache(); // Setup the server side cache for the front (uses the cached raw neo4J responses)
+        console.log('Internal SKOS cache has be reloaded');
+        return true;
+    } catch (err) {
+        console.log(err);
+        console.log(`Connection error\n${err}\nCause: ${err.cause}`);
+        return false; // ToDo: Handle this with an error.
+    }
+}
+
 module.exports = {
     setCache,
     getCache,
+    compareCache,
     updateAction,
+    loadCache,
 };

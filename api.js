@@ -21,6 +21,7 @@ const { opaRouter } = require('./routes/opa-router');
 const app = express();
 
 async function setup() {
+    console.log('Here it is');
     app.use(express.urlencoded()); // Need both of these to receive JSON in body
     app.use(express.json());
     app.use(express.static('public')); // Folder for images

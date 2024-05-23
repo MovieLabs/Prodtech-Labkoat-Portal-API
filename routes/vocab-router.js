@@ -9,7 +9,6 @@ const {
     skosPost,
 } = require('../controllers/vocabulary/skosController');
 const vocabNeo4J = require('../neo4J/vocabNeo4J');
-const neoCache = require('../neo4J/neoCache');
 const skosCache = require('../neo4J/skosCache');
 
 const router = express.Router();
@@ -32,7 +31,6 @@ async function vocabSetup(secrets) {
     const dbUser = config.AWS_NEO4J_USERNAME;
     const dbPassword = NEO4J_PASSWORD;
     dbDatabase = config.AWS_NEO4J_DATABASE;
-    // dbDatabase = 'omc-vocab';
 
     neo4JInterface = await vocabNeo4J({ // Initialize the Neo4J interface
         dbUri,
@@ -41,20 +39,8 @@ async function vocabSetup(secrets) {
         dbDatabase,
     });
 
-    try {
-        // Load up the Skos graph into the cache
-        await neo4JInterface.query('getHierarchy'); // Top concepts and narrower
-        await neo4JInterface.query('getScheme'); // Setup the cache
-        await neo4JInterface.query('getConcept');
-        await neo4JInterface.query('getLabel');
-        skosCache.setCache(); // Setup the server side cache for the front (uses the cached raw neo4J responses)
-
-        return true;
-    } catch (err) {
-        console.log(err);
-        console.log(`Connection error\n${err}\nCause: ${err.cause}`);
-        return false; // ToDo: Handle this with an error.
-    }
+    const vocabLoaded = await skosCache.loadCache(neo4JInterface);
+    return vocabLoaded;
 }
 
 router.get('/skos', checkJwt, ((req, res) => skosGet(req, res, neo4JInterface)));

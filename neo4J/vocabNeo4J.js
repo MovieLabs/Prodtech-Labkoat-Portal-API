@@ -117,11 +117,11 @@ async function write(omcVocab) {
         nodes,
         edges,
     } = omcVocab;
-    const schemeRes = await batchNodes(nodes, driver, dbDatabase);
+    const nodeRes = await batchNodes(nodes, driver, dbDatabase);
     const edgeRes = await batchEdges(edges, driver, dbDatabase);
 
     return {
-        nodes: schemeRes,
+        nodes: nodeRes,
         edges: edgeRes,
     };
 }
