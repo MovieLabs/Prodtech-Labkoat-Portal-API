@@ -29,6 +29,16 @@ const emptyString = (str) => (typeof str !== 'string' || str.trim().length === 0
 const capitalize = (str) => (typeof str === 'string' ? str.charAt(0).toUpperCase() + str.slice(1) : null);
 
 /**
+ * Convert a string to camel case
+ *
+ * @type {function(*): string}
+ * @param {string} str - String to be converted to camel case
+ * @returns {string} - String with first letter lower case and subsequent words capitalize with no white space
+ */
+
+const camelCase = ((str) => str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase()));
+
+/**
  * Convert a string to a number, dealing with an comma separators in the string
  *
  * @param {string} str - String to be converted to a number
@@ -136,6 +146,7 @@ async function asyncQueue(concurrency = 2, qDone = null) {
 module.exports = {
     emptyString,
     capitalize,
+    camelCase,
     convertNum,
     makeArray,
     hasProp,
