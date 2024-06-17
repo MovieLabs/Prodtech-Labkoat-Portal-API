@@ -40,8 +40,9 @@ function computeCache() {
     return cache;
 }
 
-function setCache() {
-    skosMap = computeCache();
+function setCache(newSkosMap) {
+    skosMap = newSkosMap;
+    return skosMap;
 }
 
 function getCache() {
@@ -51,8 +52,10 @@ function getCache() {
 function compareCache() {
     const error = []; // Does the updated skosMap and the updates done to Neo4J mirror one another
     const cache = computeCache();
-    const cacheNodes = Object.keys(cache.nodes).sort();
-    const skosNodes = Object.keys(skosMap.nodes).sort();
+    const cacheNodes = Object.keys(cache.nodes)
+        .sort();
+    const skosNodes = Object.keys(skosMap.nodes)
+        .sort();
     if (cacheNodes.toString() !== skosNodes.toString()) {
         error.push({
             message: 'The Edge keys do not match',
@@ -62,8 +65,10 @@ function compareCache() {
             },
         });
     }
-    const cacheEdges = Object.keys(cache.edges).sort();
-    const skosEdges = Object.keys(skosMap.edges).sort();
+    const cacheEdges = Object.keys(cache.edges)
+        .sort();
+    const skosEdges = Object.keys(skosMap.edges)
+        .sort();
     if (cacheEdges.toString() !== skosEdges.toString()) {
         error.push({
             message: 'The Edge keys do not match',
@@ -154,12 +159,28 @@ function updateAction(action) {
 async function loadCache(neo4JInterface) {
     try {
         // Load up the Skos graph into the cache
+        neoCache.resetCache();
         await neo4JInterface.query('getHierarchy'); // Top concepts and narrower
         await neo4JInterface.query('getScheme'); // Setup the cache
         await neo4JInterface.query('getConcept');
         await neo4JInterface.query('getLabel');
-        setCache(); // Setup the server side cache for the front (uses the cached raw neo4J responses)
+
+        const newSkosMap = computeCache(); // Compute the new skosMap from the loaded data
+
+        if (skosMap) { // Compare the cache if this is not loading for the first time
+            console.log('This is the newly loaded data');
+            console.log(newSkosMap.edges['vmc:s-Audio']);
+            console.log('This is the existing cache');
+            console.log(skosMap.edges['vmc:s-Audio']);
+
+            const error = compareCache(); // Compare the old SKOS cache to the new loaded data
+            console.log('Differences between Neo4J and cached database');
+            console.log(error);
+        }
+
+        setCache(newSkosMap); // Setup the server side cache for the front (uses the cached raw neo4J responses)
         console.log('Internal SKOS cache has be reloaded');
+
         return true;
     } catch (err) {
         console.log(err);

@@ -1,12 +1,15 @@
-const { makeArray } = require('../helpers/util');
-
 /**
  * Internal cache of the Neo4J database, indexed by their internal element identifiers
  */
-const cache = {
-    nodes: {},
-    edges: {},
-};
+
+const { makeArray } = require('../helpers/util');
+
+const cache = {};
+
+function resetCache() {
+    cache.nodes = {};
+    cache.edges = {};
+}
 
 function add(data) {
     const { records } = data;
@@ -66,15 +69,11 @@ function edgeLabel(relType) {
     });
 }
 
-function getSkosMap() {
-    return cache;
-}
-
 module.exports = {
+    resetCache,
     add,
     getConceptScheme,
     getConcept,
     getLabel,
     edgeLabel,
-    getSkosMap,
 };

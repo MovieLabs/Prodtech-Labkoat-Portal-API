@@ -13,6 +13,8 @@ async function skosGet(req, res, neo4JInterface) {
     await skosCache.loadCache(neo4JInterface);
     const skosMap = skosCache.getCache();
 
+    console.log(skosMap.edges["vmc:s-Audio"]);
+
     if (skosMap) {
         res.status(200)
             .json(skosMap);
@@ -30,13 +32,10 @@ async function skosPost(req, res, neo4JInterface) {
 
     const neo4jResponse = await neo4jUpdate(body, neo4JInterface);
     skosCache.updateAction(body); // Update the internal cache
+    const skosMap1 = skosCache.getCache();
+    console.log("Check 1");
+    console.log(skosMap1.edges["vmc:s-Audio"]);
     await skosCache.loadCache(neo4JInterface); // Reload the neo4Jcache
-    const error = skosCache.compareCache(); // Compare the old SKOS cache to the new loaded data
-
-    if (error) {
-        console.log('Error');
-        console.log(error);
-    }
 
     res.status(200)
         .json({ message: 'Ok' });

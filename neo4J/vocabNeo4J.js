@@ -198,12 +198,11 @@ async function VocabNeo4j({
     const driver = await initDriver(dbUri, dbUser, dbPassword);
 
     return {
-        neo4jReset,
         write,
         writeBatch,
+        query,
         driver,
         dbDatabase,
-        query,
     };
 }
 
