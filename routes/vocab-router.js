@@ -8,8 +8,13 @@ const {
     skosGet,
     skosPost,
 } = require('../controllers/vocabulary/skosController');
-const vocabNeo4J = require('../neo4J/vocabNeo4J');
+const {
+    omcGet,
+    omcPost,
+} = require('../controllers/vocabulary/omcController');
+const neo4jInterface = require('../neo4J/neo4JInterface');
 const skosCache = require('../neo4J/skosCache');
+const omcCache = require('../neo4J/omcCache');
 
 const router = express.Router();
 
@@ -19,7 +24,7 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-let neo4JInterface = null; // Neo4J interface and database connection
+let neo4Jdb = null; // Neo4J interface and database connection
 let dbDatabase = null;
 
 async function vocabSetup(secrets) {
@@ -32,19 +37,22 @@ async function vocabSetup(secrets) {
     const dbPassword = NEO4J_PASSWORD;
     dbDatabase = config.AWS_NEO4J_DATABASE;
 
-    neo4JInterface = await vocabNeo4J({ // Initialize the Neo4J interface
+    neo4Jdb = await neo4jInterface({ // Initialize the Neo4J interface
         dbUri,
         dbUser,
         dbPassword,
         dbDatabase,
     });
 
-    const vocabLoaded = await skosCache.loadCache(neo4JInterface);
+    const vocabLoaded = await skosCache.loadCache(neo4Jdb);
+    await omcCache.loadCache(neo4Jdb);
     return vocabLoaded;
 }
 
-router.get('/skos', checkJwt, ((req, res) => skosGet(req, res, neo4JInterface)));
-router.post('/skos', checkJwt, ((req, res) => skosPost(req, res, neo4JInterface)));
+router.get('/skos', checkJwt, ((req, res) => skosGet(req, res, neo4Jdb)));
+router.post('/skos', checkJwt, ((req, res) => skosPost(req, res, neo4Jdb)));
+router.get('/omc', checkJwt, ((req, res) => omcGet(req, res, neo4Jdb)));
+router.post('/omc', checkJwt, ((req, res) => omcPost(req, res, neo4Jdb)));
 
 module.exports = {
     vocabSetup,

@@ -5,7 +5,7 @@ const neoCache = require('./neoCache');
 
 let skosMap;
 
-function computeCache() {
+function computeSkosCache() {
     // Retrieve the Skos data from the cache, formatted as Neo4J parameters
     const conceptScheme = neoCache.getConceptScheme();
     const concept = neoCache.getConcept();
@@ -15,7 +15,7 @@ function computeCache() {
     const edgeNarrower = neoCache.edgeLabel(['narrower']);
     const edgeScheme = neoCache.edgeLabel(['inScheme']);
 
-    const nodesArr = [...conceptScheme.ConceptScheme, ...concept.Concept, ...label.Label];
+    const nodesArr = [...conceptScheme, ...concept, ...label];
     const edgesArr = [...edgeLabel, ...edgeTopConcept, ...edgeNarrower, ...edgeScheme];
 
     const cache = {
@@ -49,9 +49,9 @@ function getCache() {
     return skosMap;
 }
 
-function compareCache() {
+function compareSkosCache() {
     const error = []; // Does the updated skosMap and the updates done to Neo4J mirror one another
-    const cache = computeCache();
+    const cache = computeSkosCache();
     const cacheNodes = Object.keys(cache.nodes)
         .sort();
     const skosNodes = Object.keys(skosMap.nodes)
@@ -146,41 +146,41 @@ function updateAction(action) {
         action.delete.forEach((d) => {
             if (d.sourceId) {
                 const { sourceId } = d;
-                const keepEdges = skosMap.edges[sourceId].filter((e) => {
+                skosMap.edges[sourceId] = skosMap.edges[sourceId].filter((e) => {
                     return !(e.targetId === d.targetId && e.relation === d.relation);
                 });
-                skosMap.edges[sourceId] = keepEdges;
             }
         });
     }
     return true;
 }
 
-async function loadCache(neo4JInterface) {
+async function loadCache(neo4Jdb) {
     try {
         // Load up the Skos graph into the cache
-        neoCache.resetCache();
-        await neo4JInterface.query('getHierarchy'); // Top concepts and narrower
-        await neo4JInterface.query('getScheme'); // Setup the cache
-        await neo4JInterface.query('getConcept');
-        await neo4JInterface.query('getLabel');
+        neoCache.deleteConceptScheme(); // Clear the database cache
+        neoCache.deleteConcept();
+        neoCache.deleteLabel();
 
-        const newSkosMap = computeCache(); // Compute the new skosMap from the loaded data
+        const hierarchy = await neo4Jdb.query('getHierarchy'); // Top concepts and narrower
+        neoCache.add(hierarchy);
+        const scheme = await neo4Jdb.query('getScheme'); // Setup the cache
+        neoCache.add(scheme);
+        const concept = await neo4Jdb.query('getConcept');
+        neoCache.add(concept);
+        const label = await neo4Jdb.query('getLabel');
+        neoCache.add(label);
+
+        const newSkosMap = computeSkosCache(); // Compute the new skosMap from the loaded data
 
         if (skosMap) { // Compare the cache if this is not loading for the first time
-            console.log('This is the newly loaded data');
-            console.log(newSkosMap.edges['vmc:s-Audio']);
-            console.log('This is the existing cache');
-            console.log(skosMap.edges['vmc:s-Audio']);
-
-            const error = compareCache(); // Compare the old SKOS cache to the new loaded data
+            const error = compareSkosCache(); // Compare the old SKOS cache to the new loaded data
             console.log('Differences between Neo4J and cached database');
             console.log(error);
         }
 
         setCache(newSkosMap); // Setup the server side cache for the front (uses the cached raw neo4J responses)
-        console.log('Internal SKOS cache has be reloaded');
-
+        console.log('Internal SKOS cache has been reloaded');
         return true;
     } catch (err) {
         console.log(err);
@@ -192,7 +192,7 @@ async function loadCache(neo4JInterface) {
 module.exports = {
     setCache,
     getCache,
-    compareCache,
+    compareCache: compareSkosCache,
     updateAction,
     loadCache,
 };

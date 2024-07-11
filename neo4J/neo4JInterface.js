@@ -4,20 +4,14 @@
 
 const neo4j = require('neo4j-driver');
 
-const neoCache = require('./neoCache');
 const {
     makeArray,
     hasProp,
 } = require('../helpers/util');
 
-const { writeNode } = require('./writeNodes');
 const {
     nodes: batchNodes,
     edges: batchEdges,
-    deleteEdges,
-    deleteNodes,
-    updateEdges,
-    updateNodes,
 } = require('./neo4jUpdate');
 
 // Run the fetch against the database
@@ -92,10 +86,15 @@ async function neo4jReset() {
         'CREATE CONSTRAINT idUnique IF NOT EXISTS FOR (ent:SKOS) REQUIRE ent.id IS UNIQUE',
     ];
 
-    const resetWrites = resetCypher.map((cypher) => writeNode({
-        cypher,
-        params: {},
-    }, driver, dbDatabase));
+    const resetWrites = resetCypher.map((cypher) => (
+        driver.executeQuery(
+            cypher,
+            {}, // No parameters
+            {
+                dbDatabase,
+                bookmarkManager: null,
+            },
+        )));
     return Promise.all(resetWrites);
 }
 
@@ -133,8 +132,7 @@ async function write(omcVocab) {
 
 const neoQueries = {
     getScheme: `MATCH(concept:Concept)-[rel:inScheme]->(scheme:ConceptScheme)
-RETURN concept, scheme, rel
-    `,
+RETURN concept, scheme, rel`,
     getConcept: `MATCH(concept:Concept)-[rel:narrower|broader]->(:Concept)
 RETURN concept, rel`,
     getLabel: `MATCH(concept:Concept)-[lbl:prefLabel|altLabel]->(label:Label)
@@ -142,6 +140,44 @@ RETURN concept, label, lbl`,
     getHierarchy: `MATCH (scheme:ConceptScheme)-[tcEdge:hasTopConcept]-(concept:Concept)
 OPTIONAL MATCH (concept)-[nEdge:narrower *1..2]-(nConcept:Concept)
 RETURN scheme, concept, nConcept, tcEdge, nEdge`,
+    getOmcRoot: `MATCH (n:Root)
+OPTIONAL MATCH (n)-[e1:hasProperty]-(d1)
+OPTIONAL MATCH (n)-[e2:propertyOf]-(d2)
+RETURN n, e1, e2`,
+    getOmcClass: `MATCH (n:Class)
+OPTIONAL MATCH (n)-[e1:hasSkosDefinition]-(d1)
+OPTIONAL MATCH (n)-[e2:representedBy]-(d5)
+RETURN n, e1, e2`,
+    getOmcEntity: `MATCH (n:Entity)
+OPTIONAL MATCH (n)-[e1:hasSkosDefinition]-(d1)
+OPTIONAL MATCH (n)-[e2:hasProperty]-(d2)
+OPTIONAL MATCH (n)-[e3:propertyOf]-(d3)
+OPTIONAL MATCH (n)-[e4:hasControlledValue]-(d4)
+OPTIONAL MATCH (n)-[e5:represents]-(d5)
+RETURN n, e1, e2, e3, e4, e5`,
+    getOmcProperty: `MATCH (n:Property)
+OPTIONAL MATCH (n)-[e1:hasSkosDefinition]-(d1)
+OPTIONAL MATCH (n)-[e2:hasProperty]-(d2)
+OPTIONAL MATCH (n)-[e3:propertyOf]-(d3)
+OPTIONAL MATCH (n)-[e4:hasControlledValue]-(d4)
+OPTIONAL MATCH (n)-[e5:hasSubValue]-(d5)
+OPTIONAL MATCH (n)-[e6:represents]-(d6)
+RETURN n, e1, e2, e3, e4, e5, e6`,
+    getOmcControlledValue: `MATCH (n:ControlledValue)
+OPTIONAL MATCH (n)-[e1:hasSkosDefinition]-(d1)
+OPTIONAL MATCH (n)-[e2:controlledValueFor]-(d2)
+OPTIONAL MATCH (n)-[e3:hasSubValue]-(d3)
+OPTIONAL MATCH (n)-[e4:subValueFor]-(d4)
+RETURN n, e1, e2, e3, e4`,
+    getOmcRepresent: `MATCH(node) WHERE node:Property OR node:Entity
+OPTIONAL MATCH (node)-[edge1:represents]-(class:Class)-[edge2:representedBy]-(node)
+RETURN node, class, edge1, edge2`,
+    getOmcRelations: `OPTIONAL MATCH (:Entity)-[edge1:hasProperty]-(:Property)-[edge2:propertyOf]-(:Entity)
+OPTIONAL MATCH (:Entity)-[edge7:hasProperty]-(:Entity)-[edge8:propertyOf]-(:Entity)
+OPTIONAL MATCH (:Property)-[edge3:hasProperty]-(:Property)-[edge4:propertyOf]-(:Property)
+OPTIONAL MATCH (:Root)-[edge5:hasProperty]-(:Entity)-[edge6:propertyOf]-(:Root)
+RETURN edge1, edge2, edge3, edge4, edge5, edge6, edge7, edge8`,
+    getOmcSkos: 'MATCH (x)-[e:hasSkosDefinition]-(y) RETURN e',
 };
 
 async function query(queryName) {
@@ -149,14 +185,13 @@ async function query(queryName) {
         driver,
         dbDatabase,
     } = this;
+
     if (!hasProp(neoQueries, queryName)) {
         console.log('Request to Neo4J database failed, no such query name');
-        return;
+        return null;
     }
     const cypher = neoQueries[queryName];
-    const schemeQuery = await fetchNeo4J(cypher, driver, dbDatabase);
-    if (!schemeQuery) return;
-    neoCache.add(schemeQuery);
+    return fetchNeo4J(cypher, driver, dbDatabase);
 }
 
 function writeBatch(batchQuery) {

@@ -1,0 +1,9 @@
+
+# Create a root node for OMC objects
+CREATE(root:OMC:Root)
+SET root.id="omc:00001", root.label="Root", root.type="omc:Root"
+RETURN root
+
+
+
+
