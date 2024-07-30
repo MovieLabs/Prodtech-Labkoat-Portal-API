@@ -131,12 +131,15 @@ async function write(omcVocab) {
  */
 
 const neoQueries = {
-    getScheme: `MATCH(concept:Concept)-[rel:inScheme]->(scheme:ConceptScheme)
-RETURN concept, scheme, rel`,
+    getScheme: `MATCH(scheme:ConceptScheme)
+OPTIONAL MATCH(concept:Concept)-[rel:inScheme]->(scheme)
+RETURN scheme, concept, rel`,
     getConcept: `MATCH(concept:Concept)-[rel:narrower|broader]->(:Concept)
 RETURN concept, rel`,
     getLabel: `MATCH(concept:Concept)-[lbl:prefLabel|altLabel]->(label:Label)
 RETURN concept, label, lbl`,
+    getTopConceptOf: `MATCH (a:Concept)-[e:topConceptOf]-(b:ConceptScheme)
+RETURN e`,
     getHierarchy: `MATCH (scheme:ConceptScheme)-[tcEdge:hasTopConcept]-(concept:Concept)
 OPTIONAL MATCH (concept)-[nEdge:narrower *1..2]-(nConcept:Concept)
 RETURN scheme, concept, nConcept, tcEdge, nEdge`,

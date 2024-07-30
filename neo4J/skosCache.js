@@ -2,6 +2,9 @@
  * Maintain the server side cache of the SKOS database, in same format as client side
  */
 const neoCache = require('./neoCache');
+const {
+    getNode, getType, getRelated, cacheUpdate,
+} = require('./dictionaryUtilities.js');
 
 let skosMap;
 
@@ -11,7 +14,7 @@ function computeSkosCache() {
     const concept = neoCache.getConcept();
     const label = neoCache.getLabel();
     const edgeLabel = neoCache.edgeLabel(['altLabel', 'prefLabel']);
-    const edgeTopConcept = neoCache.edgeLabel(['hasTopConcept']);
+    const edgeTopConcept = neoCache.edgeLabel(['hasTopConcept', 'topConceptOf']);
     const edgeNarrower = neoCache.edgeLabel(['narrower']);
     const edgeScheme = neoCache.edgeLabel(['inScheme']);
 
@@ -25,6 +28,7 @@ function computeSkosCache() {
 
     nodesArr.forEach((n) => {
         cache.nodes[n.id] = n;
+        cache.edges[n.id] = []; // Create an entry for the edge to protect against nodes without relations
     });
 
     edgesArr.forEach((e) => {
@@ -41,7 +45,13 @@ function computeSkosCache() {
 }
 
 function setCache(newSkosMap) {
-    skosMap = newSkosMap;
+    const dictProto = Object.create({
+        getNode,
+        getType,
+        getRelated,
+        cacheUpdate,
+    });
+    skosMap = Object.assign(dictProto, newSkosMap);
     return skosMap;
 }
 
@@ -86,6 +96,7 @@ function compareSkosCache() {
 
     const edgeCompare = [];
     cacheEdges.forEach((key) => {
+        if (!cache.edges[key] || !skosMap.edges[key]) return; // Something has been deleted
         const allCacheEdges = JSON.stringify(cache.edges[key].sort());
         const allSkosEdges = JSON.stringify(skosMap.edges[key].sort());
         if (allCacheEdges !== allSkosEdges) edgeCompare.push(key);
@@ -149,6 +160,10 @@ function updateAction(action) {
                 skosMap.edges[sourceId] = skosMap.edges[sourceId].filter((e) => {
                     return !(e.targetId === d.targetId && e.relation === d.relation);
                 });
+            } else {
+                const { id } = d;
+                delete skosMap.nodes[id];
+                delete skosMap.edges[id];
             }
         });
     }
@@ -166,6 +181,8 @@ async function loadCache(neo4Jdb) {
         neoCache.add(hierarchy);
         const scheme = await neo4Jdb.query('getScheme'); // Setup the cache
         neoCache.add(scheme);
+        const topConcept = await neo4Jdb.query('getTopConceptOf');
+        neoCache.add(topConcept);
         const concept = await neo4Jdb.query('getConcept');
         neoCache.add(concept);
         const label = await neo4Jdb.query('getLabel');

@@ -36,6 +36,7 @@ async function retryPromise(promiseFunction, maxRetries, delayMs) {
             const result = await promiseFunction();
             return result;
         } catch (error) {
+            console.log(error);
             retries += 1;
             console.log(`Attempt ${retries} failed. Retrying...`);
             await delay(delayMs);

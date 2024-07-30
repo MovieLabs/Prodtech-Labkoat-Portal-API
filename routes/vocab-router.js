@@ -15,6 +15,8 @@ const {
 const neo4jInterface = require('../neo4J/neo4JInterface');
 const skosCache = require('../neo4J/skosCache');
 const omcCache = require('../neo4J/omcCache');
+const createJsonLd = require('../vocabulary/jsonld');
+const createTtl = require('../vocabulary/ttl');
 
 const router = express.Router();
 
@@ -46,6 +48,12 @@ async function vocabSetup(secrets) {
 
     const vocabLoaded = await skosCache.loadCache(neo4Jdb);
     await omcCache.loadCache(neo4Jdb);
+
+    // Temporary test code for creation of JSON-LD
+    // const skosVocab = skosCache.getCache();
+    // createJsonLd(skosVocab);
+    // createTtl(skosVocab);
+
     return vocabLoaded;
 }
 

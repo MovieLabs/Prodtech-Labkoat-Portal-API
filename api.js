@@ -14,10 +14,6 @@ const { vocabRouter } = require('./routes/vocab-router');
 const test = require('./routes/test-router');
 const { opaRouter } = require('./routes/opa-router');
 
-// const { newTask } = require('./controllers/admin/processTask');
-// const omcTask = require('./controllers/task/omcTaskInput');
-// const { OmcModel } = require('./helpers/omc');
-
 const app = express();
 
 async function setup() {
@@ -39,11 +35,6 @@ async function setup() {
     app.use('/api/omc', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
     app.use('/api/test', test); // Route and controllers for testing the test token
-
-    // await newTask(omcTask.input1);
-    // await newTask(omcTask.input2);
-    // await newTask(omcTask.input3);
-    // await newTask(omcTask.input4);
 
     // Launch the API Server at localhost:8080
     app.listen(8080);
