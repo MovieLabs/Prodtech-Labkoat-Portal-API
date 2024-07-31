@@ -1,5 +1,4 @@
 const express = require('express');
-const neo4j = require('neo4j-driver');
 
 const jwtValidator = require('../helpers/JwtValidator');
 const config = require('../config');
@@ -7,6 +6,7 @@ const config = require('../config');
 const {
     skosGet,
     skosPost,
+    skosDownload,
 } = require('../controllers/vocabulary/skosController');
 const {
     omcGet,
@@ -58,6 +58,8 @@ async function vocabSetup(secrets) {
 }
 
 router.get('/skos', checkJwt, ((req, res) => skosGet(req, res, neo4Jdb)));
+router.get('/skos/json', ((req, res) => skosDownload(req, res, 'json')));
+router.get('/skos/ttl', ((req, res) => skosDownload(req, res, 'ttl')));
 router.post('/skos', checkJwt, ((req, res) => skosPost(req, res, neo4Jdb)));
 router.get('/omc', checkJwt, ((req, res) => omcGet(req, res, neo4Jdb)));
 router.post('/omc', checkJwt, ((req, res) => omcPost(req, res, neo4Jdb)));

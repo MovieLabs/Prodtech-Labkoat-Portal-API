@@ -77,20 +77,53 @@ function createJsonLd(dict) {
             ];
         }
 
-        const br = relation(omc.id, 'broader');
-        if (br.length) concept['skos:broader'] = br;
+        const br = dict.getRelated(omc.id, 'broader');
+        concept['skos:broader'] = [];
+        br.forEach((id) => {
+            concept['skos:broader'].push({
+                '@id': id,
+            });
+        });
 
-        const nr = relation(omc.id, 'narrower');
-        if (nr.length) concept['skos:narrower'] = nr;
+        const nr = dict.getRelated(omc.id, 'narrower');
+        concept['skos:narrower'] = [];
+        nr.forEach((id) => {
+            concept['skos:narrower'].push({
+                '@id': id,
+            });
+        });
 
-        const al = relation(omc.id, 'altLabel');
-        if (al.length) concept['skos:altLabel'] = al;
+        const al = dict.getRelated(omc.id, 'altLabel');
+        concept['skos:altLabel'] = [];
+        concept['skosxl:altLabel'] = [];
+        al.forEach((id) => {
+            const label = dict.getNode(id);
+            concept['skos:altLabel'].push({
+                '@value': label.value,
+                '@language': label.language,
+            });
+            concept['skosxl:altLabel'].push({
+                '@id': id,
+            });
+        });
 
-        const is = relation(omc.id, 'inScheme');
-        if (is.length) concept['skos:inScheme'] = is;
+        const is = dict.getRelated(omc.id, 'inScheme');
+        concept['skos:inScheme'] = [];
+        is.forEach((id) => {
+            concept['skos:inScheme'].push({
+                '@id': id,
+            });
+        });
 
-        const tc = relation(omc.id, 'topConceptOf');
-        if (tc.length) concept['skos:topConceptOf'] = tc;
+        const tc = dict.getRelated(omc.id, 'topConceptOf');
+        concept['skos:topConceptOf'] = [];
+        tc.forEach((id) => {
+            concept['skos:topConceptOf'].push({
+                '@id': id,
+            });
+        });
+
+        concept['vmc:hasAcronym'] = [];
 
         return concept;
     });
@@ -109,7 +142,12 @@ function createJsonLd(dict) {
                     '@language': omc.language,
                 },
             ];
-            scheme['skosxl:prefLabel'] = relation(omc.id, 'prefLabel');
+            const pl = dict.getRelated(omc.id, 'prefLabel');
+            scheme['skosxl:prefLabel'] = [
+                {
+                    '@id': pl[0],
+                },
+            ];
         }
         if (omc.definition) {
             scheme['skos:definition'] = [
@@ -119,8 +157,14 @@ function createJsonLd(dict) {
                 },
             ];
         }
-        const tc = relation(omc.id, 'hasTopConcept');
-        if (tc.length) scheme['skos:hasTopConcept'] = tc;
+
+        const tc = dict.getRelated(omc.id, 'hasTopConcept');
+        scheme['skos:hasTopConcept'] = [];
+        tc.forEach((id) => {
+            scheme['skos:hasTopConcept'].push({
+                '@id': id,
+            });
+        });
         return scheme;
     });
 
@@ -146,8 +190,8 @@ function createJsonLd(dict) {
     const scheme = publishedScheme.map((n) => createConceptScheme(n));
 
     header['@graph'] = [omcNamespace, ...scheme, ...concept, ...label];
-
-    // console.log(header);
+;
+    console.log('Created JSON-LD file');
     return header;
 }
 

@@ -113,7 +113,8 @@ function createTtl(dict) {
 
         const ttl = header + omcNamespace + allSchemes + allConcepts + allLabels;
 
-        console.log(ttl);
+        // console.log(ttl);
+        console.log('Created TTL file');
         return ttl;
     } catch (err) {
         console.log(err);

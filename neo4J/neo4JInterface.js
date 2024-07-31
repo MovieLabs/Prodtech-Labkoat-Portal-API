@@ -131,9 +131,9 @@ async function write(omcVocab) {
  */
 
 const neoQueries = {
-    getScheme: `MATCH(scheme:ConceptScheme)
+    getScheme: `MATCH(scheme:ConceptScheme)-[lblRel:prefLabel]->(label)
 OPTIONAL MATCH(concept:Concept)-[rel:inScheme]->(scheme)
-RETURN scheme, concept, rel`,
+RETURN scheme, lblRel, label, concept, rel`,
     getConcept: `MATCH(concept:Concept)-[rel:narrower|broader]->(:Concept)
 RETURN concept, rel`,
     getLabel: `MATCH(concept:Concept)-[lbl:prefLabel|altLabel]->(label:Label)

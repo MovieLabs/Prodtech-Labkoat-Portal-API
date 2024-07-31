@@ -6,6 +6,8 @@
 // const neoCache = require('../../neo4J/neoCache');
 const skosCache = require('../../neo4J/skosCache');
 const { neo4jUpdate } = require('../../neo4J/neo4jUpdate');
+const createJsonLd = require('../../vocabulary/jsonld');
+const createTtl = require('../../vocabulary/ttl');
 
 async function skosGet(req, res, neo4Jdb) {
     console.log('GET Route: /vocab/skos');
@@ -38,7 +40,32 @@ async function skosPost(req, res, neo4Jdb) {
         .json({ message: 'Ok', result: neo4jResponse });
 }
 
+function skosDownload(req, res, format) {
+    console.log('GET Route /vocab/skos/json | ttl');
+
+    const skosDict = skosCache.getCache();
+    let skosEncoding;
+    switch (format) {
+        case 'json':
+            skosEncoding = createJsonLd(skosDict);
+            res.status(200)
+                .setHeader('content-type', 'application/json')
+                .json(skosEncoding);
+            break;
+        case 'ttl':
+            skosEncoding = createTtl(skosDict);
+            res.status(200)
+                .setHeader('content-type', 'text/plain')
+                .send(skosEncoding);
+            break;
+        default:
+            res.status(400)
+                .send('Wrong encoding type');
+    }
+}
+
 module.exports = {
     skosGet,
     skosPost,
+    skosDownload,
 };
