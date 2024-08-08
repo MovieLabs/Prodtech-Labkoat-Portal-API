@@ -86,11 +86,11 @@ function cacheUpdate(action) {
                 const { id } = d;
                 delete this.nodes[id];
                 delete this.edges[id];
-                // Object.keys(this.edges)
-                //     .forEach((sourceId) => {
-                //         const keepEdges = this.edges[sourceId].filter((e) => !(e.targetId !== id));
-                //         this.edges[sourceId] = keepEdges;
-                //     });
+                Object.keys(this.edges)
+                    .forEach((sourceId) => {
+                        const keepEdges = this.edges[sourceId].filter((e) => e.targetId !== id);
+                        this.edges[sourceId] = keepEdges;
+                    });
             }
         });
     }
