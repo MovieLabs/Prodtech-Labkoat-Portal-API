@@ -134,7 +134,7 @@ function updateAction(action) {
             } else {
                 const { id } = c;
                 skosMap.nodes[id] = c;
-                if (!this.edges[id]) this.edges[id] = []; // Ensure there is an entry for the edges
+                if (!skosMap.edges[id]) skosMap.edges[id] = []; // Ensure there is an entry for the edges
             }
         });
     }
