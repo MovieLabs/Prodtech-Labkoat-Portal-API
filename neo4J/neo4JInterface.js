@@ -181,6 +181,10 @@ OPTIONAL MATCH (:Property)-[edge3:hasProperty]-(:Property)-[edge4:propertyOf]-(:
 OPTIONAL MATCH (:Root)-[edge5:hasProperty]-(:Entity)-[edge6:propertyOf]-(:Root)
 RETURN edge1, edge2, edge3, edge4, edge5, edge6, edge7, edge8`,
     getOmcSkos: 'MATCH (x)-[e:hasSkosDefinition]-(y) RETURN e',
+    getOmcSchema: `MATCH(s:Schema)
+OPTIONAL MATCH(s)-[e1:schemaChild]-(s1)
+OPTIONAL MATCH(s)-[e2:hasValue]-(v1)
+return s, e1, e2`,
 };
 
 async function query(queryName) {

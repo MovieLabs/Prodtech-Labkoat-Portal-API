@@ -10,6 +10,7 @@ const skosToLabel = {
     'omc:Property': 'Property',
     'omc:Entity': 'Entity',
     'omc:ControlledValue': 'ControlledValue',
+    'omc:Schema': 'Schema',
 };
 
 const baseTypeMap = {

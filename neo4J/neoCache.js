@@ -117,6 +117,7 @@ module.exports = {
     deleteProperty: () => deleteNode('Property'),
     deleteClass: () => deleteNode('Class'),
     deleteValue: () => deleteNode('ControlledValue'),
+    deleteSchema: () => deleteNode('Schema'),
     getConceptScheme: () => getNode('ConceptScheme'),
     getConcept: () => getNode('Concept'),
     getLabel: () => getNode('Label'),
@@ -125,5 +126,6 @@ module.exports = {
     getProperty: () => getNode('Property'),
     getEntity: () => getNode('Entity'),
     getControlledValue: () => getNode('ControlledValue'),
+    getOmcSchema: () => getNode('Schema'),
     edgeLabel,
 };

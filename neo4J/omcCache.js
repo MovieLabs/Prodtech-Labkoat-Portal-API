@@ -14,13 +14,15 @@ function computeOmcCache() {
     const omcEntity = neoCache.getEntity();
     const omcClass = neoCache.getClass();
     const omcValue = neoCache.getControlledValue();
+    const omcSchema = neoCache.getOmcSchema();
     const edgeRepresent = neoCache.edgeLabel(['represents', 'representedBy']);
     const edgeProperty = neoCache.edgeLabel(['hasProperty', 'propertyOf']);
     const edgeSkos = neoCache.edgeLabel(['hasSkosDefinition']);
     const edgeValue = neoCache.edgeLabel(['hasControlledValue', 'controlledValueFor', 'hasSubValue', 'subValueFor']);
+    const edgeSchema = neoCache.edgeLabel(['schemaChild', 'hasValue']);
 
-    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue];
-    const edgesArr = [...edgeRepresent, ...edgeProperty, ...edgeSkos, ...edgeValue];
+    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue, ...omcSchema];
+    const edgesArr = [...edgeRepresent, ...edgeProperty, ...edgeSkos, ...edgeValue, ...edgeSchema];
 
     const cache = {
         nodes: {},
@@ -186,6 +188,7 @@ async function loadCache(neo4Jdb) {
         neoCache.deleteClass();
         neoCache.deleteValue();
         neoCache.deleteRoot();
+        neoCache.deleteSchema();
 
         const omcRoot = await neo4Jdb.query('getOmcRoot'); // Top concepts and narrower
         neoCache.add(omcRoot);
@@ -195,6 +198,8 @@ async function loadCache(neo4Jdb) {
         neoCache.add(await neo4Jdb.query('getOmcProperty'));
         const omcValue = await neo4Jdb.query('getOmcControlledValue');
         neoCache.add(omcValue);
+        const omcSchema = await neo4Jdb.query('getOmcSchema');
+        neoCache.add(omcSchema);
 
         const newOmcMap = computeOmcCache(); // Compute the new skosMap from the loaded data
 
