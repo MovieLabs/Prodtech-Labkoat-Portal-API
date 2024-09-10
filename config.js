@@ -31,6 +31,7 @@ const configEnv = {
             europa: 'Europa1',
             hsm: 'POC6',
             rebelFleet: 'RebelFleet',
+            yamdu: 'Yamdu',
         },
     },
     local: {

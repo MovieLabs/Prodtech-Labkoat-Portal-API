@@ -3,6 +3,7 @@
  * */
 
 const skosToLabel = {
+    'skos:Root': 'Root',
     'skos:Concept': 'Concept',
     'skos:ConceptScheme': 'ConceptScheme',
     'skosxl:Label': 'Label',
@@ -11,6 +12,7 @@ const skosToLabel = {
     'omc:Entity': 'Entity',
     'omc:ControlledValue': 'ControlledValue',
     'omc:Schema': 'Schema',
+    'omc:Container': 'Container',
 };
 
 const baseTypeMap = {

@@ -113,11 +113,13 @@ module.exports = {
     deleteConcept: () => deleteNode('Concept'),
     deleteLabel: () => deleteNode('Label'),
     deleteRoot: () => deleteNode('Root'),
+    deleteSkosRoot: () => deleteNode('Root'), // ToDo: Makes sure SKOS and OMC are not mixed up
     deleteEntity: () => deleteNode('Entity'),
     deleteProperty: () => deleteNode('Property'),
     deleteClass: () => deleteNode('Class'),
     deleteValue: () => deleteNode('ControlledValue'),
     deleteSchema: () => deleteNode('Schema'),
+    deleteContainer: () => deleteNode('Container'),
     getConceptScheme: () => getNode('ConceptScheme'),
     getConcept: () => getNode('Concept'),
     getLabel: () => getNode('Label'),
@@ -127,5 +129,6 @@ module.exports = {
     getEntity: () => getNode('Entity'),
     getControlledValue: () => getNode('ControlledValue'),
     getOmcSchema: () => getNode('Schema'),
+    getContainer: () => getNode('Container'),
     edgeLabel,
 };

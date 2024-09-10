@@ -8,7 +8,6 @@ const {
     connectionHealth,
 } = require('../mongo/mongo-operations');
 const entityController = require('../controllers/omc/omcController');
-const { jwtAuthz } = require('@aserto/aserto-node');
 
 const router = express.Router();
 

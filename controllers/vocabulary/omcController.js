@@ -9,6 +9,13 @@ const { neo4jUpdate } = require('../../neo4J/neo4jUpdate');
 async function omcGet(req, res, neo4Jdb) {
     console.log('GET Route: /vocab/omc');
 
+    console.log('Auth: ');
+    console.log(req.auth);
+    // if (!req.auth.admin) {
+    //     console.log('Auth denied');
+    //     return res.sendStatus(401);
+    // }
+
     await omcCache.loadCache(neo4Jdb);
     const omcMap = omcCache.getCache();
     // console.log(omcMap);

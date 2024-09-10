@@ -138,6 +138,8 @@ RETURN scheme, lblRel, label, concept, rel`,
 RETURN concept, rel`,
     getLabel: `MATCH(concept:Concept)-[lbl:prefLabel|altLabel]->(label:Label)
 RETURN concept, label, lbl`,
+    getSkosRoot: `MATCH (root:SKOS:Root{id:"skos-Root"})-[e:hasScheme]-(scheme)
+return root, e, scheme`,
     getTopConceptOf: `MATCH (a:Concept)-[e:topConceptOf]-(b:ConceptScheme)
 RETURN e`,
     getHierarchy: `MATCH (scheme:ConceptScheme)-[tcEdge:hasTopConcept]-(concept:Concept)
@@ -185,6 +187,9 @@ RETURN edge1, edge2, edge3, edge4, edge5, edge6, edge7, edge8`,
 OPTIONAL MATCH(s)-[e1:schemaChild]-(s1)
 OPTIONAL MATCH(s)-[e2:hasValue]-(v1)
 return s, e1, e2`,
+    getOmcContainer: `MATCH(s:Container)
+OPTIONAL MATCH(s)-[e1:hasProperty]-(s1)
+return s, e1`,
 };
 
 async function query(queryName) {

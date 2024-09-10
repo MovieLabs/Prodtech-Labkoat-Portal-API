@@ -2,7 +2,6 @@
  * Maintain the server side cache of the SKOS database, in same format as client side
  */
 const neoCache = require('./neoCache');
-const tempCache = require('../controllers/vocabulary/omcJsonData.json');
 const { asyncQueue } = require('../helpers/util');
 
 let omcMap;
@@ -15,13 +14,14 @@ function computeOmcCache() {
     const omcClass = neoCache.getClass();
     const omcValue = neoCache.getControlledValue();
     const omcSchema = neoCache.getOmcSchema();
+    const omcContainer = neoCache.getContainer();
     const edgeRepresent = neoCache.edgeLabel(['represents', 'representedBy']);
     const edgeProperty = neoCache.edgeLabel(['hasProperty', 'propertyOf']);
     const edgeSkos = neoCache.edgeLabel(['hasSkosDefinition']);
     const edgeValue = neoCache.edgeLabel(['hasControlledValue', 'controlledValueFor', 'hasSubValue', 'subValueFor']);
     const edgeSchema = neoCache.edgeLabel(['schemaChild', 'hasValue']);
 
-    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue, ...omcSchema];
+    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue, ...omcSchema, ...omcContainer                                                                   ];
     const edgesArr = [...edgeRepresent, ...edgeProperty, ...edgeSkos, ...edgeValue, ...edgeSchema];
 
     const cache = {
@@ -189,6 +189,7 @@ async function loadCache(neo4Jdb) {
         neoCache.deleteValue();
         neoCache.deleteRoot();
         neoCache.deleteSchema();
+        neoCache.deleteContainer();
 
         const omcRoot = await neo4Jdb.query('getOmcRoot'); // Top concepts and narrower
         neoCache.add(omcRoot);
@@ -200,6 +201,8 @@ async function loadCache(neo4Jdb) {
         neoCache.add(omcValue);
         const omcSchema = await neo4Jdb.query('getOmcSchema');
         neoCache.add(omcSchema);
+        const omcContainer = await neo4Jdb.query('getOmcContainer');
+        neoCache.add(omcContainer);
 
         const newOmcMap = computeOmcCache(); // Compute the new skosMap from the loaded data
 

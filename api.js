@@ -26,6 +26,16 @@ async function setup() {
         'http://localhost:3000/',
     ])); // Enable CORS
 
+    // Catch JWT errors and return a 401
+    app.use(((err, req, res, next) => {
+        if (err.name === 'UnauthorizedError') {
+            res.status(401)
+                .send('Invalid token...');
+        } else {
+            next(err);
+        }
+    }));
+
     app.use('/api/admin', admin); // Add the route controllers for Auth0Fga
     app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
     app.use('/api/okta', okta); // Add the route controllers for Okta

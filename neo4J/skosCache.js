@@ -13,12 +13,13 @@ function computeSkosCache() {
     const conceptScheme = neoCache.getConceptScheme();
     const concept = neoCache.getConcept();
     const label = neoCache.getLabel();
+    const root = neoCache.getRoot();
     const edgeLabel = neoCache.edgeLabel(['altLabel', 'prefLabel']);
     const edgeTopConcept = neoCache.edgeLabel(['hasTopConcept', 'topConceptOf']);
     const edgeNarrower = neoCache.edgeLabel(['narrower', 'broader']);
-    const edgeScheme = neoCache.edgeLabel(['inScheme']);
+    const edgeScheme = neoCache.edgeLabel(['hasScheme', 'inScheme']);
 
-    const nodesArr = [...conceptScheme, ...concept, ...label];
+    const nodesArr = [...root, ...conceptScheme, ...concept, ...label];
     const edgesArr = [...edgeLabel, ...edgeTopConcept, ...edgeNarrower, ...edgeScheme];
 
     const cache = {
@@ -174,10 +175,13 @@ function updateAction(action) {
 async function loadCache(neo4Jdb) {
     try {
         // Load up the Skos graph into the cache
+        neoCache.deleteSkosRoot();
         neoCache.deleteConceptScheme(); // Clear the database cache
         neoCache.deleteConcept();
         neoCache.deleteLabel();
 
+        const root = await neo4Jdb.query('getSkosRoot'); // Root node
+        neoCache.add(root);
         const hierarchy = await neo4Jdb.query('getHierarchy'); // Top concepts and narrower
         neoCache.add(hierarchy);
         const scheme = await neo4Jdb.query('getScheme'); // Setup the cache
