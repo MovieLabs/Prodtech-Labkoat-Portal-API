@@ -65,6 +65,12 @@ function getNode(nodeType) {
         .map((eId) => neoCache.nodes[eId].properties);
 }
 
+function getRoot(nodeType = 'Root', domain) {
+    return Object.keys(neoCache.nodes)
+        .filter((eId) => neoCache.nodes[eId].labels.includes(nodeType) && neoCache.nodes[eId].labels.includes(domain))
+        .map((eId) => neoCache.nodes[eId].properties);
+}
+
 /**
  * Return all edges for the requested relationship type
  * @param relType {string}
@@ -123,7 +129,7 @@ module.exports = {
     getConceptScheme: () => getNode('ConceptScheme'),
     getConcept: () => getNode('Concept'),
     getLabel: () => getNode('Label'),
-    getRoot: () => getNode('Root'),
+    getRoot: getRoot,
     getClass: () => getNode('Class'),
     getProperty: () => getNode('Property'),
     getEntity: () => getNode('Entity'),

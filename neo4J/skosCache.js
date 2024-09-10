@@ -13,7 +13,7 @@ function computeSkosCache() {
     const conceptScheme = neoCache.getConceptScheme();
     const concept = neoCache.getConcept();
     const label = neoCache.getLabel();
-    const root = neoCache.getRoot();
+    const root = neoCache.getRoot('Root', 'SKOS');
     const edgeLabel = neoCache.edgeLabel(['altLabel', 'prefLabel']);
     const edgeTopConcept = neoCache.edgeLabel(['hasTopConcept', 'topConceptOf']);
     const edgeNarrower = neoCache.edgeLabel(['narrower', 'broader']);

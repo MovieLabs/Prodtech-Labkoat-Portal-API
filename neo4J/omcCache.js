@@ -8,21 +8,19 @@ let omcMap;
 
 function computeOmcCache() {
     // Retrieve the Skos data from the cache, formatted as Neo4J parameters
-    const omcRoot = neoCache.getRoot();
+    const omcRoot = neoCache.getRoot('Root', 'OMC');
     const omcProperty = neoCache.getProperty();
     const omcEntity = neoCache.getEntity();
     const omcClass = neoCache.getClass();
     const omcValue = neoCache.getControlledValue();
-    const omcSchema = neoCache.getOmcSchema();
     const omcContainer = neoCache.getContainer();
     const edgeRepresent = neoCache.edgeLabel(['represents', 'representedBy']);
     const edgeProperty = neoCache.edgeLabel(['hasProperty', 'propertyOf']);
     const edgeSkos = neoCache.edgeLabel(['hasSkosDefinition']);
     const edgeValue = neoCache.edgeLabel(['hasControlledValue', 'controlledValueFor', 'hasSubValue', 'subValueFor']);
-    const edgeSchema = neoCache.edgeLabel(['schemaChild', 'hasValue']);
 
-    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue, ...omcSchema, ...omcContainer                                                                   ];
-    const edgesArr = [...edgeRepresent, ...edgeProperty, ...edgeSkos, ...edgeValue, ...edgeSchema];
+    const nodesArr = [...omcRoot, ...omcProperty, ...omcEntity, ...omcClass, ...omcValue, ...omcContainer];
+    const edgesArr = [...edgeRepresent, ...edgeProperty, ...edgeSkos, ...edgeValue];
 
     const cache = {
         nodes: {},
