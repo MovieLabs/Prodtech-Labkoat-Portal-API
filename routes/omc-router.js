@@ -6,7 +6,7 @@ const config = require('../config');
 const {
     connection,
     connectionHealth,
-} = require('../mongo/mongo-operations');
+} = require('../mongo/management/mongo-operations');
 const entityController = require('../controllers/omc/omcController');
 
 const router = express.Router();

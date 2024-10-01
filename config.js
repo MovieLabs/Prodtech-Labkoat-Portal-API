@@ -28,6 +28,7 @@ const configEnv = {
         AWS_NEO4J_USERNAME: 'neo4j',
         AWS_NEO4J_DATABASE: 'neo4j',
         projects: {
+            nbc: 'NBC',
             europa: 'Europa1',
             hsm: 'POC6',
             rebelFleet: 'RebelFleet',

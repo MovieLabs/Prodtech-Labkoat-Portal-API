@@ -4,7 +4,7 @@
 
 const { MongoClient: MongoConnection } = require('mongodb');
 
-const { makeArray } = require('../helpers/util');
+const { makeArray } = require('../../helpers/util');
 
 /**
  * Check the Mongo database is healthy and up
