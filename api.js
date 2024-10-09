@@ -46,6 +46,13 @@ async function setup() {
     app.use('/api/vocab', vocabRouter);
     app.use('/api/test', test); // Route and controllers for testing the test token
 
+    // Error handling
+    app.use((err, req, res) => {
+        console.log(err);
+        res.status(500)
+            .send(err.message);
+    });
+
     // Launch the API Server at localhost:8080
     app.listen(8080);
     console.log('Listening on port: 8080');

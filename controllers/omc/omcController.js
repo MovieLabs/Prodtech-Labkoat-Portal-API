@@ -3,10 +3,6 @@
  * @module
  */
 
-// const fMam = require('../../fMam/fMam');
-// const omc = require('../../helpers/omc');
-// const { hasProp } = require('../../helpers/util');
-// const { byIdentifier } = require('../../mongo/query/mongo-entity');
 const { entityByIdentifier } = require('../../mongo/query/entityByIdentifier');
 
 async function entityController(req, res, projectDb) {
@@ -24,11 +20,6 @@ async function entityController(req, res, projectDb) {
 
     try {
         const db = projectDb[project]; // Use the connection for this project
-        // const testEnt = await byIdentifier(db, {
-        //     identifierScope,
-        //     identifierValue,
-        // });
-
         const testEnt = await entityByIdentifier(db, { identifierScope, identifierValue });
         console.log(testEnt);
 
@@ -41,7 +32,6 @@ async function entityController(req, res, projectDb) {
         res.status(400)
             .set('Content-Type', 'application/json')
             .send({ message: 'Database Error' });
-        return;
     } catch (err) {
         console.log('Error: Entity did not resolve');
         res.status(400)
