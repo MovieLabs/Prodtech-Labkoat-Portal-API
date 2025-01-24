@@ -5,12 +5,12 @@
 
 const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 
-const { fgaSetup } = require('./controllers/auth0Interface');
-const { oktaSetup } = require('./controllers/oktaInterface');
-const { opaSetup } = require('./routes/opa-router');
-const { omcSetup } = require('./routes/omc-router');
-const { vocabSetup } = require('./routes/vocab-router');
-const { serviceSetup } = require('./helpers/serviceToken');
+const { fgaSetup } = require('./src/controllers/auth0Interface');
+const { oktaSetup } = require('./src/controllers/oktaInterface');
+const { opaSetup } = require('./src/routes/opa-router');
+const { omcSetup } = require('./src/routes/omc-router');
+const { vocabSetup } = require('./src/routes/vocab-router');
+const { serviceSetup } = require('./src/helpers/serviceToken');
 
 const AWS_REGION = 'us-west-2';
 const secretEnv = {

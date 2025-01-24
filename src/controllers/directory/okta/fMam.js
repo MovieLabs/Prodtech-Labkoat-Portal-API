@@ -9,7 +9,7 @@ const request = require('request-promise');
 const { makeArray, hasProp } = require('../../../helpers/util');
 const { serviceToken } = require('../../../helpers/serviceToken');
 
-const config = require('../../../config');
+const config = require('../../../../config');
 const allCharactersQuery = require('../query/allCharacters');
 const allStoryboardsQuery = require('../query/allStoryboards');
 const allParticipantsQuery = require('../query/allParticipants');

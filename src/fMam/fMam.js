@@ -5,9 +5,8 @@
 const fetch = require('node-fetch');
 
 const { serviceToken } = require('../helpers/serviceToken');
-const { makeArray, hasProp } = require('../helpers/util');
 
-const config = require('../config');
+const config = require('../../config');
 const allParticipantsQuery = require('./queries/allParticipants');
 const getAssetTypeQuery = require('./queries/assetType');
 const allCharactersQuery = require('./queries/allCharacters');
@@ -22,7 +21,7 @@ const queryOptions = {
     getAssetType: getAssetTypeQuery,
     allParticipants: allParticipantsQuery,
     allCharacters: allCharactersQuery,
-    allNarrativeProps: allNarrativeScenesQuery,
+    allNarrativeProps: allNarrativePropsQuery,
     allNarrativeScenes: allNarrativeScenesQuery,
     allShots: allShotsQuery,
     allSlates: allSlatesQuery,
@@ -40,6 +39,8 @@ const fMamUrl = config.FMAM_URL; // Base Url for the fMam
 
 async function fMamQuery(graphQlQuery) {
     const bearerToken = await serviceToken();
+    console.log(bearerToken);
+    console.log(fMamUrl);
 
     const { responsePath } = graphQlQuery; // Variables to navigate the response
     const qlOptions = {
@@ -50,6 +51,7 @@ async function fMamQuery(graphQlQuery) {
         },
         body: JSON.stringify(graphQlQuery),
     };
+
     let fMamResponse = {};
     try {
         fMamResponse = await fetch(fMamUrl, qlOptions); // POST the graphql query

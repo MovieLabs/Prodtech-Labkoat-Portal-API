@@ -9,7 +9,7 @@ const { isAdministrator } = require('../controllers/auth0Interface');
 
 const router = express.Router();
 
-const config = require('../config');
+const config = require('../../config');
 
 const checkJwt = jwtValidator({
     jwksUri: config.JWKS_URI,

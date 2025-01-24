@@ -1,7 +1,7 @@
 const express = require('express');
 
 const jwtValidator = require('../helpers/JwtValidator');
-const config = require('../config');
+const config = require('../../config');
 
 const {
     skosGet,

@@ -4,15 +4,15 @@ const express = require('express');
 const cors = require('cors');
 
 require('./awsSecrets'); // Runs the code to populate secrets from AWS secrets manager
-const auth0fga = require('./routes/auth0fga-router');
-const admin = require('./routes/admin-router');
-const okta = require('./routes/directory-router');
-const approval = require('./routes/approval-router');
-const assets = require('./routes/asset-router');
-const { omcRouter } = require('./routes/omc-router');
-const { vocabRouter } = require('./routes/vocab-router');
-const test = require('./routes/test-router');
-const { opaRouter } = require('./routes/opa-router');
+const auth0fga = require('./src/routes/auth0fga-router');
+const admin = require('./src/routes/admin-router');
+const okta = require('./src/routes/directory-router');
+const approval = require('./src/routes/approval-router');
+const assets = require('./src/routes/asset-router');
+const { omcRouter } = require('./src/routes/omc-router');
+const { vocabRouter } = require('./src/routes/vocab-router');
+const test = require('./src/routes/test-router');
+const { opaRouter } = require('./src/routes/opa-router');
 
 const app = express();
 

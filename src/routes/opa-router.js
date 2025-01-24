@@ -1,7 +1,7 @@
 const express = require('express');
 const { jwtAuthz } = require('@aserto/aserto-node');
 
-const config = require('../config');
+const config = require('../../config');
 
 const router = express.Router();
 let checkAuthz = (req, res, next) => {
