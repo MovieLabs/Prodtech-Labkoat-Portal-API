@@ -17,7 +17,7 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-let db = null; // Mongo DB database connection
+let db; // Mongo DB database connection
 let projectDb = null; // Mongo DB database connections
 
 async function omcSetup(secrets) {
@@ -36,6 +36,7 @@ async function omcSetup(secrets) {
     };
     db = await connection(mongoOptions);
     const health = await connectionHealth(mongoOptions);
+    console.log('Mongo connection healt: ', health);
 
     try {
         const projectNames = Object.keys(projects);
@@ -56,8 +57,6 @@ async function omcSetup(secrets) {
     } catch (err) {
         console.log(err);
     }
-
-    // console.log(health);
 }
 
 router.get('/entity', checkJwt, ((req, res) => entityController(req, res, projectDb)));

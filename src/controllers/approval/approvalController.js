@@ -2,9 +2,6 @@
  Methods for interfacing with the Okta API
  */
 
-const oktaInterface = require('../oktaInterface');
-const auth0Interface = require('../auth0Interface');
-
 const dummyData = [
     {
         user: '00u55sz1a81S9Bavw697',
