@@ -4,7 +4,7 @@
  * Tasks are stored by their Okta user Id
  */
 
-const { hasProp } = require('../../helpers/util');
+const { hasProp } = require('../../helpers/util.mjs');
 const omc = require('../../helpers/omc');
 
 const taskDb = {};

@@ -7,7 +7,7 @@ const processTask = require('./processTask');
 const db = require('../task/db');
 const auth0Policies = require('../task/auth0Policy'); // auth0 tuples for the policies
 
-const { hasProp } = require('../../helpers/util');
+const { hasProp } = require('../../helpers/util.mjs');
 const { identifierOfScope } = require('../../helpers/omc');
 
 /**

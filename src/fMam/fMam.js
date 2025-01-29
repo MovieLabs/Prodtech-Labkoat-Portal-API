@@ -4,9 +4,9 @@
 
 const fetch = require('node-fetch');
 
-const { serviceToken } = require('../helpers/serviceToken');
+const { serviceToken } = require('../helpers/serviceToken.mjs');
 
-const config = require('../../config');
+const config = require('../../config.mjs');
 const allParticipantsQuery = require('./queries/allParticipants');
 const getAssetTypeQuery = require('./queries/assetType');
 const allCharactersQuery = require('./queries/allCharacters');

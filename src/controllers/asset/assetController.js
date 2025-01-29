@@ -5,7 +5,7 @@
 
 const fMam = require('../../fMam/fMam');
 const omc = require('../../helpers/omc');
-const { hasProp } = require('../../helpers/util');
+const { hasProp } = require('../../helpers/util.mjs');
 
 // If this is an Asset Group the primary Identifier is return, otherwise the essence identifier
 const essenceId = ((ent) => (

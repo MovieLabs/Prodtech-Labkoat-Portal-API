@@ -1,6 +1,6 @@
 const express = require('express');
 
-const jwtValidator = require('../helpers/JwtValidator');
+const jwtValidator = require('../helpers/JwtValidator.mjs');
 
 const { view, admin } = require('../controllers/admin/authorize');
 const { serveImage } = require('../../serve-image');
@@ -8,7 +8,7 @@ const { updatePolicy } = require('../controllers/admin/policy');
 
 const router = express.Router();
 
-const config = require('../../config');
+const config = require('../../config.mjs');
 
 const checkJwt = jwtValidator({
     jwksUri: config.JWKS_URI,

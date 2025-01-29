@@ -46,6 +46,7 @@
 import identifierOfScope from './src/omc/identifierOfScope.mjs';
 import generateId from './src/omc/generateID.mjs';
 import migrate from './src/omc/migrate.mjs';
+import compare from './src/omc/compare.mjs';
 import * as transform from './src/omc/transform.mjs';
 import validate from './src/omc/validate.mjs';
 
@@ -53,6 +54,7 @@ export {
     identifierOfScope,
     generateId,
     migrate,
+    compare,
     transform,
     validate,
 };

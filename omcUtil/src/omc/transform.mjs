@@ -5,7 +5,7 @@
  */
 
 import assert from 'node:assert';
-import { hasProp } from 'mlHelpers';
+import { hasProp } from '../util/util.mjs';
 
 import generateId from './generateID.mjs';
 

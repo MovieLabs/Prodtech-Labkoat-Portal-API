@@ -10,7 +10,7 @@
  */
 
 import Ajv2019 from 'ajv/dist/2019.js';
-import { hasProp } from 'mlHelpers';
+import { hasProp } from '../util/util.mjs';
 
 /* eslint-disable */
 import schemav20 from '../schema/OMC-JSON-v2.0.schema.json' assert { type: 'json' };

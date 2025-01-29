@@ -5,7 +5,7 @@
 const db = require('../task/db');
 const omc = require('../../helpers/omc');
 const generateId = require('../../helpers/generateID');
-const { recursiveDeepCopy, makeArray } = require('../../helpers/util');
+const { recursiveDeepCopy, makeArray } = require('../../helpers/util.mjs');
 const { identifierOfScope } = require('../../helpers/omc');
 const { updatePolicy } = require('./policy');
 
