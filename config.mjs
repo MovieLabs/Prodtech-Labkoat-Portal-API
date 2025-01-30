@@ -18,10 +18,10 @@ const configEnv = {
         // ASERTO_TENANT_ID: '0b096969-5706-11ed-9018-00847ec4b2c9',
         // ASERTO_AUTHORIZER_SERVICE_URL: 'authorizer.prod.aserto.com:8443',
         // ASERTO_POLICY_ROOT: 'asertodemo',
-        LABKOAT_FGA_ENVIRONMENT: 'us',
-        LABKOAT_FGA_API_URL: 'https://api.us1.fga.dev',
-        LABKOAT_FGA_STORE_ID: '01H0874SH174XKCCA3BD0JA0GF', // FunctionalTest store
-        LABKOAT_FGA_CLIENT_ID: 'ecqIaRxBJTYPTjfCqINeAqfrfyof7EOt', // FunctionalTest Store
+        // LABKOAT_FGA_ENVIRONMENT: 'us',
+        // LABKOAT_FGA_API_URL: 'https://api.us1.fga.dev',
+        // LABKOAT_FGA_STORE_ID: '01H0874SH174XKCCA3BD0JA0GF', // FunctionalTest store
+        // LABKOAT_FGA_CLIENT_ID: 'ecqIaRxBJTYPTjfCqINeAqfrfyof7EOt', // FunctionalTest Store
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',

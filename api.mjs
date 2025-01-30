@@ -4,15 +4,11 @@ import express from 'express';
 import cors from 'cors';
 
 import awsSecrets from './awsSecrets.mjs'; // Runs the code to populate secrets from AWS secrets manager
-// const auth0fga = require('./src/routes/auth0fga-router');
 // const admin = require('./src/routes/admin-router');
 // import okta from './src/routes/directory-router.mjs';
 import approval from './src/routes/approval-router.mjs';
-// const assets = require('./src/routes/asset-router');
 import { omcRouter } from './src/routes/omc-router.mjs';
 import { vocabRouter } from './src/routes/vocab-router.mjs';
-// import test from './src/routes/test-router';
-// const { opaRouter } = require('./src/routes/opa-router');
 
 const app = express();
 
@@ -36,17 +32,13 @@ async function setup() {
         }
     }));
 
-    // app.use('/api/admin', admin); // Add the route controllers for Auth0Fga
-    // app.use('/api/auth0fga', auth0fga); // Add the route controllers for Auth0Fga
     // app.use('/api/okta', okta); // Add the route controllers for Okta
     app.use('/api/approval', approval); // Add the route controllers for the Approvals page
-    // app.use('/api/asset', assets);
-    // app.use('/api/opa', opaRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/omc', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
     // app.use('/api/test', test); // Route and controllers for testing the test token
 
-    // Error handling
+    // Error handling of last resort, will return a 500 error
     app.use((err, req, res) => {
         console.log(err);
         res.status(500)
