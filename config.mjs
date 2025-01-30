@@ -12,12 +12,12 @@ const configEnv = {
         GRAPHQL_URL: 'https://service.labkoat.media/graphql/api',
         YAMDU_URL: 'https://app.yamdu.com/thirdpartyapi/v1/omc/',
         YAMDU_PROJECT: '119374',
-        ASERTO_POLICY_ID: '830240b0-95f3-11ed-ae53-01847ec4b2c9',
-        ASERTO_POLICY_INSTANCE_NAME: 'reactinstance',
-        ASERTO_POLICY_INSTANCE_LABEL: 'reactinstance',
-        ASERTO_TENANT_ID: '0b096969-5706-11ed-9018-00847ec4b2c9',
-        ASERTO_AUTHORIZER_SERVICE_URL: 'authorizer.prod.aserto.com:8443',
-        ASERTO_POLICY_ROOT: 'asertodemo',
+        // ASERTO_POLICY_ID: '830240b0-95f3-11ed-ae53-01847ec4b2c9',
+        // ASERTO_POLICY_INSTANCE_NAME: 'reactinstance',
+        // ASERTO_POLICY_INSTANCE_LABEL: 'reactinstance',
+        // ASERTO_TENANT_ID: '0b096969-5706-11ed-9018-00847ec4b2c9',
+        // ASERTO_AUTHORIZER_SERVICE_URL: 'authorizer.prod.aserto.com:8443',
+        // ASERTO_POLICY_ROOT: 'asertodemo',
         LABKOAT_FGA_ENVIRONMENT: 'us',
         LABKOAT_FGA_API_URL: 'https://api.us1.fga.dev',
         LABKOAT_FGA_STORE_ID: '01H0874SH174XKCCA3BD0JA0GF', // FunctionalTest store
@@ -39,7 +39,7 @@ const configEnv = {
         },
     },
     local: {
-        // FMAM_URL: 'http://localhost:4001/fmam/api/',
+        FMAM_URL: 'http://localhost:4001/fmam/api/',
     },
     aws: {},
 };

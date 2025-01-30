@@ -3,12 +3,16 @@
  * @module
  */
 
-import { entityByIdentifier } from '../../mongo/query/entityByIdentifier.mjs';
+import fMamFetch from '../fMamFetch.mjs';
 
-async function entityController(req, res, projectDb) {
+async function entityController(req, res) {
     console.log('Route: /omc/entity');
 
-    const { identifierScope, identifierValue, project } = req.query;
+    const {
+        identifierScope,
+        identifierValue,
+        project,
+    } = req.query;
     console.log(`Get data for ${project} - Scope: ${identifierScope}, Value: ${identifierValue}`);
 
     if (project === undefined) {
@@ -18,26 +22,17 @@ async function entityController(req, res, projectDb) {
         return;
     }
 
-    try {
-        const db = projectDb[project]; // Use the connection for this project
-        const testEnt = await entityByIdentifier(db, { identifierScope, identifierValue });
-        console.log(testEnt);
+    const fMamResponse = await fMamFetch({
+        res,
+        method: 'GET',
+        route: 'identifier',
+        params: `identifierScope=${identifierScope}&identifierValue=${identifierValue}`,
+        project,
+    });
 
-        if (testEnt) {
-            res.status(200)
-                .json(testEnt);
-            return;
-        }
-        console.log('Error from Mongo');
-        res.status(400)
-            .set('Content-Type', 'application/json')
-            .send({ message: 'Database Error' });
-    } catch (err) {
-        console.log('Error: Entity did not resolve');
-        res.status(400)
-            .set('Content-Type', 'application/json')
-            .send({ message: 'Entity did not resolve' });
-    }
+    res.status(fMamResponse.status)
+        .set('Content-Type', 'application/json')
+        .send(fMamResponse.payload);
 }
 
 export default entityController;

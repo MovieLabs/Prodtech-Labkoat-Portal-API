@@ -54,8 +54,6 @@ function mergeOmcIdentifiers(pairs) {
  */
 
 function matchOmcIdentifiers(original, comparison, identifierScope) {
-    original.pop();
-    comparison.shift();
     const oMap = identifierMap(original, identifierScope);
     const cMap = identifierMap(comparison, identifierScope);
 

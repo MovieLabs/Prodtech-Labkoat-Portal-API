@@ -4,12 +4,12 @@
 import fetch from 'node-fetch';
 import { compare } from 'omcUtil';
 
-import fMamFetch from '../fMamFetch.mjs';
 import config from '../../../config.mjs';
 
+import { serviceToken } from '../../helpers/serviceToken.mjs';
+import fMamFetch from '../fMamFetch.mjs';
 import matchOmcIdentifiers from '../../helpers/matchOmcIdentifiers.mjs';
 import yamduCleanup from './yamduCleanup.mjs';
-// import dummyData from './dummyData.mjs';
 
 const yamduKey = '93ED8C16638C1F8234C921A8737174D788A1C454A5E3A2F48D97AEFC7E042B32';
 const yamduProject = config.YAMDU_PROJECT; // 119374 (Europa with Revisions)
@@ -49,47 +49,24 @@ async function getYamduEntities(entityType) {
     return yamduData[entityType];
 }
 
-async function getAllEntities(entityType, identifierScope, token) {
-    const fMamResponse = await fMamFetch({
-        token,
+async function getAllEntities(entityType, identifierScope) {
+    const fMamEntities = fMamFetch(entityType);
+    const yamduEntities = getYamduEntities(entityType);
+    const matchedEntities = matchOmcIdentifiers(await fMamEntities, await yamduEntities, identifierScope);
+    return matchedEntities.map((item) => compare(item));
+}
+
+async function yamduEvent(req, res) {
+    console.log('Path: approval/test');
+
+    const entityType = 'Character';
+    const fmamResponse = await fMamFetch({
         method: 'GET',
-        route: `entityType/${entityType}`,
-        // params: '',
+        route: `entitytype/${entityType}`,
+        params: 'instanceInfo=true',
         project: fMamProject,
     });
-
-    const yamduResponse = getYamduEntities(entityType);
-    const fMamEntities = await fMamResponse;
-    const yamduEntities = await yamduResponse;
-    if (fMamEntities.status === 200) {
-        const matchedEntities = matchOmcIdentifiers(fMamEntities.payload, yamduEntities, identifierScope);
-        return matchedEntities.map((item) => compare(item));
-    }
-    return [];
+    res.status(fmamResponse.status).json(fmamResponse.payload);
 }
 
-async function yamduApproval(req, res) {
-    console.log('Path: approval/yamdu');
-
-    const token = req.headers.authorization?.split(' ')[1];
-
-    const compareCharacter = getAllEntities('Character', 'com.yamdu.app', token);
-    const compareNarLocation = getAllEntities('NarrativeLocation', 'com.yamdu.app');
-
-    const Character = await compareCharacter;
-    const NarrativeLocation = await compareNarLocation;
-
-    // const Character = [(compare(dummyData))];
-
-    const omcCompare = {
-        Character,
-        NarrativeLocation,
-    };
-
-    console.log(Character);
-    console.log(NarrativeLocation);
-
-    res.json(omcCompare);
-}
-
-export default yamduApproval;
+export default yamduEvent;

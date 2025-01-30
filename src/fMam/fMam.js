@@ -29,7 +29,7 @@ const queryOptions = {
     conceptArt: conceptArtQuery,
 };
 
-const fMamUrl = config.FMAM_URL; // Base Url for the fMam
+const fMamUrl = config.GRAPHQL_URL; // Base Url for the fMam
 
 /**
  * Navigate a path through a set of entities to extract and return all entities at the end of that path

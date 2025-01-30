@@ -8,7 +8,7 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 // const { fgaSetup } = require('./src/controllers/auth0Interface');
 import { oktaSetup } from './src/controllers/oktaInterface.mjs';
 // const { opaSetup } = require('./src/routes/opa-router');
-import { omcSetup } from './src/routes/omc-router.mjs';
+// import { omcSetup } from './src/routes/omc-router.mjs';
 import { vocabSetup } from './src/routes/vocab-router.mjs';
 import { serviceSetup } from './src/helpers/serviceToken.mjs';
 
@@ -91,7 +91,7 @@ async function setupSecrets() {
     // await fgaSetup(awsSecrets);
     await oktaSetup(awsSecrets);
     // await opaSetup(awsSecrets);
-    await omcSetup(awsSecrets);
+    // await omcSetup(awsSecrets);
     await vocabSetup(awsSecrets);
     await serviceSetup(awsSecrets);
 }
