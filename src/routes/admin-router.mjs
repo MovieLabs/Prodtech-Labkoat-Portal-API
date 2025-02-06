@@ -3,8 +3,8 @@ import jwtValidator from '../helpers/JwtValidator.mjs';
 
 import config from '../../config.mjs';
 
-import approvalTest from '../controllers/approval/approvalTest.mjs';
-import { yamduController } from '../controllers/approval/yamduController.mjs';
+import resetHpa from '../controllers/admin/resetHPA-controller.mjs';
+import { updatedCharacter } from '../controllers/admin/hpaTest.mjs';
 
 const router = express.Router();
 
@@ -14,8 +14,7 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/test', checkJwt, approvalTest);
-// router.get('/yamdu', checkJwt, yamduController);
-router.get('/yamdu', yamduController);
+router.get('/reset', checkJwt, resetHpa);
+router.get('/testcharacter', updatedCharacter);
 
 export default router;

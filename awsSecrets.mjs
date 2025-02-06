@@ -11,6 +11,7 @@ import { oktaSetup } from './src/controllers/oktaInterface.mjs';
 // import { omcSetup } from './src/routes/omc-router.mjs';
 import { vocabSetup } from './src/routes/vocab-router.mjs';
 import { serviceSetup } from './src/helpers/serviceToken.mjs';
+import { yamduSetup } from './src/controllers/approval/yamduController.mjs';
 
 const AWS_REGION = 'us-west-2';
 const secretEnv = {
@@ -92,6 +93,7 @@ async function setupSecrets() {
     await oktaSetup(awsSecrets);
     // await opaSetup(awsSecrets);
     // await omcSetup(awsSecrets);
+    await yamduSetup(awsSecrets);
     await vocabSetup(awsSecrets);
     await serviceSetup(awsSecrets);
 }

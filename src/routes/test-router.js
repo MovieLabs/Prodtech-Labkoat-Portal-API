@@ -1,7 +1,7 @@
 const express = require('express');
 
-const serviceTokenController = require('../controllers/test/serviceTokenController');
-const exchangeTokenController = require('../controllers/test/exchangeTokenController');
+const serviceTokenController = require('../controllers/token-exchange/serviceTokenController');
+const exchangeTokenController = require('../controllers/token-exchange/exchangeTokenController');
 
 const router = express.Router();
 

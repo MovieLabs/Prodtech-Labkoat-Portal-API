@@ -49,7 +49,7 @@ async function vocabSetup(secrets) {
     const vocabLoaded = await skosCache.loadCache(neo4Jdb);
     await omcCache.loadCache(neo4Jdb);
 
-    // Temporary test code for creation of JSON-LD
+    // Temporary token-exchange code for creation of JSON-LD
     // const skosVocab = skosCache.getCache();
     // createJsonLd(skosVocab);
     // createTtl(skosVocab);

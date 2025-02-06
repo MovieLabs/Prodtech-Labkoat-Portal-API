@@ -4,28 +4,32 @@
 import fetch from 'node-fetch';
 import { compare } from 'omcUtil';
 
-import fMamFetch from '../fMamFetch.mjs';
+import { fMamFetch } from '../fMamFetch.mjs';
 import config from '../../../config.mjs';
 
 import matchOmcIdentifiers from '../../helpers/matchOmcIdentifiers.mjs';
+import mergeContext from '../../helpers/mergeContext.mjs';
 import yamduCleanup from './yamduCleanup.mjs';
 // import dummyData from './dummyData.mjs';
 
-const yamduKey = '93ED8C16638C1F8234C921A8737174D788A1C454A5E3A2F48D97AEFC7E042B32';
+let yamduKey = null;
 const yamduProject = config.YAMDU_PROJECT; // 119374 (Europa with Revisions)
 const yamduUrl = config.YAMDU_URL;
 const fMamProject = 'yamdu';
 
+export function yamduSetup(secrets) {
+    yamduKey = secrets.LABKOAT.YAMDU_KEY;
+    console.log('Yamdu key set', yamduKey);
+}
+
 async function yamduFetch(yamduRoute) {
     try {
-        // Test the token against a test endpoint on the Labkoat API
+        // Test the token against a token-exchange endpoint on the Labkoat API
         const url = `${yamduUrl}${yamduRoute}?key=${yamduKey}&project=${yamduProject}`;
         const options = {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                // Authorization: `Basic ${exchangeToken}`,
-                // 'content-type': 'application/x-www-form-urlencoded',
             },
         };
         console.log(url);
@@ -39,57 +43,58 @@ async function yamduFetch(yamduRoute) {
 
 const yamduEndpoint = {
     Character: 'allCharacters',
+    // CreativeWork: 'allCreativeWorks',
+    Effect: 'allEffects',
+    NarrativeAudio: 'allNarrativeAudios',
     NarrativeLocation: 'allNarrativeLocations',
+    NarrativeObject: 'allNarrativeObjects',
+    NarrativeScene: 'allNarrativeScenes',
+    NarrativeWardrobe: 'allNarrativeWardrobes',
+    ProductionLocation: 'allProductionLocations',
+    // ProductionScene: 'allProductionScenes',
+    SpecialAction: 'allSpecialActions',
 };
 
 async function getYamduEntities(entityType) {
     const endpoint = yamduEndpoint[entityType];
     const rawData = await yamduFetch(endpoint);
     const yamduData = yamduCleanup(rawData);
+    console.log(`Received ${entityType} data from Yamdu`);
     return yamduData[entityType];
 }
 
-async function getAllEntities(entityType, identifierScope, token) {
-    const fMamResponse = await fMamFetch({
-        token,
+// Make requests to the fMam API for a given entity type
+async function getAllEntities(entityType, identifierScope, next) {
+    const yamduResponse = getYamduEntities(entityType);
+    const fMamEntities = await fMamFetch({
+        next,
         method: 'GET',
         route: `entityType/${entityType}`,
-        // params: '',
-        project: fMamProject,
+        query: {
+            project: fMamProject,
+        },
     });
+    console.log(`Received ${entityType} data from fMam`);
 
-    const yamduResponse = getYamduEntities(entityType);
-    const fMamEntities = await fMamResponse;
     const yamduEntities = await yamduResponse;
+
     if (fMamEntities.status === 200) {
         const matchedEntities = matchOmcIdentifiers(fMamEntities.payload, yamduEntities, identifierScope);
-        return matchedEntities.map((item) => compare(item));
+        const mergedContext = matchedEntities.map((item) => mergeContext(item, identifierScope));
+        const diffEntities = mergedContext.map((item) => compare(item));
+
+        return { [entityType]: diffEntities };
+        // return { [entityType]: matchedEntities.map((item) => compare(item)) };
     }
-    return [];
+    console.log(`Error fetching ${entityType}`);
+    return { [entityType]: [] };
 }
 
-async function yamduApproval(req, res) {
+export async function yamduController(req, res, next) {
     console.log('Path: approval/yamdu');
 
-    const token = req.headers.authorization?.split(' ')[1];
-
-    const compareCharacter = getAllEntities('Character', 'com.yamdu.app', token);
-    const compareNarLocation = getAllEntities('NarrativeLocation', 'com.yamdu.app');
-
-    const Character = await compareCharacter;
-    const NarrativeLocation = await compareNarLocation;
-
-    // const Character = [(compare(dummyData))];
-
-    const omcCompare = {
-        Character,
-        NarrativeLocation,
-    };
-
-    console.log(Character);
-    console.log(NarrativeLocation);
-
+    const entityPromise = Object.keys(yamduEndpoint).map((entityType) => getAllEntities(entityType, 'com.yamdu.app', next));
+    const omcMatched = await Promise.all(entityPromise);
+    const omcCompare = omcMatched.reduce((acc, item) => ({ ...acc, ...item }), {});
     res.json(omcCompare);
 }
-
-export default yamduApproval;

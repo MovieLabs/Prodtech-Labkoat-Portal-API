@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     query: `
 fragment idFields on Identifier {
   identifierScope
@@ -13,25 +13,15 @@ query ($structuralType: String, $functionalType: String) {
     }
     name
     description
-    AssetSC {
+    structuralCharacteristics {
       structuralType
-      identifier {...idFields}
       structuralProperties {
         assetGroup {
           isOrdered
         }
-        linkset {
-            recordType
-            mediaType
-          }
-          fileDetails {
-            fileName
-            filePath
-            fileExtension
-          }
       }
     }
-    AssetFC {
+    functionalCharacteristics {
       functionalType
     }
     Asset {
@@ -41,7 +31,7 @@ query ($structuralType: String, $functionalType: String) {
       }
       name
       description
-      AssetSC {
+      structuralCharacteristics {
         structuralType
         identifier {
           ...idFields
@@ -58,14 +48,30 @@ query ($structuralType: String, $functionalType: String) {
           }
         }
       }
-      AssetFC {
+      functionalCharacteristics {
         functionalType
+      }
+    }
+    Context {
+      entityType
+      identifier {
+        ...idFields
+      }
+      hasSlate {
+        Slate {
+          entityType
+          identifier {
+            ...idFields
+          }
+        }
       }
     }
   }
 }
-        `,
-    variables: {},
+`,
+    variables: {
+        "functionalType": "capture"
+    },
     responsePath: 'getAssetType',
-    assetPath: 'Context.hasConceptArt.Asset.Asset',
+    assetPath: '',
 };

@@ -2,20 +2,21 @@
  * Interface to the fMam primarily for updating the Participants
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
-const { serviceToken } = require('../helpers/serviceToken.mjs');
+import { serviceToken } from '../helpers/serviceToken.mjs';
 
-const config = require('../../config.mjs');
-const allParticipantsQuery = require('./queries/allParticipants');
-const getAssetTypeQuery = require('./queries/assetType');
-const allCharactersQuery = require('./queries/allCharacters');
-const allNarrativePropsQuery = require('./queries/allNarrativeProps');
-const allNarrativeScenesQuery = require('./queries/allNarrativeScenes');
-const allStoryboardsQuery = require('./queries/getAsset.storyboard');
-const conceptArtQuery = require('./queries/getAsstet.concept');
-const allShotsQuery = require('./queries/getAsset.shot');
-const allSlatesQuery = require('./queries/allSlates');
+import config from '../../config.mjs';
+
+import allParticipantsQuery from './queries/allParticipants.mjs';
+import getAssetTypeQuery from './queries/assetType.mjs';
+import allCharactersQuery from './queries/allCharacters.mjs';
+import allNarrativePropsQuery from './queries/allNarrativeProps.mjs';
+import allNarrativeScenesQuery from './queries/allNarrativeScenes.mjs';
+import allStoryboardsQuery from './queries/getAsset.storyboard.mjs';
+import conceptArtQuery from './queries/getAsstet.concept.mjs';
+import allShotsQuery from './queries/getAsset.shot.mjs';
+import allSlatesQuery from './queries/allSlates.mjs';
 
 const queryOptions = {
     getAssetType: getAssetTypeQuery,
@@ -37,9 +38,9 @@ const fMamUrl = config.GRAPHQL_URL; // Base Url for the fMam
  * @return {Array}
  */
 
-async function fMamQuery(graphQlQuery) {
-    const bearerToken = await serviceToken();
-    console.log(bearerToken);
+async function fMamQuery(graphQlQuery, token = null) {
+    const bearerToken = token || await serviceToken();
+    // console.log(bearerToken);
     console.log(fMamUrl);
 
     const { responsePath } = graphQlQuery; // Variables to navigate the response
@@ -60,15 +61,14 @@ async function fMamQuery(graphQlQuery) {
         console.log(err);
     }
 
-    const data = fMamResponse.status === 200 ? await fMamResponse.json() : null;
-    const entities = data !== null ? data.data[responsePath] : null;
-    if (entities !== null) {
-        console.log(`Retrieved ${entities.length} entities from fMam\n`);
-        return entities;
+    if (fMamResponse.status === 200) {
+        const data = await fMamResponse.json();
+        return data !== null ? data.data[responsePath] : [];
+        // console.log(`Retrieved ${entities.length} entities from fMam\n`);
+        // return entities;
     }
     // No data returned for the query
     console.log(`fMam query failed: ${fMamResponse.statusText} (${fMamResponse.status})\n`);
-    console.log(`Entities: ${entities}`);
     return [];
 }
 
@@ -92,11 +92,11 @@ async function getAssetType(queryVariables) {
  * @param queryVariables {object} - Any query variables to be passed to the query
  * @return {Promise<*[]>}
  */
-async function query(queryName, queryVariables = {}) {
+async function query(queryName, queryVariables = {}, token) {
     const graphQlQuery = queryOptions[queryName]; // Pick one of the graphql queries and variables
     graphQlQuery.variables = { ...queryVariables };
-    console.log(`Query fMam for: ${queryName}`);
-    return fMamQuery(graphQlQuery);
+    // console.log(`Query fMam for: ${queryName}`);
+    return fMamQuery(graphQlQuery, token);
 }
 
 async function mutateOmcPerson(omc) {
@@ -104,7 +104,10 @@ async function mutateOmcPerson(omc) {
     const queryName = 'mutatePerson';
     const graphQlMutation = queryOptions[queryName]; // Pick one of the graphql queries and variables
     // delete omc.Person.entityType;
-    const { query, responsePath } = graphQlMutation;
+    const {
+        query,
+        responsePath,
+    } = graphQlMutation;
     const graphQlBody = {
         query,
         variables: omc,
@@ -140,7 +143,7 @@ async function mutateOmcPerson(omc) {
     return entities;
 }
 
-module.exports = {
+export {
     query,
     getAssetType,
     mutateOmcPerson,

@@ -6,7 +6,8 @@ const identifierMap = ((omc, scope) => {
     if (!omc) return map;
     omc.forEach((ent) => {
         const idOfScope = ent.identifier.find((id) => id.identifierScope === scope);
-        map[idKey(idOfScope)] = ent;
+        if (idOfScope) map[idKey(idOfScope)] = ent;
+        // map[idKey(idOfScope)] = ent;
     });
     return map;
 });

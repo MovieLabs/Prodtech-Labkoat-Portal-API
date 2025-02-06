@@ -29,6 +29,8 @@ async function getSecretsAttempt() {
     const secretsManagerInstance = new SecretsManager({ region: AWS_REGION });
     try {
         const secretValue = await secretsManagerInstance.getSecretValue({ SecretId: AWS_SECRET_ARN });
+        const secrets = JSON.parse(secretValue.SecretString);
+        console.log(secrets);
         return JSON.parse(secretValue.SecretString);
     } catch (err) {
         console.log(`getSecrets error ${err.code}`);

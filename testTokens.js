@@ -2,7 +2,7 @@
  * Test and example code for acquiring a service token using a client credentials flow
  * and acquiring a token that is then exchanged by a backend service
  *
- * These work in conjunction with backend code under the /test route
+ * These work in conjunction with backend code under the /token-exchange route
  *
  */
 
@@ -24,16 +24,16 @@ const {
 } = process.env;
 
 /**
- * This demonstrates acquiring a token using the Client Credentials flow for test application
+ * This demonstrates acquiring a token using the Client Credentials flow for token-exchange application
  *
  * Okta has an Authorization server setup to create tokens with an audience: https://service.labkoat.media
  * This is the 'issuer' and tokens can be requested at: https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697
  *
- * An application is created in Okta as a test application, it is then used for machine to machine connections
+ * An application is created in Okta as a token-exchange application, it is then used for machine to machine connections
  * This is identified with the clientID: 0oa55vfp9wLx8dxIF697
  * This identity is the sub(subscriber) claim returned in the JWT, authorization policies would use this id.
  *
- * The test application also creates a secret, which is available in the Okta admin console for the application
+ * The token-exchange application also creates a secret, which is available in the Okta admin console for the application
  *
  */
 const testServiceToken = async () => {
@@ -60,7 +60,7 @@ const testServiceToken = async () => {
         // Retrieve the token and its type from the response
         const { token_type: tokenType, access_token: accessToken } = grant;
 
-        // Test the token against a test endpoint on the Labkoat API
+        // Test the token against a token-exchange endpoint on the Labkoat API
         const response = await request({
             uri: 'http://localhost:8080/api/test/service',
             json: true,

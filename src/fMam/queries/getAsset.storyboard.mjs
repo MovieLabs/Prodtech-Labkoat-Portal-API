@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     query: `
 fragment idFields on Identifier {
   identifierScope
@@ -13,7 +13,7 @@ query ($structuralType: String, $functionalType: String) {
     }
     name
     description
-    structuralCharacteristics {
+    AssetSC {
       structuralType
       structuralProperties {
         assetGroup {
@@ -21,8 +21,13 @@ query ($structuralType: String, $functionalType: String) {
         }
       }
     }
-    functionalCharacteristics {
+    AssetFC {
       functionalType
+      functionalProperties {
+        ... on artwork_storyboard {
+          altName
+        }
+      }
     }
     Asset {
       entityType
@@ -31,7 +36,7 @@ query ($structuralType: String, $functionalType: String) {
       }
       name
       description
-      structuralCharacteristics {
+      AssetSC {
         structuralType
         identifier {
           ...idFields
@@ -48,30 +53,31 @@ query ($structuralType: String, $functionalType: String) {
           }
         }
       }
-      functionalCharacteristics {
+      AssetFC {
         functionalType
-      }
-    }
-    Context {
-      entityType
-      identifier {
-        ...idFields
-      }
-      hasSlate {
-        Slate {
-          entityType
-          identifier {
-            ...idFields
+        functionalProperties {
+          ... on artwork_storyboard_frame {
+            frameName
+            cameraFraming
+            description
           }
         }
       }
     }
+    Context {
+      isStoryboardFor {
+        NarrativeScene {
+          entityType
+          identifier {...idFields}
+        }
+      }
+    }
   }
-}
+}    
 `,
     variables: {
-        "functionalType": "capture"
+        functionalType: 'artwork.storyboard',
     },
     responsePath: 'getAssetType',
-    assetPath: '',
+    assetPath: 'Asset',
 };

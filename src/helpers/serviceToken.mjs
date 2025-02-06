@@ -18,6 +18,7 @@ async function serviceSetup(secrets) {
 }
 
 let bearerToken = null;
+
 async function serviceToken() {
     if (bearerToken !== null) {
         const base64Url = bearerToken.split('.')[1];

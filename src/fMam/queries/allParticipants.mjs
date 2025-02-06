@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     query: `
 fragment idFields on Identifier {
   identifierScope
@@ -63,7 +63,6 @@ query {
     }
   }
 }
-
         `,
     variables: {},
     responsePath: 'allParticipants',

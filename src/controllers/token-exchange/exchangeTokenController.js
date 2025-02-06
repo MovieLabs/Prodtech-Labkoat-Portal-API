@@ -9,7 +9,7 @@ const request = require('request-promise');
 
 const aud = 'https://service.labkoat.media'; // Expected audience for the JWT
 const issuer = 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697';
-const sub = ['0oa55vfp9wLx8dxIF697']; // Subscriber id's of test applications that are allowed
+const sub = ['0oa55vfp9wLx8dxIF697']; // Subscriber id's of token-exchange applications that are allowed
 
 // A new validator with the issuer url, where the jwks can be retrieved
 const oktaJwtVerifier = new OktaJwtVerifier({
@@ -53,19 +53,19 @@ async function exchangeTokenController(req, res) {
         + '&subject_token_type=urn:ietf:params:oauth:token-type:access_token'
         + `&subject_token=${token}`
         + `&scope=${exchangeScope}`
-        + '&audience=https:test.labkoat.com';
+        + '&audience=https:token-exchange.labkoat.com';
 
     // const body = {
     //     grant_type: 'token-exchange',
     //     subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
     //     subject_token: subjectToken,
     //     scope: exchangeScope,
-    //     audience: 'https:test.labkoat.com',
+    //     audience: 'https:token-exchange.labkoat.com',
     // };
     const exchangeToken = btoa(`${exchangeClientId}:${exchangeClientSecret}`); // Base 64 encode
 
     try {
-        // Test the token against a test endpoint on the Labkoat API
+        // Test the token against a token-exchange endpoint on the Labkoat API
         const url = `${exchangeIssuer}/v1/token`;
         const options = {
             method: 'POST',
@@ -79,7 +79,7 @@ async function exchangeTokenController(req, res) {
                 subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
                 subject_token: token,
                 scope: exchangeScope,
-                audience: 'https:test.labkoat.com',
+                audience: 'https:token-exchange.labkoat.com',
             }),
         };
         const response = await fetch(url, options);
