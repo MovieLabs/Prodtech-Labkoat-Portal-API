@@ -18,6 +18,20 @@ const entityTransform = {
             }
             : null;
     }),
+    Location: (omc) => {
+        const coordinates = omc.coordinates || null;
+        if (coordinates) {
+            coordinates.latitude = typeof coordinates?.latitude === 'string'
+                ? Number(coordinates.latitude) : coordinates.latitude;
+            coordinates.longitude = typeof coordinates?.longitude === 'string'
+                ? Number(coordinates.longitude) : coordinates.longitude;
+        }
+        return {
+            ...omc,
+            name: omc?.address.street ? `${omc.address.street}` : null,
+            coordinates,
+        };
+    },
     ProductionScene: (omc) => ({
         ...omc,
         // name: omc.sceneName ? `${omc.sceneName.fullName}` : null,

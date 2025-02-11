@@ -99,6 +99,7 @@ export async function fMamProxy({
 
         // Return the response from the FMAM service to the client
         const payload = await fmamResponse.json();
+        console.log(fmamResponse.status);
         res.status(fmamResponse.status)
             .json(payload)
             .end();

@@ -7,7 +7,7 @@ import { compare } from 'omcUtil';
 import { fMamFetch } from '../fMamFetch.mjs';
 import config from '../../../config.mjs';
 
-import matchOmcIdentifiers from '../../helpers/matchOmcIdentifiers.mjs';
+import { matchOmcIdentifiers, mergeOmcIdentifiers } from '../../helpers/matchOmcIdentifiers.mjs';
 import mergeContext from '../../helpers/mergeContext.mjs';
 import yamduCleanup from './yamduCleanup.mjs';
 // import dummyData from './dummyData.mjs';
@@ -55,18 +55,34 @@ const yamduEndpoint = {
     SpecialAction: 'allSpecialActions',
 };
 
-async function getYamduEntities(entityType) {
-    const endpoint = yamduEndpoint[entityType];
-    const rawData = await yamduFetch(endpoint);
-    const yamduData = yamduCleanup(rawData);
-    console.log(`Received ${entityType} data from Yamdu`);
-    return yamduData[entityType];
+const intrinsicProps = ((ent) => Object.keys(ent)
+    .filter((key) => key[0] !== key[0].toLowerCase()));
+
+function getfMamContext(omc, next) {
+    return omc.map(async (ent) => {
+        const { identifier } = ent;
+        const { identifierScope } = identifier[0];
+        const { identifierValue } = identifier[0];
+        const context = await fMamFetch({
+            next,
+            method: 'GET',
+            route: 'identifier',
+            query: {
+                project: fMamProject,
+                identifierScope,
+                identifierValue,
+            },
+        });
+        return {
+            original: context.payload,
+            comparison: ent,
+        };
+    });
 }
 
-// Make requests to the fMam API for a given entity type
-async function getAllEntities(entityType, identifierScope, next) {
-    const yamduResponse = getYamduEntities(entityType);
-    const fMamEntities = await fMamFetch({
+async function getfMamEntity(entityType, next) {
+    console.log(`fMam entity Request for ${entityType}`);
+    const fRes = await fMamFetch({
         next,
         method: 'GET',
         route: `entityType/${entityType}`,
@@ -74,27 +90,63 @@ async function getAllEntities(entityType, identifierScope, next) {
             project: fMamProject,
         },
     });
-    console.log(`Received ${entityType} data from fMam`);
+    return fRes.status === 200 ? { [entityType]: fRes.payload } : {};
+}
 
-    const yamduEntities = await yamduResponse;
+async function getYamduEntities(entityType) {
+    const endpoint = yamduEndpoint[entityType];
+    const rawData = await yamduFetch(endpoint);
+    console.log(`Received ${entityType} data from Yamdu`);
+    const yamduData = yamduCleanup(rawData);
+    const ik = yamduData[entityType].length ? intrinsicProps(yamduData[entityType][0]) : [];
+    const intrinsicKeys = ik.filter((key) => yamduData[key]); // Filter out intrinsic keys where there is no data
+    intrinsicKeys.push(entityType);
+    return intrinsicKeys.reduce((obj, key) => ({
+        ...obj,
+        [key]: yamduData[key] || [],
+    }), {});
+}
 
-    if (fMamEntities.status === 200) {
-        const matchedEntities = matchOmcIdentifiers(fMamEntities.payload, yamduEntities, identifierScope);
-        const mergedContext = matchedEntities.map((item) => mergeContext(item, identifierScope));
-        const diffEntities = mergedContext.map((item) => compare(item));
+// Make requests to the fMam API for a given entity type
+async function getAllEntities(entityType, identifierScope, next) {
+    const yamduResponse = await getYamduEntities(entityType);
 
-        return { [entityType]: diffEntities };
-        // return { [entityType]: matchedEntities.map((item) => compare(item)) };
-    }
-    console.log(`Error fetching ${entityType}`);
-    return { [entityType]: [] };
+    // Retrieve the entities of entityType and any intrinsically related entities (but ignore the Context)
+    const retrieveEntities = Object.keys(yamduResponse)
+        .filter((key) => key !== 'Context');
+    const fMamPromise = retrieveEntities.map((entT) => getfMamEntity(entT, next));
+    const fMamResponse = await Promise.all(fMamPromise);
+    const fMamEntities = fMamResponse.reduce((acc, item) => ({ ...acc, ...item }), {});
+
+    const fMamCxtPromise = await Promise.all(getfMamContext(yamduResponse.Context));
+    const mergedCxt = mergeOmcIdentifiers(fMamCxtPromise);
+    const cxtDiff = mergedCxt.map((item) => compare(item));
+
+    const final = Object.keys(fMamEntities)
+        .reduce((obj, key) => {
+            const matchedEntities = matchOmcIdentifiers(fMamEntities[key], yamduResponse[key], identifierScope);
+            const mergedContext = matchedEntities.map((item) => mergeContext(item, identifierScope));
+            const diffEntities = mergedContext.map((item) => compare(item));
+            return {
+                ...obj,
+                [key]: diffEntities,
+            };
+        }, { Context: cxtDiff });
+    return final;
 }
 
 export async function yamduController(req, res, next) {
     console.log('Path: approval/yamdu');
 
-    const entityPromise = Object.keys(yamduEndpoint).map((entityType) => getAllEntities(entityType, 'com.yamdu.app', next));
+    const entityPromise = Object.keys(yamduEndpoint)
+        .map((entityType) => getAllEntities(entityType, 'com.yamdu.app', next));
     const omcMatched = await Promise.all(entityPromise);
-    const omcCompare = omcMatched.reduce((acc, item) => ({ ...acc, ...item }), {});
+    const omcCompare = omcMatched.reduce((acc, item) => {
+        Object.keys(item)
+            .forEach((key) => {
+                acc[key] = [...(acc[key] || []), ...item[key]];
+            });
+        return acc;
+    }, {});
     res.json(omcCompare);
 }

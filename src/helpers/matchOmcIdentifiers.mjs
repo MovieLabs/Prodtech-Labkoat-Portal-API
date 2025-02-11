@@ -18,7 +18,7 @@ const identifierMap = ((omc, scope) => {
  * @param pairs
  */
 
-function mergeOmcIdentifiers(pairs) {
+export function mergeOmcIdentifiers(pairs) {
     return pairs.map(({
         original,
         comparison,
@@ -54,7 +54,7 @@ function mergeOmcIdentifiers(pairs) {
  * @returns {*[]}
  */
 
-function matchOmcIdentifiers(original, comparison, identifierScope) {
+export function matchOmcIdentifiers(original, comparison, identifierScope) {
     const oMap = identifierMap(original, identifierScope);
     const cMap = identifierMap(comparison, identifierScope);
 
@@ -87,5 +87,3 @@ function matchOmcIdentifiers(original, comparison, identifierScope) {
     const merged = mergeOmcIdentifiers(format);
     return merged;
 }
-
-export default matchOmcIdentifiers;

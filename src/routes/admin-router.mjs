@@ -4,7 +4,7 @@ import jwtValidator from '../helpers/JwtValidator.mjs';
 import config from '../../config.mjs';
 
 import resetHpa from '../controllers/admin/resetHPA-controller.mjs';
-import { updatedCharacter } from '../controllers/admin/hpaTest.mjs';
+import { updatedCharacter, updatedNarLocation } from '../controllers/admin/hpaTest.mjs';
 
 const router = express.Router();
 
@@ -15,6 +15,6 @@ const checkJwt = jwtValidator({
 });
 
 router.get('/reset', checkJwt, resetHpa);
-router.get('/testcharacter', updatedCharacter);
+router.get('/testcharacter', updatedNarLocation);
 
 export default router;
