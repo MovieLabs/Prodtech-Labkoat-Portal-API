@@ -41,6 +41,16 @@ async function yamduFetch(yamduRoute) {
     }
 }
 
+// This is the identifier for the Creative Work Context, it is used as a special case fix temporarily
+const cwConextEnt = {
+    identifier: [
+        {
+            identifierScope: 'com.yamdu.app',
+            identifierValue: 'cxt-93mGPOi2YCQj7zO',
+        },
+    ],
+};
+
 const yamduEndpoint = {
     Character: 'allCharacters',
     // CreativeWork: 'allCreativeWorks',
@@ -59,6 +69,7 @@ const intrinsicProps = ((ent) => Object.keys(ent)
     .filter((key) => key[0] !== key[0].toLowerCase()));
 
 function getfMamContext(omc, next) {
+    if (!omc || !omc.length) return [];
     return omc.map(async (ent) => {
         const { identifier } = ent;
         const { identifierScope } = identifier[0];
@@ -93,6 +104,17 @@ async function getfMamEntity(entityType, next) {
     return fRes.status === 200 ? { [entityType]: fRes.payload } : {};
 }
 
+// This is a special case fix for the Creative Work Context that links to the Narrative Scenes
+function setCWContext(cwCxt, NarrativeScene) {
+    const cwFeatures = NarrativeScene.map((ent) => ({ identifier: ent.identifier }));
+    const comparison = { ...cwCxt.original };
+    comparison.has = { NarrativeScene: cwFeatures };
+    return {
+        original: cwCxt.original,
+        comparison,
+    };
+}
+
 async function getYamduEntities(entityType) {
     const endpoint = yamduEndpoint[entityType];
     const rawData = await yamduFetch(endpoint);
@@ -119,6 +141,14 @@ async function getAllEntities(entityType, identifierScope, next) {
     const fMamEntities = fMamResponse.reduce((acc, item) => ({ ...acc, ...item }), {});
 
     const fMamCxtPromise = await Promise.all(getfMamContext(yamduResponse.Context));
+
+    // Special case fix for the Creative Work Context that links to the Narrative Scenes
+    if (yamduResponse.NarrativeScene) {
+        const cwContext = await Promise.all(getfMamContext([cwConextEnt], next));
+        const cwCxt = setCWContext(cwContext[0], yamduResponse.NarrativeScene);
+        fMamCxtPromise.push(cwCxt);
+    }
+
     const mergedCxt = mergeOmcIdentifiers(fMamCxtPromise);
     const cxtDiff = mergedCxt.map((item) => compare(item));
 
