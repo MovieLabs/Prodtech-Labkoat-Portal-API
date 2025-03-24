@@ -1,7 +1,7 @@
+name:
+  Push to AWS Container Registry
 
-name: Push to AWS Container Registry
-
- # This is required for requesting the AWS OIDC JWT
+  # This is required for requesting the AWS OIDC JWT
 permissions:
   id-token: write
   contents: read
@@ -23,16 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build container
         run: docker build --tag ${{ env.IMAGE_NAME }} .
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722
         with:
           role-to-assume: arn:aws:iam::113736696237:role/GitHubActionsECR
           aws-region: us-west-2
       - name: Login to ECR with assumed role
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.ECR }}
         env:
@@ -42,7 +42,7 @@ jobs:
           docker tag ${{ env.IMAGE_NAME }} ${{ env.ECR }}/${{env.IMAGE_NAME}}:dev-${{ github.sha }}
           docker push ${{ env.ECR }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
       - name: Notify Service Mesh Repo
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0
         with:
           token: ${{ secrets.PAT }}
           repository: MovieLabs/Prodtech-ServiceMesh
