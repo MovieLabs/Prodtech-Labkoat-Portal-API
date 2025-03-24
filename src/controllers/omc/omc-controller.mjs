@@ -44,34 +44,34 @@ export async function entityTypeController(req, res, next) {
     });
 }
 
-export async function updateController(req, res, next) {
-    const { path } = req.route;
-    const { method } = req;
-    console.log(`${method}: ${path}`);
-
-    // Proxy this through to the fMam API
-    fMamProxy({
-        res,
-        req,
-        next,
-        method: 'POST',
-        route: '/omc/v1/update',
-        queryValidator,
-    });
-}
-
-export async function removeController(req, res, next) {
-    const { path } = req.route;
-    const { method } = req;
-    console.log(`${method}: ${path}`);
-
-    // Proxy this through to the fMam API
-    fMamProxy({
-        res,
-        req,
-        next,
-        method: 'DELETE',
-        route: '/omc/v1/update',
-        queryValidator,
-    });
-}
+// export async function updateController(req, res, next) {
+//     const { path } = req.route;
+//     const { method } = req;
+//     console.log(`${method}: ${path}`);
+//
+//     // Proxy this through to the fMam API
+//     fMamProxy({
+//         res,
+//         req,
+//         next,
+//         method: 'POST',
+//         route: '/omc/v1/update',
+//         queryValidator,
+//     });
+// }
+//
+// export async function removeController(req, res, next) {
+//     const { path } = req.route;
+//     const { method } = req;
+//     console.log(`${method}: ${path}`);
+//
+//     // Proxy this through to the fMam API
+//     fMamProxy({
+//         res,
+//         req,
+//         next,
+//         method: 'DELETE',
+//         route: '/omc/v1/update',
+//         queryValidator,
+//     });
+// }
