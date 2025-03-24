@@ -8,7 +8,7 @@ const configEnv = {
         JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
         ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         AUDIENCE: 'https://service.labkoat.media',
-        FMAM_URL: 'https://service.labkoat.media/fmam/api/',
+        FMAM_URL: 'https://service.labkoat.media/fmam/api',
         GRAPHQL_URL: 'https://service.labkoat.media/graphql/api',
         YAMDU_URL: 'https://app.yamdu.com/thirdpartyapi/v1/omc/',
         YAMDU_PROJECT: '119374',
@@ -30,7 +30,7 @@ const configEnv = {
         },
     },
     local: {
-        FMAM_URL: 'http://localhost:4001/fmam/api/',
+        FMAM_URL: 'http://localhost:4001/fmam/api',
         GRAPHQL_URL: 'http://localhost:4001/graphql/api',
     },
     aws: {},

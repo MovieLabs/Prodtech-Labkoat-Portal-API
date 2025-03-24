@@ -3,7 +3,10 @@ import jwtValidator from '../helpers/JwtValidator.mjs';
 
 import config from '../../config.mjs';
 
-import { entityController, updateController, removeController } from '../controllers/omc/omc-controller.mjs';
+import {
+    proxyController,
+    entityTypeController,
+} from '../controllers/omc/omc-controller.mjs';
 
 const router = express.Router();
 
@@ -15,10 +18,11 @@ const checkJwt = jwtValidator({
 
 // router.get('/entity', checkJwt, ((req, res) => entityController(req, res)));
 // router.post('/update', checkJwt, updateController);
-router.get('/entity', entityController);
-router.post('/update', updateController);
-router.delete('/update', removeController);
+router.get('/entity', entityTypeController);
+router.post('/entityType/:entity', entityTypeController);
+router.get('/identifier', proxyController);
+router.post('/identifier', proxyController);
+router.post('/update', proxyController);
+router.delete('/update', proxyController);
 
-export {
-    router as omcRouter,
-};
+export default router;

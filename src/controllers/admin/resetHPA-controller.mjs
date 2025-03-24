@@ -11,14 +11,33 @@ import yamduResetOMC from './yamduResetOMC.mjs';
 const fMamProject = 'yamdu';
 
 export default async function resetHPAController(req, res, next) {
-    console.log('Route: /admin/reset');
+    console.log(`${req.method}: ${req.route.path}`);
+
+    const identifier = [
+        {
+            identifierScope: 'yamdu',
+            identifierValue: 'HPA',
+        },
+        {
+            identifierScope: 'com.yamdu.app',
+            identifierValue: 'com.yamdu.app.scene.2475847',
+        },
+        {
+            identifierScope: 'movielabs.com/omc/yamdu',
+            identifierValue: '01ef72720e5ceee2babb308b7a3394c0',
+        },
+        {
+            identifierScope: 'yamdu',
+            identifierValue: 'HPA',
+        },
+    ];
 
     try {
         const fMamResponse = await fMamFetch({
             next,
             method: 'POST',
-            route: 'update',
-            body: yamduResetOMC,
+            route: 'identifier',
+            body: identifier,
             query: {
                 project: fMamProject,
                 atomic: true,

@@ -13,7 +13,7 @@ import InvalidRoute from './src/errors/InvalidRoute.mjs';
 import errorHandler from './src/errors/errorHandler.mjs';
 import approval from './src/routes/approval-router.mjs';
 import adminRouter from './src/routes/admin-router.mjs';
-import { omcRouter } from './src/routes/omc-router.mjs';
+import omcRouter from './src/routes/omc-router.mjs';
 import { vocabRouter } from './src/routes/vocab-router.mjs';
 
 const app = express();
@@ -43,7 +43,7 @@ async function setup() {
     // app.use('/api/okta', okta); // Add the route controllers for Okta
     app.use('/api/admin', adminRouter); // Add the route controllers for the Admin page
     app.use('/api/approval', approval); // Add the route controllers for the Approvals page
-    app.use('/api/omc', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
+    app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
     // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
 

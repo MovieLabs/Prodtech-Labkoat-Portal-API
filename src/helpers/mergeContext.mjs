@@ -33,7 +33,7 @@ function mergeContext(item) {
         if (!match) idMerge.push(cxt1);
     });
 
-    comparison.Context = idMerge;
+    comparison.Context = [...idMerge];
     return item;
 }
 

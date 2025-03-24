@@ -13,6 +13,11 @@ const projectDetails = {
         db: 'Europa1',
         identifierScope: 'etc',
     },
+    europa2: {
+        label: 'Europa 2',
+        db: 'Europa2',
+        identifierScope: 'movielabs.com/omc/europa',
+    },
     hsm: {
         label: 'HSM',
         db: 'POC6',
@@ -70,17 +75,18 @@ export async function fMamProxy({
     } = req;
 
     // Check for valid project
-    const { project } = query;
-    const projectDb = projectDetails[project]?.db;
-    if (!projectDb) {
-        next(new InvalidProject(project));
-        return;
-    }
+    // const { project } = query;
+    // const projectDb = projectDetails[project]?.db || null;
+    // if (!projectDb) {
+    //     next(new InvalidProject(project));
+    //     return;
+    // }
 
-    const url = `${fMamUrl}${route}?${queryString({ ...query, ...{ project: projectDb } })}`;
+    const url = `${fMamUrl}${route}?${queryString({ ...query })}`;
+    console.log(`Proxy: ${url}`);
     const bearerToken = await serviceToken(); // Use either the provided user token or the service token
     // const token = req.headers.authorization?.split(' ')[1];
-    console.log(url);
+    // console.log(url);
 
     const options = {
         method,
@@ -99,7 +105,6 @@ export async function fMamProxy({
 
         // Return the response from the FMAM service to the client
         const payload = await fmamResponse.json();
-        console.log(fmamResponse.status);
         res.status(fmamResponse.status)
             .json(payload)
             .end();
@@ -159,7 +164,7 @@ export async function fMamFetch({
         const payload = await fmamResponse.json();
         return {
             status: fmamResponse.status,
-            payload,
+            payload: payload.data,
         };
     } catch (err) {
         return {

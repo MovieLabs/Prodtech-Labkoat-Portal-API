@@ -12,22 +12,42 @@ const queryValidator = {
     },
 };
 
-async function entityController(req, res, next) {
-    console.log('GET: /omc/entity');
+export async function proxyController(req, res, next) {
+    const { path } = req.route;
+    const { method } = req;
+    console.log(`${method}: ${path}`);
 
     // Proxy this through to the fMam API
     fMamProxy({
         res,
         req,
         next,
-        method: 'GET',
-        route: 'identifier',
+        method,
+        route: `/omc/v1${path}`,
         queryValidator,
     });
 }
 
-async function updateController(req, res, next) {
-    console.log('POST: omc/update');
+export async function entityTypeController(req, res, next) {
+    const { path } = req.route;
+    const { method } = req;
+    console.log(`${method}: ${path}`);
+    const { entity } = req.params;
+    // Proxy this through to the fMam API
+    fMamProxy({
+        res,
+        req,
+        next,
+        method: 'POST',
+        route: `/omc/v1/entitytype/${entity}`,
+        queryValidator,
+    });
+}
+
+export async function updateController(req, res, next) {
+    const { path } = req.route;
+    const { method } = req;
+    console.log(`${method}: ${path}`);
 
     // Proxy this through to the fMam API
     fMamProxy({
@@ -35,13 +55,15 @@ async function updateController(req, res, next) {
         req,
         next,
         method: 'POST',
-        route: 'update',
+        route: '/omc/v1/update',
         queryValidator,
     });
 }
 
-async function removeController(req, res, next) {
-    console.log('DELETE: omc/update');
+export async function removeController(req, res, next) {
+    const { path } = req.route;
+    const { method } = req;
+    console.log(`${method}: ${path}`);
 
     // Proxy this through to the fMam API
     fMamProxy({
@@ -49,13 +71,7 @@ async function removeController(req, res, next) {
         req,
         next,
         method: 'DELETE',
-        route: 'update',
+        route: '/omc/v1/update',
         queryValidator,
     });
 }
-
-export {
-    entityController,
-    updateController,
-    removeController,
-};
