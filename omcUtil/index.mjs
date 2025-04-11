@@ -43,18 +43,21 @@
  * @typedef {OMC-JSON-Object | omcEntity[]} OMC-JSON
  */
 
-import identifierOfScope from './src/omc/identifierOfScope.mjs';
 import generateId from './src/omc/generateID.mjs';
 import migrate from './src/omc/migrate.mjs';
 import compare from './src/omc/compare.mjs';
 import * as transform from './src/omc/transform.mjs';
+import * as identifier from './src/omc/identifier.mjs';
+import * as edges from './src/omc/edges.mjs';
 import validate from './src/omc/validate.mjs';
 
 export {
-    identifierOfScope,
+    // identifierOfScope,
     generateId,
     migrate,
     compare,
     transform,
+    identifier,
+    edges,
     validate,
 };

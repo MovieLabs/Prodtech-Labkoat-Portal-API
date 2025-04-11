@@ -13,7 +13,7 @@ import Ajv2019 from 'ajv/dist/2019.js';
 import { hasProp } from '../util/util.mjs';
 
 /* eslint-disable */
-import schemav20 from '../schema/OMC-JSON-v2.0.schema.json' assert { type: 'json' };
+// import schemav20 from '../schema/OMC-JSON-v2.0.schema.json' assert { type: 'json' };
 import schemav21 from '../schema/OMC-JSON-v2.1.schema.json' assert { type: 'json' };
 import schemav26 from '../schema/OMC-JSON-v2.6.schema.json' assert { type: 'json' };
 /* eslint-enable */

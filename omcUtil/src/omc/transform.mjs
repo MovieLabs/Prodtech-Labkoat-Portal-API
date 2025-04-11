@@ -48,7 +48,7 @@ export function deDuplicate(omc) {
     const deDupe = {};
     const idMapping = {};
     omc.forEach((ent) => {
-        const { identifier } = ent;
+        const { identifier = [] } = ent; // Safeguard against missing identifier (should never happen)
         const mappingId = generateId(); // A temporary singular id for the entity, used to track duplicates
         identifier.forEach(({
             identifierScope,
@@ -63,7 +63,11 @@ export function deDuplicate(omc) {
                 if (!assertEqual(deDupe[mapId], ent)) {
                     const a = JSON.stringify(deDupe[mapId]); // ToDo: Do some business logic here
                     const b = JSON.stringify(ent);
-                    const msg = b > a ? 'New is greater (maybe swap)' : 'Existing looks best';
+                    let msg = 'Existing looks best'
+                    if (b.length > a.length) {
+                        msg = 'New has more data (using this one)';
+                        deDupe[mapId] = ent;
+                    }
                     console.log(`Same identifier, but entities not equal: ${msg}`);
                 }
             } else {

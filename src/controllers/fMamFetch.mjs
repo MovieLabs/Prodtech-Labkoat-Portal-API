@@ -141,7 +141,7 @@ export async function fMamFetch({
     const url = `${fMamUrl}${route}?${queryString({ ...query, ...{ project: projectDb } })}`;
     const bearerToken = await serviceToken(); // Use either the provided user token or the service token
     // const token = req.headers.authorization?.split(' ')[1];
-    // console.log(url);
+    console.log(url);
 
     const options = {
         method,

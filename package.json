@@ -67,7 +67,8 @@
         "warn",
         {
           "comments": 150,
-          "code": 120
+          "code": 120,
+          "ignoreTrailComments": true
         }
       ]
     }

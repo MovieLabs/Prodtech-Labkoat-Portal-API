@@ -7,11 +7,61 @@
   "type": "module",
   "main": "index.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "jsdoc": "jsdoc -a all -c jsdoc.json -r -R README.md index.mjs -d docs/jsdoc --verbose"
   },
   "dependencies": {
     "ajv": "^8.12.0",
     "nanoid": "^5.0.7"
   },
-  "devDependencies": {}
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "extends": [
+      "airbnb"
+    ],
+    "env": {
+      "browser": true
+    },
+    "rules": {
+      "func-names": [
+        "error",
+        "as-needed"
+      ],
+      "linebreak-style": 0,
+      "indent": [
+        "warn",
+        4,
+        {
+          "VariableDeclarator": 1,
+          "SwitchCase": 1
+        }
+      ],
+      "react/jsx-indent": [
+        "warn",
+        4
+      ],
+      "react/jsx-indent-props": [
+        "error",
+        4
+      ],
+      "no-underscore-dangle": [
+        0
+      ],
+      "no-console": "off",
+      "max-len": [
+        "warn",
+        {
+          "comments": 150,
+          "code": 120
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "docdash": "^2.0.2",
+    "jsdoc": "^4.0.3",
+    "jsdoc-to-markdown": "^9.0.2"
+  }
 }

@@ -30,6 +30,7 @@ const configEnv = {
         },
     },
     local: {
+        // FMAM_URL: 'http://localhost:4001/fmam/api/omc/v1/',
         FMAM_URL: 'http://localhost:4001/fmam/api',
         GRAPHQL_URL: 'http://localhost:4001/graphql/api',
     },

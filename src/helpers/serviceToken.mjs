@@ -11,7 +11,7 @@ const scope = config.OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE; // Scopes are not a
 const clientId = config.OKTA_LABKOAT_SERVICE_API_CLIENT_ID;
 let clientSecret;
 
-async function serviceSetup(secrets) {
+export async function serviceSetup(secrets) {
     const { LABKOAT } = secrets;
     clientSecret = LABKOAT.LABKOAT_SERVICE_API;
     console.log('Service Token secret setup');
@@ -19,7 +19,7 @@ async function serviceSetup(secrets) {
 
 let bearerToken = null;
 
-async function serviceToken() {
+export async function serviceToken() {
     if (bearerToken !== null) {
         const base64Url = bearerToken.split('.')[1];
         const buff = Buffer.from(base64Url, 'base64');
@@ -30,9 +30,9 @@ async function serviceToken() {
 
     const token = btoa(`${clientId}:${clientSecret}`); // Base 64 encode
     try {
-        console.log('Make request for access token for service account');
+        // console.log('Make request for access token for service account');
         const url = `${issuer}/v1/token`; // Full path to request a token
-        console.log(`Okta service token URL: ${issuer}`);
+        // console.log(`Okta service token URL: ${issuer}`);
         const formData = new URLSearchParams();
         formData.append('grant_type', 'client_credentials');
         formData.append('scope', scope);
@@ -54,8 +54,3 @@ async function serviceToken() {
     }
     return bearerToken;
 }
-
-export {
-    serviceSetup,
-    serviceToken,
-};
