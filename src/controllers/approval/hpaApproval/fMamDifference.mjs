@@ -46,7 +46,7 @@ async function getfMamEntity(entityType, next) {
         },
     });
     console.log(`Received ${entityType} data from fMam`);
-    return fRes.status === 200 ? { [entityType]: fRes.payload } : {};
+    return fRes.status === 200 ? { [entityType]: fRes.payload.filter((d) => d) } : {}; // Remove null entries
 }
 
 // Create a mapping table of identifiers, given an array of omc identifiers
@@ -83,10 +83,14 @@ function compareSources({ original: source1, comparison: source2 }) {
                 const index = src2Arr.findIndex((ent) => ent.identifier[0].identifierValue === original.identifier[0].identifierValue);
                 src2Arr.splice(index, 1);
             }
+            if (!original && !src1Ent) {
+                console.log()
+            }
             return compare(mergeEntityIdentifiers({ original, comparison: src1Ent }));
         });
-        src2Arr.forEach((fMamEnt) => { // Things not present in Yamdu, but in fMam (e.g. to be deleted)
-            entityDiff[entityType].push(compare({ original: fMamEnt, comparison: null }));
+        src2Arr.forEach((fMamEnt) => {
+            const compareRemoval = compare({ original: fMamEnt, comparison: null })// Things not present in Yamdu, but in fMam (e.g. to be deleted)
+            if (compareRemoval.original || compareRemoval.comparison) entityDiff[entityType].push(compareRemoval);
         })
     });
     return entityDiff;
@@ -102,15 +106,17 @@ export default async function fMamDifference(yamduOmc, next) {
     const retrieveEntities = Object.keys(yamduObj)
         .filter((key) => key !== 'Context');
     const fMamEntPromise = retrieveEntities.map((entT) => getfMamEntity(entT, next));
-    const fMamCxtPromise = getfMamContext(yamduObj.Context); // Retrieve the Context entities from the fMam
     const fMamResponse = await Promise.all(fMamEntPromise);
-    fMamResponse.push({ Context: await Promise.all(fMamCxtPromise) }); // Add the Context entities to the response
-
-    const fMamEntities = fMamResponse.reduce((acc, item) => ({ ...acc, ...item }), {});
+    const fMamEntities = fMamResponse
+        .reduce((acc, item) => ({ ...acc, ...item }), {}); // Reformat and remove null entries
 
     shootDay(yamduObj.NarrativeScene, fMamEntities.NarrativeScene); // Add the shoot day Contexts to Yamdu;
     creativeWork(yamduObj); // Update the CreativeWork has NarrativeScene context
     productionScene(yamduObj, fMamEntities); // Add the ProductionScene Contexts to Yamdu
+
+    const fMamCxtPromise = getfMamContext(yamduObj.Context); // Retrieve the Context entities from the fMam
+    const fMamCxtResponse = await Promise.all(fMamCxtPromise)
+    fMamEntities.Context = fMamCxtResponse.filter((d) => d); // Remove nulls and add the Contexts from the fMam
 
     return compareSources({ original: yamduObj, comparison: fMamEntities })
 }

@@ -18,7 +18,6 @@ async function omcGet(req, res, neo4Jdb) {
 
     await omcCache.loadCache(neo4Jdb);
     const omcMap = omcCache.getCache();
-    // console.log(omcMap);
 
     if (omcMap) {
         res.status(200)

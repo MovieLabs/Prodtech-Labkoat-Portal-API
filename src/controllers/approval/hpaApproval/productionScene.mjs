@@ -1,7 +1,7 @@
 import { identifier as omcIdentifier } from 'omcUtil';
 
 export default function productionScene(yamduOmc, fMamOmc) {
-    if (!yamduOmc || !fMamOmc) return;
+    if ((!yamduOmc || !yamduOmc.ProductionScene) || !fMamOmc) return;
     const yamduProdScene = yamduOmc.ProductionScene;
     const fMamProdScene = fMamOmc.ProductionScene;
     yamduProdScene.forEach((ent) => {

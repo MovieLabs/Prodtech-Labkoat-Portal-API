@@ -199,28 +199,28 @@ const cxtInverse = {
         entityType: 'Context',
         contextType: 'narrative',
         contextCategory: 'narrativeScene-narrativeWardrobe',
-        name: 'NarrativeScene.features.NarrativeWardrobe',
+        name: 'NarrativeScene.features.NarrativeWardrobe (inverse)',
     },
     ProductionLocation: {
         schemaVersion,
         entityType: 'Context',
         contextType: 'production',
         contextCategory: 'productionLocation-narrativeScene',
-        name: 'ProductionLocation.featuresIn.NarrativeScene',
+        name: 'ProductionLocation.featuresIn.NarrativeScene (inverse)',
     },
     ProductionScene: {
         schemaVersion,
         entityType: 'Context',
         contextType: 'production',
         contextCategory: 'productionScene-narrativeScene',
-        name: 'NarrativeScene.has.ProductionScene',
+        name: 'NarrativeScene.has.ProductionScene (inverse)',
     },
     SpecialAction: {
         schemaVersion,
         entityType: 'Context',
         contextType: 'narrative',
         contextCategory: 'specialAction-narrativeScene',
-        name: 'NarrativeScene.features.SpecialAction',
+        name: 'NarrativeScene.features.SpecialAction (inverse)',
     },
 };
 export default function yamduCleanup(yamduOmc) {

@@ -3,7 +3,6 @@ import jwtValidator from '../helpers/JwtValidator.mjs';
 
 import config from '../../config.mjs';
 
-import approvalTest from '../controllers/approval/approvalTest.mjs';
 import { yamduController } from '../controllers/approval/yamduController.mjs';
 
 const router = express.Router();
@@ -14,7 +13,6 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/test', checkJwt, approvalTest);
 // router.get('/yamdu', checkJwt, yamduController);
 router.get('/yamdu', yamduController);
 

@@ -16,7 +16,6 @@ const yamduUrl = config.YAMDU_URL;
 
 export function yamduSetup(secrets) {
     yamduKey = secrets.LABKOAT.YAMDU_KEY;
-    console.log('Yamdu key set', yamduKey);
 }
 
 async function yamduFetch(yamduRoute) {
@@ -48,7 +47,7 @@ const yamduEndpoint = {
     NarrativeWardrobe: 'allNarrativeWardrobes',
     ProductionLocation: 'allProductionLocations',
     SpecialAction: 'allSpecialActions',
-    ProductionScene: 'allProductionScenes',
+    // ProductionScene: 'allProductionScenes',
 };
 
 async function getYamduEntities(entityType, next) {

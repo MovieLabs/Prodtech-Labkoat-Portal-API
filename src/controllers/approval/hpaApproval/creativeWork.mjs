@@ -10,11 +10,11 @@ export const cwnsContext = {
     identifier: [
         {
             identifierScope: 'com.yamdu.app',
-            identifierValue: 'cxt-93mGPOi2YCQj7zO',
+            identifierValue: 'com.yamdu.app.creativeWork.context.119374',
         },
         {
             identifierScope: 'movielabs.com/omc/europa',
-            identifierValue: 'tVQClJo7FMVF2hz',
+            identifierValue: 'cxt-93mGPOi2YCQj7zO',
         },
     ],
     contextType: 'narrative',
@@ -25,7 +25,11 @@ export const cwnsContext = {
             identifier: [
                 {
                     identifierScope: 'com.yamdu.app',
-                    identifierValue: 'cw-6zs2nlw2YKuNBX4',
+                    identifierValue: 'com.yamdu.app.project.119374',
+                },
+                {
+                    identifierScope: 'movielabs.com/omc/europa',
+                    identifierValue: '0g1Qk5LGgZa90UZ',
                 },
             ],
         },
@@ -42,4 +46,6 @@ export function creativeWork(yamduOmc) {
         .map((ent) => ({ identifier: ent.identifier }));
     const cwCxt = omcIdentifier.find(yamduOmc.Context, cwnsContext.identifier);
     cwCxt.has = { NarrativeScene: narScnRef };
+    console.log('Creative Work Context');
+    console.log(cwCxt);
 }
