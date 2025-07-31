@@ -15,7 +15,7 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/reset', checkJwt, resetHpa);
+router.get('/reset', resetHpa);
 router.get('/testcharacter', updatedNarLocation);
 router.get('/project', listProjects);
 

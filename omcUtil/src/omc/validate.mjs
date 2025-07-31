@@ -14,8 +14,8 @@ import { hasProp } from '../util/util.mjs';
 
 /* eslint-disable */
 // import schemav20 from '../schema/OMC-JSON-v2.0.schema.json' assert { type: 'json' };
-import schemav21 from '../schema/OMC-JSON-v2.1.schema.json' assert { type: 'json' };
-import schemav26 from '../schema/OMC-JSON-v2.6.schema.json' assert { type: 'json' };
+import schemav21 from '../schema/OMC-JSON-v2.1.schema.json' with { type: 'json' };
+import schemav26 from '../schema/OMC-JSON-v2.6.schema.json' with { type: 'json' };
 /* eslint-enable */
 
 const schemaValidators = {

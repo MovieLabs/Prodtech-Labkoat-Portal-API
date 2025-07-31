@@ -5,9 +5,14 @@
 
 const configEnv = {
     default: {
-        JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
-        ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
-        AUDIENCE: 'https://service.labkoat.media',
+        // JWKS_URI: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697/v1/keys',
+        // ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
+        // AUDIENCE: 'https://service.labkoat.media',
+        JWKS_URI: '"https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M/.well-known/jwks.json',
+        USER_POOL_ID: 'us-west-2_EW6OVSs8M',
+        CLIENT_ID: '7mo1c0om06ubavs3d30jhak2mj',
+        ISSUER: 'https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M',
+        AUDIENCE: '7mo1c0om06ubavs3d30jhak2mj',
         FMAM_URL: 'https://service.labkoat.media/fmam/api',
         GRAPHQL_URL: 'https://service.labkoat.media/graphql/api',
         YAMDU_URL: 'https://app.yamdu.com/thirdpartyapi/v1/omc/',

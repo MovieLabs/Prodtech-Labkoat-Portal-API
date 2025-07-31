@@ -28,6 +28,7 @@ async function setup() {
         'https://staging.labkoat.media/',
         'https://labkoat.media/',
         'http://localhost:3000/',
+        'http://localhost:5173/',
     ])); // Enable CORS
 
     // Catch JWT errors and return a 401

@@ -3,20 +3,26 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.4",
+    "globals": "^16.0.0"
+  },
   "dependencies": {
-    "@aserto/aserto-node": "^0.21.1",
-    "@auth0/fga": "^0.9.1",
     "@aws-sdk/client-secrets-manager": "^3.293.0",
     "@okta/jwt-verifier": "^3.0.1",
     "@okta/okta-sdk-nodejs": "^6.6.0",
+    "aws-jwt-verify": "^5.1.0",
     "body-parser": "^1.20.3",
-    "btoa": "^1.2.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-jwt": "^8.3.0",
-    "express-jwt-aserto": "^1.0.75",
     "express-session": "^1.18.1",
     "jsonata": "^2.0.1",
     "jwks-rsa": "^3.0.1",
@@ -24,58 +30,6 @@
     "nanoid": "^3.1.30",
     "neo4j-driver": "^5.19.0",
     "node-fetch": "^2.6.9",
-    "omcUtil": "file:./omcUtil",
-    "request-promise": "^4.2.6"
-  },
-  "eslintConfig": {
-    "parserOptions": {
-      "ecmaVersion": 2020
-    },
-    "extends": [
-      "airbnb"
-    ],
-    "env": {
-      "browser": true
-    },
-    "rules": {
-      "func-names": [
-        "error",
-        "as-needed"
-      ],
-      "linebreak-style": 0,
-      "indent": [
-        "warn",
-        4,
-        {
-          "VariableDeclarator": 1,
-          "SwitchCase": 1
-        }
-      ],
-      "react/jsx-indent": [
-        "warn",
-        4
-      ],
-      "react/jsx-indent-props": [
-        "error",
-        4
-      ],
-      "no-underscore-dangle": [
-        0
-      ],
-      "no-console": "off",
-      "max-len": [
-        "warn",
-        {
-          "comments": 150,
-          "code": 120,
-          "ignoreTrailComments": true
-        }
-      ]
-    }
-  },
-  "devDependencies": {
-    "eslint": "^8.38.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-plugin-import": "^2.27.5"
+    "omcUtil": "file:./omcUtil"
   }
 }
