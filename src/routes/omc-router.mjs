@@ -4,6 +4,7 @@ import awsJwtVerifier from '../helpers/awsJwtVerifier.mjs';
 
 import {
     proxyController,
+    graphqlController,
     entityTypeController,
 } from '../controllers/omc/omc-controller.mjs';
 
@@ -16,5 +17,6 @@ router.get('/identifier', proxyController);
 router.post('/identifier', proxyController);
 router.post('/update', proxyController);
 router.delete('/update', proxyController);
+router.post('/graphql', graphqlController);
 
 export default router;

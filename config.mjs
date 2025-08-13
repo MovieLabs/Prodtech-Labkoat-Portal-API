@@ -14,7 +14,8 @@ const configEnv = {
         ISSUER: 'https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M',
         AUDIENCE: '7mo1c0om06ubavs3d30jhak2mj',
         FMAM_URL: 'https://service.labkoat.media/fmam/api',
-        GRAPHQL_URL: 'https://service.labkoat.media/graphql/api',
+        // GRAPHQL_URL: 'https://service.labkoat.media/graphql/api',
+        GRAPHQL_URL: 'https://service.labkoat.media/fmam/graphql',
         YAMDU_URL: 'https://app.yamdu.com/thirdpartyapi/v1/omc/',
         YAMDU_PROJECT: '119374',
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
@@ -37,7 +38,7 @@ const configEnv = {
     local: {
         // FMAM_URL: 'http://localhost:4001/fmam/api/omc/v1/',
         FMAM_URL: 'http://localhost:4001/fmam/api',
-        GRAPHQL_URL: 'http://localhost:4001/graphql/api',
+        GRAPHQL_URL: 'http://localhost:4001/fmam/graphql',
     },
     aws: {},
 };

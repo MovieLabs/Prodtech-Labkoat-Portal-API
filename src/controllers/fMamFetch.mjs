@@ -6,6 +6,7 @@ import InvalidProject from '../errors/InvalidProject.mjs';
 import InternalError from '../errors/InternalError.mjs';
 
 const fMamUrl = config.FMAM_URL;
+const graphQlUrl = config.GRAPHQL_URL;
 
 const projectDetails = {
     europa: {
@@ -67,6 +68,7 @@ export async function fMamProxy({
     next,
     method, // GET, POST, PUT, DELETE
     route,
+    baseUrl = fMamUrl,
 }) {
     // Check for valid query parameters
     const {
@@ -74,7 +76,8 @@ export async function fMamProxy({
         body,
     } = req;
 
-    const url = `${fMamUrl}${route}?${queryString({ ...query })}`;
+    const url = `${baseUrl}${route}?${queryString({ ...query })}`;
+    console.log(url);
     const bearerToken = await serviceToken(); // Use either the provided user token or the service token
 
     const options = {
@@ -98,6 +101,7 @@ export async function fMamProxy({
             .json(payload)
             .end();
     } catch (err) {
+        console.log(err)
         next(new InternalError('Database error'));
     }
 }
