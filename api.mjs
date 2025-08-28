@@ -1,7 +1,6 @@
 import 'dotenv/config'; // This should always be first line in a module
 
 import express from 'express';
-// import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -14,6 +13,7 @@ import errorHandler from './src/errors/errorHandler.mjs';
 import approval from './src/routes/approval-router.mjs';
 import adminRouter from './src/routes/admin-router.mjs';
 import omcRouter from './src/routes/omc-router.mjs';
+import greenlightRouter from './src/routes/greenlight-router.mjs';
 import { vocabRouter } from './src/routes/vocab-router.mjs';
 
 const app = express();
@@ -46,6 +46,7 @@ async function setup() {
     app.use('/api/approval', approval); // Add the route controllers for the Approvals page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
+    app.use('api/greenlight', greenlightRouter)
     // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
 
     // Error handling
