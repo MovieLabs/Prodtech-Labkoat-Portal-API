@@ -22,10 +22,14 @@ const queryValidator = {
  * @param next
  * @returns {Promise<void>}
  */
-export async function greenlightReshootController(req, res, next) {
+export default async function greenlightReshootController(req, res, next) {
     const { path } = req.route;
     const { method } = req;
     console.log(`${method}: ${path}`);
+
+    const payload = req.body;
+
+    console.log(payload);
 
     res.status(200)
         .json({ message: 'Got your payload' })

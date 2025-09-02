@@ -46,7 +46,7 @@ async function setup() {
     app.use('/api/approval', approval); // Add the route controllers for the Approvals page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
-    app.use('api/greenlight', greenlightRouter)
+    app.use('/api/greenlight', greenlightRouter)
     // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
 
     // Error handling
