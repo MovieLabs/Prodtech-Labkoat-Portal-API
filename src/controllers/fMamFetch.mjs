@@ -97,6 +97,7 @@ export async function fMamProxy({
 
         // Return the response from the FMAM service to the client
         const payload = await fmamResponse.json();
+        const status = fmamResponse.status
         res.status(fmamResponse.status)
             .json(payload)
             .end();
@@ -118,7 +119,7 @@ export async function fMamProxy({
  */
 export async function fMamFetch({
     next,
-    method, // GET, POST, PUT, DELETE
+    method, // GET, POST, PUT, DELETE, PATCH
     route,
     query,
     body,
