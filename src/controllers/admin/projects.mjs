@@ -56,3 +56,17 @@ export async function removeProject(req, res, next) {
         queryValidator: {},
     });
 }
+
+export async function resetProject(req, res, next) {
+    const route = req.route.path;
+    console.log(`${req.method}: ${req.route.path}`);
+
+    fMamProxy({
+        res,
+        req,
+        next,
+        method: 'DELETE',
+        route,
+        queryValidator: {},
+    });
+}

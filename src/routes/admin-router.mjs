@@ -3,10 +3,13 @@ import jwtValidator from '../helpers/JwtValidator.mjs';
 
 import config from '../../config.mjs';
 
-import resetHpa from '../controllers/admin/resetHPA-controller.mjs';
-import { updatedNarLocation } from '../controllers/admin/hpaTest.mjs';
-import { listProjects, createProject, updateProject, removeProject } from '../controllers/admin/projects.mjs';
-import { proxyController } from '../controllers/omc/omc-controller.mjs';
+import {
+    listProjects,
+    createProject,
+    updateProject,
+    removeProject,
+    resetProject,
+} from '../controllers/admin/projects.mjs';
 
 const router = express.Router();
 
@@ -16,11 +19,11 @@ const checkJwt = jwtValidator({
     issuer: config.ISSUER,
 });
 
-router.get('/reset', resetHpa);
-router.get('/testcharacter', updatedNarLocation);
+// router.get('/reset', resetHpa);
 router.get('/project', listProjects);
 router.post('/project', createProject);
 router.patch('/project', updateProject);
 router.delete('/project', removeProject);
+router.delete('/reset', resetProject)
 
 export default router;

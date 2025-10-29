@@ -6,45 +6,7 @@ import InvalidProject from '../errors/InvalidProject.mjs';
 import InternalError from '../errors/InternalError.mjs';
 
 const fMamUrl = config.FMAM_URL;
-const graphQlUrl = config.GRAPHQL_URL;
-
-const projectDetails = {
-    europa: {
-        label: 'Europa',
-        db: 'Europa1',
-        identifierScope: 'etc',
-    },
-    europa2: {
-        label: 'Europa 2',
-        db: 'Europa2',
-        identifierScope: 'movielabs.com/omc/europa',
-    },
-    hsm: {
-        label: 'HSM',
-        db: 'POC6',
-        identifierScope: 'labkoat',
-    },
-    rebelFleet: {
-        label: 'Rebel Fleet',
-        db: 'RebelFleet',
-        identifierScope: 'Europa',
-    },
-    yamdu: {
-        label: 'Yamdu',
-        db: 'Yamdu',
-        identifierScope: 'com.yamdu.app',
-    },
-    nbc: {
-        label: 'NBC/U',
-        db: 'NBC',
-        identifierScope: 'fast8',
-    },
-    filmustage: {
-        label: 'Film-U-Stage',
-        db: 'filmustage',
-        identifierScope: 'com.filmustage.app',
-    },
-};
+// const graphQlUrl = config.GRAPHQL_URL;
 
 const queryString = (query) => (
     Object.keys(query)
@@ -77,6 +39,7 @@ export async function fMamProxy({
     } = req;
 
     const url = `${baseUrl}${route}?${queryString({ ...query })}`;
+    console.log(baseUrl, route);
     console.log(url);
     const bearerToken = await serviceToken(); // Use either the provided user token or the service token
 
@@ -117,6 +80,45 @@ export async function fMamProxy({
  * @param queryValidator
  * @returns {Promise<void>}
  */
+
+const projectDetails = {
+    europa: {
+        label: 'Europa',
+        db: 'Europa1',
+        identifierScope: 'etc',
+    },
+    europa2: {
+        label: 'Europa 2',
+        db: 'Europa2',
+        identifierScope: 'movielabs.com/omc/europa',
+    },
+    hsm: {
+        label: 'HSM',
+        db: 'POC6',
+        identifierScope: 'labkoat',
+    },
+    rebelFleet: {
+        label: 'Rebel Fleet',
+        db: 'RebelFleet',
+        identifierScope: 'Europa',
+    },
+    yamdu: {
+        label: 'Yamdu',
+        db: 'Yamdu',
+        identifierScope: 'com.yamdu.app',
+    },
+    nbc: {
+        label: 'NBC/U',
+        db: 'NBC',
+        identifierScope: 'fast8',
+    },
+    filmustage: {
+        label: 'Film-U-Stage',
+        db: 'filmustage',
+        identifierScope: 'com.filmustage.app',
+    },
+};
+
 export async function fMamFetch({
     next,
     method, // GET, POST, PUT, DELETE, PATCH

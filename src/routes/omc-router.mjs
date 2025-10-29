@@ -10,12 +10,12 @@ import {
 
 const router = express.Router();
 
-router.get('/entity', entityTypeController);
-router.post('/entityType/:entity', entityTypeController);
+router.get('/entity', awsJwtVerifier, entityTypeController);
+router.post('/entityType/:entity', awsJwtVerifier, entityTypeController);
 router.get('/identifier', awsJwtVerifier, proxyController);
 router.post('/identifier', proxyController);
-router.post('/update', proxyController);
-router.delete('/update', proxyController);
+router.post('/update', awsJwtVerifier, proxyController);
+router.delete('/update', awsJwtVerifier, proxyController);
 router.post('/graphql',awsJwtVerifier, graphqlController);
 
 export default router;
