@@ -10,8 +10,6 @@ import createJsonLd from '../../vocabulary/jsonld.mjs';
 import createTtl from '../../vocabulary/ttl.mjs';
 
 async function skosGet(req, res, neo4Jdb) {
-    console.log('GET Route: /vocab/skos');
-
     await skosCache.loadCache(neo4Jdb);
     const skosMap = skosCache.getCache();
 
@@ -26,7 +24,6 @@ async function skosGet(req, res, neo4Jdb) {
 }
 
 async function skosPost(req, res, neo4Jdb) {
-    console.log('POST Route: /vocab/skos');
     const { body } = req;
     console.log('Post Action');
     console.log(body);
@@ -41,8 +38,6 @@ async function skosPost(req, res, neo4Jdb) {
 }
 
 function skosDownload(req, res, format) {
-    console.log('GET Route /vocab/skos/json | ttl');
-
     const skosDict = skosCache.getCache();
     let skosEncoding;
     switch (format) {

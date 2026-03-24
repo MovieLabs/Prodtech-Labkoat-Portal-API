@@ -16,7 +16,7 @@ export async function listProjects(req, res, next) {
 
 export async function updateProject(req, res, next) {
     const route = req.route.path;
-    console.log(`${req.method}: ${req.route.path}`);
+    // console.log(`${req.method}: ${req.route.path}`);
     console.log(req.body);
 
     fMamProxy({
@@ -31,7 +31,7 @@ export async function updateProject(req, res, next) {
 
 export async function createProject(req, res, next) {
     const route = req.route.path;
-    console.log(`${req.method}: ${req.route.path}`);
+    // console.log(`${req.method}: ${req.route.path}`);
 
     fMamProxy({
         res,
@@ -45,7 +45,7 @@ export async function createProject(req, res, next) {
 
 export async function removeProject(req, res, next) {
     const route = req.route.path;
-    console.log(`${req.method}: ${req.route.path}`);
+    // console.log(`${req.method}: ${req.route.path}`);
 
     fMamProxy({
         res,
@@ -59,7 +59,7 @@ export async function removeProject(req, res, next) {
 
 export async function resetProject(req, res, next) {
     const route = req.route.path;
-    console.log(`${req.method}: ${req.route.path}`);
+    // console.log(`${req.method}: ${req.route.path}`);
 
     fMamProxy({
         res,

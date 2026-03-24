@@ -8,6 +8,7 @@ import cors from 'cors';
 import awsSecrets from './awsSecrets.mjs'; // Runs the code to populate secrets from AWS secrets manager
 // const admin = require('./src/routes/admin-router');
 // import okta from './src/routes/directory-router.mjs';
+import routeLog from './src/helpers/routeLog.mjs';
 import InvalidRoute from './src/errors/InvalidRoute.mjs';
 import errorHandler from './src/errors/errorHandler.mjs';
 import approval from './src/routes/approval-router.mjs';
@@ -30,6 +31,7 @@ async function setup() {
         'http://localhost:3000/',
         'http://localhost:5173/',
     ])); // Enable CORS
+    app.use(routeLog);
 
     // Catch JWT errors and return a 401
     app.use(((err, req, res, next) => {
@@ -46,7 +48,7 @@ async function setup() {
     app.use('/api/approval', approval); // Add the route controllers for the Approvals page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
-    app.use('/api/greenlight', greenlightRouter)
+    app.use('/api/greenlight', greenlightRouter);
     // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
 
     // Error handling
@@ -55,7 +57,7 @@ async function setup() {
 
     // Launch the API Server at localhost:8080
     app.listen(8080);
-    console.log('Updated: 4/14/25')
+    console.log('Updated: 4/14/25');
     console.log('Listening on port: 8080');
 }
 

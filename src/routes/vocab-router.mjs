@@ -1,6 +1,4 @@
 import express from 'express';
-
-import jwtValidator from '../helpers/JwtValidator.mjs';
 import config from '../../config.mjs';
 
 import {
@@ -13,18 +11,11 @@ import {
     omcPost,
 } from '../controllers/vocabulary/omcController.mjs';
 import neo4jInterface from '../neo4J/neo4JInterface.mjs';
+import awsJwtVerifier from '../helpers/awsJwtVerifier.mjs';
 import skosCache from '../neo4J/skosCache.mjs';
 import omcCache from '../neo4J/omcCache.mjs';
-// const createJsonLd = require('../vocabulary/jsonld');
-// const createTtl = require('../vocabulary/ttl');
 
 const router = express.Router();
-
-const checkJwt = jwtValidator({
-    jwksUri: config.JWKS_URI,
-    audience: config.AUDIENCE,
-    issuer: config.ISSUER,
-});
 
 let neo4Jdb = null; // Neo4J interface and database connection
 let dbDatabase = null;
@@ -57,12 +48,12 @@ async function vocabSetup(secrets) {
     return vocabLoaded;
 }
 
-router.get('/skos', checkJwt, ((req, res) => skosGet(req, res, neo4Jdb)));
+router.get('/skos', awsJwtVerifier, ((req, res) => skosGet(req, res, neo4Jdb)));
 router.get('/skos/json', ((req, res) => skosDownload(req, res, 'json')));
 router.get('/skos/ttl', ((req, res) => skosDownload(req, res, 'ttl')));
-router.post('/skos', checkJwt, ((req, res) => skosPost(req, res, neo4Jdb)));
-router.get('/omc', checkJwt, ((req, res) => omcGet(req, res, neo4Jdb)));
-router.post('/omc', checkJwt, ((req, res) => omcPost(req, res, neo4Jdb)));
+router.post('/skos', awsJwtVerifier, ((req, res) => skosPost(req, res, neo4Jdb)));
+router.get('/omc', awsJwtVerifier, ((req, res) => omcGet(req, res, neo4Jdb)));
+router.post('/omc', awsJwtVerifier, ((req, res) => omcPost(req, res, neo4Jdb)));
 
 export {
     vocabSetup,

@@ -19,7 +19,6 @@ const queryValidator = {
 export async function proxyController(req, res, next) {
     const { path } = req.route;
     const { method } = req;
-    console.log(`${method}: ${path}`);
 
     // Proxy this through to the fMam API
     fMamProxy({
@@ -41,9 +40,7 @@ export async function proxyController(req, res, next) {
  * @returns {Promise<void>}
  */
 export async function graphqlController(req, res, next) {
-    const { path } = req.route;
     const { method } = req;
-    console.log(`${method}: ${path}`);
 
     // Proxy this through to the fMam API
     fMamProxy({
@@ -60,7 +57,7 @@ export async function graphqlController(req, res, next) {
 export async function entityTypeController(req, res, next) {
     const { path } = req.route;
     const { method } = req;
-    console.log(`${method}: ${path}`);
+
     const { entity } = req.params;
     // Proxy this through to the fMam API
     fMamProxy({

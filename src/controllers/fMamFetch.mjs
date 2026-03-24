@@ -65,7 +65,7 @@ export async function fMamProxy({
             .json(payload)
             .end();
     } catch (err) {
-        console.log(err)
+        console.log(err);
         next(new InternalError('Database error'));
     }
 }
