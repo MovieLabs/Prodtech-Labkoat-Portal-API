@@ -1,7 +1,5 @@
 import express from 'express';
-import jwtValidator from '../helpers/JwtValidator.js';
-
-import config from '../../config.js';
+import { awsJwtValidator } from 'mlHelpers';
 
 import {
     listProjects,
@@ -13,17 +11,10 @@ import {
 
 const router = express.Router();
 
-const checkJwt = jwtValidator({
-    jwksUri: config.JWKS_URI,
-    audience: config.AUDIENCE,
-    issuer: config.ISSUER,
-});
-
-// router.get('/reset', resetHpa);
-router.get('/project', listProjects);
+router.get('/project', awsJwtValidator, listProjects);
 router.post('/project', createProject);
 router.patch('/project', updateProject);
 router.delete('/project', removeProject);
-router.delete('/reset', resetProject)
+router.delete('/reset', resetProject);
 
 export default router;

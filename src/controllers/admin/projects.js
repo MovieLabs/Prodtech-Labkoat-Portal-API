@@ -2,7 +2,6 @@ import { fMamProxy } from '../fMamFetch.js';
 
 export async function listProjects(req, res, next) {
     const route = req.route.path;
-    console.log(`${req.method}: ${req.route.path}`);
 
     fMamProxy({
         res,

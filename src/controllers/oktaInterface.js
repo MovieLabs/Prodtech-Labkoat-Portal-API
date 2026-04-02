@@ -12,8 +12,9 @@
  */
 
 import okta from '@okta/okta-sdk-nodejs';
-import { omcToOktaProfile, omcParticipantToPerson } from './directory/okta/okta-omc-mapper.js';
+
 import { mutateOmcPerson } from './directory/okta/fMam.js';
+import { omcToOktaProfile, omcParticipantToPerson } from './directory/okta/okta-omc-mapper.js';
 
 let oktaClient = null;
 

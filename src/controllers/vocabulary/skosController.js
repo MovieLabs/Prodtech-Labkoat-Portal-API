@@ -3,9 +3,8 @@
  * @module
  */
 
-// const neoCache = require('../../neo4J/neoCache');
-import skosCache from '../../neo4J/skosCache.js';
 import { neo4jUpdate } from '../../neo4J/neo4jUpdate.js';
+import skosCache from '../../neo4J/skosCache.js';
 import createJsonLd from '../../vocabulary/jsonld.js';
 import createTtl from '../../vocabulary/ttl.js';
 

@@ -3,7 +3,7 @@
  * @module
  */
 
-import config from '../../../config.js';
+import config from '../../config.js';
 
 const fMamUrl = config.FMAM_URL;
 const graphQlUrl = config.GRAPHQL_URL;

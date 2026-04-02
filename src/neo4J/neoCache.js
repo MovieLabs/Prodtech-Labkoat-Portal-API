@@ -2,8 +2,9 @@
  * Internal cache of the Neo4J database, indexed by their internal element identifiers
  */
 
-import { makeArray } from '../helpers/util.js';
+import { util } from 'mlHelpers';
 
+const { makeArray } = util;
 const neoCache = {
     nodes: {},
     edges: {},

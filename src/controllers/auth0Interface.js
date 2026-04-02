@@ -2,12 +2,15 @@
  * Interface with Auth0FGA backend and operate on the users
  */
 
-const { Auth0FgaApi } = require('@auth0/fga');
+// const { Auth0FgaApi } = require('@auth0/fga');
+import { Auth0FgaApi } from '@auth0/fga';
+import { util } from 'mlHelpers';
 
-const { omcToAuth0User, omcToAuth0Organization } = require('./directory/auth0/auth0-omc-mapper');
-const { makeArray } = require('../helpers/util.js');
-const config = require('../../config.js');
+import config from '../config.js';
 
+import { omcToAuth0User, omcToAuth0Organization } from './directory/auth0/auth0-omc-mapper';
+
+const { makeArray } = util;
 let modelId = null;
 let fgaClient = null;
 

@@ -3,19 +3,10 @@
  * @module
  */
 
-import omcCache from '../../neo4J/omcCache.js';
 import { neo4jUpdate } from '../../neo4J/neo4jUpdate.js';
+import omcCache from '../../neo4J/omcCache.js';
 
 async function omcGet(req, res, neo4Jdb) {
-    console.log('GET Route: /vocab/omc');
-
-    console.log('Auth: ');
-    console.log(req.auth);
-    // if (!req.auth.admin) {
-    //     console.log('Auth denied');
-    //     return res.sendStatus(401);
-    // }
-
     await omcCache.loadCache(neo4Jdb);
     const omcMap = omcCache.getCache();
 
@@ -30,9 +21,8 @@ async function omcGet(req, res, neo4Jdb) {
 }
 
 async function omcPost(req, res, neo4Jdb) {
-    console.log('POST Route: /vocab/omc');
     const { body } = req;
-    console.log(body);
+    // console.log(body);
 
     const neo4jResponse = await neo4jUpdate(body, neo4Jdb, 'OMC');
     omcCache.updateAction(body); // Update the internal cache

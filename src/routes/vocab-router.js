@@ -1,5 +1,5 @@
 import express from 'express';
-import config from '../../config.js';
+import config from '../config.js';
 
 import {
     skosGet,
@@ -11,7 +11,7 @@ import {
     omcPost,
 } from '../controllers/vocabulary/omcController.js';
 import neo4jInterface from '../neo4J/neo4JInterface.js';
-import awsJwtVerifier from '../helpers/awsJwtVerifier.js';
+import { awsJwtValidator } from 'mlHelpers';
 import skosCache from '../neo4J/skosCache.js';
 import omcCache from '../neo4J/omcCache.js';
 
@@ -48,12 +48,12 @@ async function vocabSetup(secrets) {
     return vocabLoaded;
 }
 
-router.get('/skos', awsJwtVerifier, ((req, res) => skosGet(req, res, neo4Jdb)));
+router.get('/skos', awsJwtValidator, ((req, res) => skosGet(req, res, neo4Jdb)));
 router.get('/skos/json', ((req, res) => skosDownload(req, res, 'json')));
 router.get('/skos/ttl', ((req, res) => skosDownload(req, res, 'ttl')));
-router.post('/skos', awsJwtVerifier, ((req, res) => skosPost(req, res, neo4Jdb)));
-router.get('/omc', awsJwtVerifier, ((req, res) => omcGet(req, res, neo4Jdb)));
-router.post('/omc', awsJwtVerifier, ((req, res) => omcPost(req, res, neo4Jdb)));
+router.post('/skos', awsJwtValidator, ((req, res) => skosPost(req, res, neo4Jdb)));
+router.get('/omc', awsJwtValidator, ((req, res) => omcGet(req, res, neo4Jdb)));
+router.post('/omc', awsJwtValidator, ((req, res) => omcPost(req, res, neo4Jdb)));
 
 export {
     vocabSetup,

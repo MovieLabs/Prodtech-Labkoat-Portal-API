@@ -2,12 +2,10 @@
  * Set of methods for interacting with the Vocabulary database on Neo4J
  */
 
+import { util } from 'mlHelpers';
 import neo4j from 'neo4j-driver';
 
-import {
-    makeArray,
-    hasProp,
-} from '../helpers/util.js';
+const { makeArray } = util;
 
 // import {
 //     nodes as batchNodes,
@@ -198,7 +196,8 @@ async function query(queryName) {
         dbDatabase,
     } = this;
 
-    if (!hasProp(neoQueries, queryName)) {
+    // if (!hasProp(neoQueries, queryName)) {
+    if (!Object.hasOwn(neoQueries, queryName)) {
         console.log('Request to Neo4J database failed, no such query name');
         return null;
     }

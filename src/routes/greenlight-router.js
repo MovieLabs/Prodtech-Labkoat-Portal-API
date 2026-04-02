@@ -1,10 +1,10 @@
 import express from 'express';
-import awsJwtVerifier from '../helpers/awsJwtVerifier.js';
+import { awsJwtValidator } from 'mlHelpers';
 
 import reshootController from '../controllers/greenlight/greenlight-controller.js';
 
 const router = express.Router();
 
-router.post('/reshoot', awsJwtVerifier, reshootController);
+router.post('/reshoot', awsJwtValidator, reshootController);
 
 export default router;

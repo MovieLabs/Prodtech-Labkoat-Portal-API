@@ -1,12 +1,11 @@
+import { serviceToken } from 'mlHelpers';
 import fetch from 'node-fetch';
 
-import { serviceToken } from '../helpers/serviceToken.js';
-import config from '../../config.js';
-import InvalidProject from '../errors/InvalidProject.js';
+import config from '../config.js';
 import InternalError from '../errors/InternalError.js';
+import InvalidProject from '../errors/InvalidProject.js';
 
 const fMamUrl = config.FMAM_URL;
-// const graphQlUrl = config.GRAPHQL_URL;
 
 const queryString = (query) => (
     Object.keys(query)
@@ -39,9 +38,8 @@ export async function fMamProxy({
     } = req;
 
     const url = `${baseUrl}${route}?${queryString({ ...query })}`;
-    console.log(baseUrl, route);
-    console.log(url);
-    const bearerToken = await serviceToken(); // Use either the provided user token or the service token
+    console.log(`Proxy to: ${url}`);
+    const bearerToken = await serviceToken.getToken(); // Use either the provided user token or the service token
 
     const options = {
         method,
@@ -60,7 +58,7 @@ export async function fMamProxy({
 
         // Return the response from the FMAM service to the client
         const payload = await fmamResponse.json();
-        const status = fmamResponse.status
+        const status = fmamResponse.status;
         res.status(fmamResponse.status)
             .json(payload)
             .end();
@@ -135,7 +133,7 @@ export async function fMamFetch({
     }
 
     const url = `${fMamUrl}${route}?${queryString({ ...query, ...{ project: projectDb } })}`;
-    const bearerToken = await serviceToken(); // Use either the provided user token or the service token
+    const bearerToken = await serviceToken.getToken(); // Use either the provided user token or the service token
 
     const options = {
         method,

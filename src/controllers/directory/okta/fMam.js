@@ -2,19 +2,16 @@
  * Interface to the fMam primarily for updating the Participants
  */
 
+import { util, serviceToken } from 'mlHelpers';
 import fetch from 'node-fetch';
 
-// const btoa = require('btoa');
-// const request = require('request-promise');
-import { makeArray, hasProp } from '../../../helpers/util.js';
-import { serviceToken } from '../../../helpers/serviceToken.js';
-
-import config from '../../../../config.js';
+import config from '../../../config.js';
 import allCharactersQuery from '../query/allCharacters.js';
-import allStoryboardsQuery from '../query/allStoryboards.js';
 import allParticipantsQuery from '../query/allParticipants.js';
+import allStoryboardsQuery from '../query/allStoryboards.js';
 import mutatePersonQuery from '../query/mutationPerson.js';
 
+const { makeArray } = util;
 const queryOptions = {
     allCharacters: allCharactersQuery,
     allStoryboards: allStoryboardsQuery,
@@ -36,7 +33,7 @@ function extractEntity(entity, entityPath) {
     const levels = entityPath.split('.'); // Split the path on '.'
     const target = levels.shift();
     return entities.flatMap((ent) => {
-        if (!hasProp(ent, target)) return null; // If no relevant property return null
+        if (!Object.hasOwn(ent, target)) return null; // If no relevant property return null
         return (levels.length !== 0) // Recurse down, until end of path has been reached
             ? extractEntity(ent[target], levels.join('.'))
             : ent[target];
@@ -54,14 +51,14 @@ async function allParticipants() {
     const { responsePath } = graphQlQuery; // Variables to navigate the response
 
     // const bearerToken = await fMamToken();
-    const bearerToken = await serviceToken();
+    const bearerToken = await serviceToken.getToken();
     // console.log(`Bearer Token: ${bearerToken}`);
 
     const qlOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${bearerToken}`,
+            'Authorization': `Bearer ${bearerToken}`,
         },
         body: JSON.stringify(graphQlQuery),
     };
@@ -84,7 +81,7 @@ async function allParticipants() {
 }
 
 async function mutateOmcPerson(omc) {
-    const bearerToken = await serviceToken();
+    const bearerToken = await serviceToken.getToken();
     const queryName = 'mutatePerson';
     const graphQlMutation = queryOptions[queryName]; // Pick one of the graphql queries and variables
     // delete omc.Person.entityType;
@@ -98,7 +95,7 @@ async function mutateOmcPerson(omc) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${bearerToken}`,
+            'Authorization': `Bearer ${bearerToken}`,
         },
         body: JSON.stringify(graphQlBody),
     };

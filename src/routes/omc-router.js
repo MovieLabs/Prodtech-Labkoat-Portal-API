@@ -1,6 +1,5 @@
 import express from 'express';
-
-import awsJwtVerifier from '../helpers/awsJwtVerifier.js';
+import { awsJwtValidator } from 'mlHelpers';
 
 import {
     proxyController,
@@ -10,12 +9,12 @@ import {
 
 const router = express.Router();
 
-router.get('/entity', awsJwtVerifier, entityTypeController);
-router.post('/entityType/:entity', awsJwtVerifier, entityTypeController);
-router.get('/identifier', awsJwtVerifier, proxyController);
+router.get('/entity', awsJwtValidator, entityTypeController);
+router.post('/entityType/:entity', awsJwtValidator, entityTypeController);
+router.get('/identifier', awsJwtValidator, proxyController);
 router.post('/identifier', proxyController);
-router.post('/update', awsJwtVerifier, proxyController);
-router.delete('/update', awsJwtVerifier, proxyController);
-router.post('/graphql', awsJwtVerifier, graphqlController);
+router.post('/update', awsJwtValidator, proxyController);
+router.delete('/update', awsJwtValidator, proxyController);
+router.post('/graphql', awsJwtValidator, graphqlController);
 
 export default router;
