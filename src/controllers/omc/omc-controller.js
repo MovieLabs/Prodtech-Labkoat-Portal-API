@@ -3,8 +3,8 @@
  * @module
  */
 
-import { fMamProxy } from '../fMamFetch.js';
 import config from '../../config.js';
+import { fMamProxy } from '../fMamFetch.js';
 
 const fMamUrl = config.FMAM_URL;
 const graphQlUrl = config.GRAPHQL_URL;
@@ -55,9 +55,6 @@ export async function graphqlController(req, res, next) {
 }
 
 export async function entityTypeController(req, res, next) {
-    const { path } = req.route;
-    const { method } = req;
-
     const { entity } = req.params;
     // Proxy this through to the fMam API
     fMamProxy({

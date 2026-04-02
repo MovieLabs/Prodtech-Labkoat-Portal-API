@@ -1,19 +1,19 @@
 import express from 'express';
-import config from '../config.js';
+import { awsJwtValidator } from 'mlHelpers';
 
+import config from '../config.js';
+import {
+    omcGet,
+    omcPost,
+} from '../controllers/vocabulary/omcController.js';
 import {
     skosGet,
     skosPost,
     skosDownload,
 } from '../controllers/vocabulary/skosController.js';
-import {
-    omcGet,
-    omcPost,
-} from '../controllers/vocabulary/omcController.js';
 import neo4jInterface from '../neo4J/neo4JInterface.js';
-import { awsJwtValidator } from 'mlHelpers';
-import skosCache from '../neo4J/skosCache.js';
 import omcCache from '../neo4J/omcCache.js';
+import skosCache from '../neo4J/skosCache.js';
 
 const router = express.Router();
 
