@@ -7,7 +7,7 @@
 const fs = require('fs');
 // const fetch = require('node-fetch');
 const path = require('path');
-const util = require('src/helpers/util.mjs');
+const util = require('src/helpers/util.js');
 const { createHash } = require('crypto');
 const streamPipeline = util.promisify(require('stream').pipeline);
 

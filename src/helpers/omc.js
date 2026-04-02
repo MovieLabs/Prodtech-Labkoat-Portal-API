@@ -3,7 +3,7 @@
  * @module
  */
 
-const { makeArray, hasProp } = require('./util.mjs');
+const { makeArray, hasProp } = require('./util.js');
 
 /**
  * Return the functional and structural type of an entity
