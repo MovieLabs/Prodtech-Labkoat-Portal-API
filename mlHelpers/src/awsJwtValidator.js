@@ -1,5 +1,6 @@
-import config from '../../src/config.js';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
+
+import config from '../../src/config.js';
 
 import AuthenticationError from './errors/AuthenticationError.js';
 import AuthorizationError from './errors/AuthorizationError.js';
@@ -28,7 +29,7 @@ export default async function awsJwtValidator(req, res, next) {
     try {
         const payload = await verifier.verify(token);
         // User must be in the labkoat group to have access
-        const groups = payload['cognito:groups'] || []
+        const groups = payload['cognito:groups'] || [];
         const inLabkoat = isInLabkoat(groups);
         if (!inLabkoat) next(new AuthorizationError('Forbidden'));
         next();

@@ -13,24 +13,16 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "globals": "^16.0.0",
-    "typescript": "5.7"
+    "globals": "^16.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.293.0",
     "@okta/jwt-verifier": "^3.0.1",
     "@okta/okta-sdk-nodejs": "^6.6.0",
-    "aws-jwt-verify": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "express-jwt": "^8.3.0",
-    "express-session": "^1.18.1",
     "jsonata": "^2.0.1",
-    "jwks-rsa": "^3.0.1",
-    "mongodb": "^6.3.0",
-    "nanoid": "^3.1.30",
     "neo4j-driver": "^5.19.0",
     "node-fetch": "^2.6.9",
     "mlHelpers": "file:./mlHelpers"
