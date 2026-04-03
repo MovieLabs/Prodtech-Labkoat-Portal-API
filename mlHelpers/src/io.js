@@ -1,7 +1,6 @@
 /**
- * @module
+ * @module io
  * @desc A set of methods to help with io, loading, saving, retrieving files
- * @type {module:fs}
  */
 
 import { createHash } from 'crypto';

@@ -2,7 +2,8 @@ FROM node:24-bookworm
 
 WORKDIR /app
 COPY . .
-RUN npm install --quiet
+RUN npm install --quiet --omit=dev
+RUN npm i --prefix ./mlHelpers --quiet --omit=dev
 
 EXPOSE 8080
 

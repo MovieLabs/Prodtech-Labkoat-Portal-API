@@ -1,9 +1,10 @@
 /**
- * Configuration variables for different deployments
+ * Retrieve secrets from one or more AWS secrets stores
  *
  * AWS Credentials will be loaded from:
  * Local dev: $HOME/.aws/credentials will be mounted in the container
- * Service mesh: Pod's IAM Role
+ *
+ * @module awsSecrets
  */
 
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
@@ -30,6 +31,16 @@ async function fetchSecret(awsClient, SecretId, secretKey) {
     throw new Error(`Failed AWS secrets after ${maxRetries} attempts`);
 }
 
+/**
+ * Retrieves secrets from AWS secrets stores
+ * @function awsSecrets
+ * @template {Object.<string, string>} T
+ * @param {Object} params - Secrets parameters
+ * @param {string} params.region - The AWS region of the secrets store
+ * @param {T} params.arn - Object of named ARNs, e.g. { LABKOAT: "arn2:...", FMAM: "arn2:..." }
+ * @returns {Promise<{[K in keyof T]: Object.<string, string>}>}
+ */
+
 export default async function awsSecrets(params) {
     const {
         arn = {},
@@ -37,9 +48,6 @@ export default async function awsSecrets(params) {
     } = params;
 
     const awsClient = new SecretsManagerClient({ region });
-    // const credentials = await awsClient.config.credentials(); // Check the credentials have been retrieved successfully
-    // console.log(credentials);
-    // console.log('Access Key:', credentials.accessKeyId);
 
     const secretPromise = Object.keys(arn)
         .map((key) => fetchSecret(awsClient, arn[key], key));

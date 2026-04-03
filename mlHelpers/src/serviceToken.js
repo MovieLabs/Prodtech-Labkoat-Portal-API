@@ -1,11 +1,23 @@
 /**
- Methods for interfacing with the Okta API
+ * Manages the access and refresh tokens for the Okta Service token
+ *
+ * @module serviceToken
  */
 
 import fetch from 'node-fetch';
 
-const tokenService = {};
+const tokenService = {}; // Store the details needed to access the Okta refresh endpoint
+let bearerToken = null; // Current value of the bearer token
 
+/**
+ * @function setup
+ * @param {Object} params
+ * @param {string} params.issuer
+ * @param {string} params.scope
+ * @param {string} params.clientId
+ * @param {string} params.clientSecret
+ * @returns {Promise<void>}
+ */
 export async function setup(params) {
     tokenService.issuer = params.issuer;
     tokenService.scope = params.scope;
@@ -14,9 +26,12 @@ export async function setup(params) {
     console.log('Service Token secret setup');
 }
 
-let bearerToken = null;
-
+/**
+ * @function getToken
+ * @returns {Promise<string>} A valid bearer token
+ */
 export async function getToken() {
+    // Check if the current token is past or close to expiration, if not return the current token
     if (bearerToken !== null) {
         const base64Url = bearerToken.split('.')[1];
         const buff = Buffer.from(base64Url, 'base64');
@@ -25,6 +40,7 @@ export async function getToken() {
         if (claims.exp > dateNow.getTime() / 1000) return bearerToken;
     }
 
+    // Fetch a new access token
     const {
         clientId,
         clientSecret,
@@ -53,10 +69,11 @@ export async function getToken() {
             token_type: tokenType,
             access_token: subjectToken,
         } = grant;
-        // console.log(subjectToken);
+
         bearerToken = subjectToken;
     } catch (err) {
         console.log(err);
     }
-    return bearerToken;
+
+    return bearerToken; // Return the new token to the consumer
 }

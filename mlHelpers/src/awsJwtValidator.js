@@ -1,3 +1,7 @@
+/**
+ * Validate an AWS JWT Bearer token
+ */
+
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 
 import config from '../../src/config.js';
