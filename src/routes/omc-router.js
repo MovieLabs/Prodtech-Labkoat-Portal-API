@@ -15,6 +15,7 @@ router.get('/identifier', awsJwtValidator, proxyController);
 router.post('/identifier', proxyController);
 router.post('/update', awsJwtValidator, proxyController);
 router.delete('/update', awsJwtValidator, proxyController);
+router.delete('/edge', awsJwtValidator, proxyController);
 router.post('/graphql', awsJwtValidator, graphqlController);
 
 export default router;
