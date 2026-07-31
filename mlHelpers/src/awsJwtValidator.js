@@ -35,7 +35,15 @@ export default async function awsJwtValidator(req, res, next) {
         // User must be in the labkoat group to have access
         const groups = payload['cognito:groups'] || [];
         const inLabkoat = isInLabkoat(groups);
-        if (!inLabkoat) next(new AuthorizationError('Forbidden'));
+        if (!inLabkoat) {
+            // Return, rather than falling through to next(): calling next twice hands the request
+            // to the route as well as to the error handler, so a forbidden caller was served.
+            next(new AuthorizationError('Forbidden'));
+            return;
+        }
+        // The verified claims, for routes that need to know who is calling. Nothing reads this
+        // yet — there is still no per-project authorization anywhere in this service.
+        req.user = payload;
         next();
     } catch (err) {
         console.error('Invalid token', err);

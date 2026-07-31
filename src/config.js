@@ -25,6 +25,30 @@ const configEnv = {
         AWS_NEO4J_USERNAME: 'neo4j',
         AWS_NEO4J_DATABASE: 'neo4j',
         AWS_REGION: 'us-west-2',
+        // Pipeline execution. Runs happen in worker threads in this process, so these bound what
+        // one request can cost the gateway. The per-project S3 bucket is NOT here: it lives on the
+        // project's record in fMam, so adding a project needs no redeploy.
+        PIPELINE_MAX_UPLOAD_BYTES: 2 * 1024 * 1024 * 1024, // 2 GB — camera-adjacent deliveries are large
+        PIPELINE_WORKER_COUNT: 2,
+        PIPELINE_WORKER_MEMORY_MB: 1024, // A runaway parse kills its worker, not the pod
+        PIPELINE_RUN_TIMEOUT_MS: 15 * 60 * 1000,
+        PIPELINE_RUN_TTL_MS: 30 * 60 * 1000, // How long a finished run stays readable
+        // Where pipeline and ingest uploads go:
+        //   's3'    — each project's own bucket, read from its fMam record. The deployed default.
+        //   'local' — a directory on this machine, so the whole upload → run → poll path works
+        //             before any bucket, IAM role or project storage record exists.
+        // The `local` environment below defaults to 'local'. Override either from
+        // Labkoat-API/.env, which dotenv loads before this file is read.
+        PIPELINE_STORAGE: process.env.PIPELINE_STORAGE || 's3',
+        // The master bucket, subdivided by project: <project>/<pipelineId>/<filename>. A project
+        // record may name its own bucket instead; almost none will. Versioning must be enabled on
+        // it — uploads overwrite in place, and that is what makes the previous bytes recoverable.
+        PIPELINE_BUCKET: process.env.PIPELINE_BUCKET || 'labkoat-project',
+        // Directory 'local' storage writes to and reads back, resolved against Labkoat-API rather
+        // than the working directory. References become `file://<path relative to it>` and one
+        // resolving outside it is refused — a service that will read any path a client names is a
+        // file-disclosure hole, which is why 'local' is not the deployed default.
+        PIPELINE_LOCAL_ROOT: process.env.PIPELINE_LOCAL_ROOT || '.pipeline-local',
         SECRET_ARN: {
             LABKOAT: 'arn:aws:secretsmanager:us-west-2:113736696237:secret:labkoatportal.spi-K7k7fd',
             FMAM: 'arn:aws:secretsmanager:us-west-2:113736696237:secret:fmam-xNWfhP',
@@ -41,6 +65,9 @@ const configEnv = {
     local: {
         FMAM_URL: 'http://localhost:4001/fmam/api', // fMam running on localhost
         GRAPHQL_URL: 'http://localhost:4001/fmam/graphql', // fMam graphQl running on localhost
+        // No bucket needed to develop against. Set PIPELINE_STORAGE=s3 in Labkoat-API/.env to use
+        // the project's real bucket from here instead.
+        PIPELINE_STORAGE: process.env.PIPELINE_STORAGE || 'local',
     },
     aws: {},
 };
