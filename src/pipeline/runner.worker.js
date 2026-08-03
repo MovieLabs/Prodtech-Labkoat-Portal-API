@@ -21,7 +21,9 @@ import { readObject } from './storage.js';
 // Everything the worker needs is handed to it: a worker thread has its own `process.argv`, so
 // `config` here would resolve to the default environment rather than the one the service was
 // started in. Configuration is passed, never re-derived.
-const { request, region, localRoot } = workerData;
+const {
+    request, region, localRoot, secrets,
+} = workerData;
 
 /**
  * @param {object} message
@@ -31,6 +33,9 @@ const post = (message) => parentPort.postMessage(message);
 async function main() {
     const context = createContext({
         read: (input) => readObject({ url: input.ref, region, localRoot }),
+        // Only the credentials this pipeline declared. A pipeline reads them by name and never
+        // learns that a secret store exists, let alone which one.
+        secrets,
         onProgress: (progress) => post({ type: 'progress', progress }),
         options: request.omcOptions,
     });

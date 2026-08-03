@@ -16,8 +16,6 @@ const configEnv = {
         AUDIENCE: '7mo1c0om06ubavs3d30jhak2mj',
         FMAM_URL: 'https://service.labkoat.media/fmam/api',
         GRAPHQL_URL: 'https://service.labkoat.media/fmam/graphql',
-        YAMDU_URL: 'https://app.yamdu.com/thirdpartyapi/v1/omc/',
-        YAMDU_PROJECT: '119374',
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',

@@ -1,3 +1,4 @@
+import config from '../../config.js';
 import InternalError from '../../errors/InternalError.js';
 import InvalidProject from '../../errors/InvalidProject.js';
 import InvalidQuery from '../../errors/InvalidQuery.js';
@@ -5,7 +6,8 @@ import InvalidRequest from '../../errors/InvalidRequest.js';
 import {
     createRun, getRun, publicView, updateRun,
 } from '../../pipeline/jobStore.js';
-import { getProjectStorage } from '../../pipeline/projectConfig.js';
+import { getProjectConfig, getProjectStorage } from '../../pipeline/projectConfig.js';
+import { resolveSecrets } from '../../pipeline/secrets.js';
 import { receiveUpload, writeSidecar } from '../../pipeline/storage.js';
 import { cancel, submit } from '../../pipeline/workerPool.js';
 
@@ -137,20 +139,42 @@ export async function startPipelineRun(req, res, next) {
             return;
         }
 
-        // Only the region is wanted here — the inputs already carry their own references, and the
-        // worker resolves each one from those.
+        // A pipeline that reads an API rather than a delivery needs no storage at all, so a project
+        // without a bucket must not be refused a run it was never going to write to.
+        const takesFiles = (definition.inputs?.minFiles ?? 1) > 0;
         const destination = await getProjectStorage(project, { pipelineId });
-        if (!destination) {
+        if (takesFiles && !destination) {
             next(new InvalidProject(`${project} has no storage bucket configured`));
+            return;
+        }
+
+        // Free-form key/value pairs held against the project — a source's account id, a default
+        // scope. A pipeline reads the keys it knows and reports a missing one itself, so nothing
+        // here has to know what any pipeline wants.
+        const record = await getProjectConfig(project).catch(() => null);
+
+        // Only the credentials this pipeline declared. A missing one is refused now rather than
+        // becoming a 401 from the source with nothing to say about which secret was absent.
+        const { secrets, missing } = resolveSecrets(definition.secrets);
+        if (missing.length) {
+            next(new InternalError(
+                `${pipelineId} needs the secret(s) ${missing.join(', ')}, which this service has `
+                + 'not been given. Add them to the Labkoat secret and restart.',
+            ));
             return;
         }
 
         const run = createRun({ pipelineId, project });
         submit({
             runId: run.runId,
-            region: destination.region,
+            region: destination?.region ?? config.AWS_REGION,
+            secrets,
             request: {
-                pipelineId, inputs: inputs ?? [], options: options ?? {}, omcOptions: omcOptions ?? {},
+                pipelineId,
+                inputs: inputs ?? [],
+                options: options ?? {},
+                settings: record?.settings ?? {},
+                omcOptions: omcOptions ?? {},
             },
         });
 

@@ -47,6 +47,10 @@ function pump() {
             request: job.request,
             region: job.region,
             localRoot: localStorageRoot(),
+            // Only what this pipeline declared. Structured-cloned into the worker's own isolate,
+            // which is the same trust boundary as this thread — but nothing beyond the run's own
+            // credentials crosses it.
+            secrets: job.secrets ?? {},
         },
         resourceLimits: { maxOldGenerationSizeMb: config.PIPELINE_WORKER_MEMORY_MB },
     });
@@ -96,10 +100,13 @@ function pump() {
  * @param {string} params.runId
  * @param {object} params.request - The pipeline run request, as the pipeline will receive it
  * @param {string} params.region - AWS region the inputs live in
+ * @param {Object.<string, string>} [params.secrets] - Only the credentials the pipeline declared
  */
-export function submit({ runId, request, region }) {
+export function submit({
+    runId, request, region, secrets,
+}) {
     queue.push({
-        runId, request, region, cancelled: false,
+        runId, request, region, secrets, cancelled: false,
     });
     pump();
 }

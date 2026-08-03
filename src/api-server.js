@@ -18,6 +18,7 @@ import { vocabRouter, vocabSetup } from '../src/routes/vocab-router.js';
 import config from './config.js';
 import { oktaSetup } from './controllers/oktaInterface.js';
 import { localStorageRoot } from './pipeline/projectConfig.js';
+import { setPipelineSecrets } from './pipeline/secrets.js';
 
 const app = express();
 
@@ -69,6 +70,7 @@ export default async function apiServer() {
     });
     await oktaSetup(secrets);
     await vocabSetup(secrets);
+    setPipelineSecrets(secrets); // So pipeline dispatch can hand a run only what it declared
     // await serviceSetup(secrets);
     await serviceToken.setup({
         issuer: config.OKTA_LABKOAT_SERVICE_API_ISSUER, // The URL for the Authorization server that is issuing the token
