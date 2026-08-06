@@ -125,6 +125,25 @@ export default async function apiServer() {
     app.use('/:universalURL', (req, res, next) => next(new InvalidRoute())); // Catch all invalid routes
     app.use(errorHandler); // Send error messages to the client
 
+    // A gateway must not die because one request went wrong. Express catches what reaches its
+    // handlers, but not a promise rejected with nothing attached to it yet, nor an 'error' event on
+    // a stream nobody is listening to — and since Node 15 an unhandled rejection ends the process
+    // by default. That is how a missing S3 bucket on a file upload took the whole API down and left
+    // every other route refusing connections.
+    //
+    // These are a net, not a fix: the cause is always worth finding and repairing at its source, so
+    // they log loudly rather than quietly. Note the difference between the two — a rejection is
+    // localised to the work that rejected and is safe to survive, whereas an uncaught exception
+    // leaves the process in a state nobody has reasoned about. Surviving it is the lesser evil for
+    // a development gateway with no supervisor to restart it, but under a process manager it would
+    // be better to log and exit.
+    process.on('unhandledRejection', (reason) => {
+        console.error('Unhandled promise rejection — the API is still up, but this needs fixing:', reason);
+    });
+    process.on('uncaughtException', (err) => {
+        console.error('Uncaught exception — the API is still up, but its state is now suspect:', err);
+    });
+
     // Launch the API Server at localhost:8080
     app.listen(8080, () => {
         console.log('Updated: 3/24/26');

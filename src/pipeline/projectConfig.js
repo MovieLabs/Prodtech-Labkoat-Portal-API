@@ -45,6 +45,35 @@ export function localStorageRoot() {
 
 const CACHE_MS = 60_000;
 
+/**
+ * How long the project lookup may take before an upload is failed instead of left hanging.
+ *
+ * This runs *during* an upload: busboy has paused the socket waiting to be told where the bytes
+ * go, so anything slow here shows up as a browser stuck at a percentage. `FMAM_URL` defaults to
+ * the deployed service rather than a local one, which makes this the call on the path most able to
+ * stall — and neither `fetch` nor the token request has a timeout of its own.
+ */
+const LOOKUP_TIMEOUT_MS = 10_000;
+
+/**
+ * Reject if a promise has not settled in time, naming what it was waiting on.
+ *
+ * The timer is unref'd so a pending wait cannot by itself keep the process alive.
+ *
+ * @param {Promise} promise
+ * @param {number} ms
+ * @param {string} what - Named in the error, because "timed out" alone starts another hunt
+ * @returns {Promise}
+ */
+function withTimeout(promise, ms, what) {
+    let timer;
+    const expiry = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms}ms`)), ms);
+        timer.unref?.();
+    });
+    return Promise.race([promise, expiry]).finally(() => clearTimeout(timer));
+}
+
 let cache = { at: 0, byName: new Map() };
 
 /**
@@ -59,10 +88,15 @@ let cache = { at: 0, byName: new Map() };
 async function loadProjects() {
     if (Date.now() - cache.at < CACHE_MS && cache.byName.size) return cache.byName;
 
-    const bearerToken = await serviceToken.getToken();
+    const bearerToken = await withTimeout(serviceToken.getToken(), LOOKUP_TIMEOUT_MS, 'service token request');
     const res = await fetch(`${config.FMAM_URL}/project`, {
         method: 'GET',
         headers: { Accept: 'application/json', Authorization: `Bearer ${bearerToken}` },
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+    }).catch((err) => {
+        // Named, because the default is the deployed fMam even when a local one is running, and
+        // "fetch failed" against a URL nobody remembers configuring is a long way from a diagnosis.
+        throw new Error(`fMam project list at ${config.FMAM_URL} failed: ${err.message}`);
     });
     if (!res.ok) throw new Error(`fMam returned ${res.status} listing projects`);
 

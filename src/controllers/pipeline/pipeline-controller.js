@@ -111,7 +111,18 @@ export async function uploadPipelineFile(req, res, next) {
         ok(res, file);
     } catch (err) {
         // PayloadTooLarge and UnsupportedMedia already carry their status; anything else is ours.
-        next(err.status ? err : new InternalError(err.message));
+        if (err.status) {
+            next(err);
+            return;
+        }
+        // Name the destination. S3 says "The specified bucket does not exist" without saying which
+        // bucket it was asked for, and the name is resolved from the project record with a fallback
+        // to config — so the one thing needed to act on the error is the one thing the message
+        // leaves out.
+        const where = destination
+            ? ` [${destination.kind === 'local' ? destination.root : destination.bucket} ${destination.region}, prefix ${destination.prefix}]`
+            : '';
+        next(new InternalError(`${err.message}${where}`));
     }
 }
 

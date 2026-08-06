@@ -35,11 +35,25 @@ import { localStorageRoot } from './projectConfig.js';
 const clients = new Map();
 
 /**
+ * An S3 client for a region, with bounded waits.
+ *
+ * The SDK's default handler has **no request timeout**, so a call that cannot complete waits for
+ * ever. That is not an abstract risk on this path: the destination and its sidecar are read while
+ * an upload is already streaming, with the socket paused behind them, so a hung S3 call is a
+ * browser frozen at a percentage and a server saying nothing at all. Failing in seconds is worth
+ * far more than the rare slow request these cut off.
+ *
  * @param {string} region
  * @returns {S3Client}
  */
 function clientFor(region) {
-    if (!clients.has(region)) clients.set(region, new S3Client({ region }));
+    if (!clients.has(region)) {
+        clients.set(region, new S3Client({
+            region,
+            requestHandler: { connectionTimeout: 5_000, requestTimeout: 30_000 },
+            maxAttempts: 3,
+        }));
+    }
     return clients.get(region);
 }
 
@@ -345,7 +359,17 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
             // resolved, so nothing is lost and backpressure still reaches the socket.
             stream.pipe(body);
 
+            // A stream destroyed with an error emits it, and an 'error' with no listener is an
+            // uncaught exception — fatal to the whole gateway, for one bad request. Routed to
+            // `fail` rather than swallowed: swallowing it leaves the request alive but stalled,
+            // which is worse than the crash it replaces.
+            body.on('error', fail);
+
             pending = (async () => {
+                // Both steps below run with the socket paused behind them, so when one is slow the
+                // only visible symptom is a stalled progress bar in the browser. Saying which step
+                // was entered turns that into a one-line answer on the server.
+                console.log(`upload ${filename}: resolving destination`);
                 const destination = await resolveDestination(fields);
                 if (!destination) {
                     body.destroy();
@@ -357,7 +381,9 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
 
                 // What the last upload of this exact key recorded, read before it is overwritten.
                 // Absent on a first upload, which is why `changed` is null rather than false.
+                console.log(`upload ${filename}: reading sidecar from ${destination.kind === 'local' ? destination.root : destination.bucket}`);
                 const previous = await readSidecar({ destination, key });
+                console.log(`upload ${filename}: writing ${key}`);
 
                 await (destination.kind === 'local'
                     ? writeLocal({ root: destination.root, key, body })
@@ -386,7 +412,20 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
                     replaced: Boolean(previous),
                     changed: previous ? previous.file?.md5 !== md5 : null,
                 };
-            })();
+            })()
+                // Settled into a value rather than left as a rejectable promise for `close` to pick
+                // up, and acted on the moment it fails.
+                //
+                // Both halves matter. A rejection with nothing yet attached is an unhandledRejection
+                // — fatal since Node 15 — because the upload can fail long before the request has
+                // finished arriving: a missing or misnamed bucket fails on the very first S3 call
+                // while the client is still sending. And waiting for `close` is not an option on
+                // the failure path at all, because a destroyed `body` breaks the pipe from
+                // `stream`, so busboy never reaches the end of the part and `close` never fires.
+                // Waiting for it means hanging for ever with the browser stuck mid-upload.
+                .then((file) => ({ file }), (error) => ({ error }));
+
+            pending.then(({ error }) => (error ? fail(error) : null));
         });
 
         bb.on('error', fail);
@@ -398,7 +437,7 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
                 resolve({ fields, file: null });
                 return;
             }
-            pending.then((file) => resolve({ fields, file })).catch(reject);
+            pending.then(({ file, error }) => (error ? reject(error) : resolve({ fields, file })));
         });
 
         req.pipe(bb);
