@@ -14,3 +14,6 @@ node_modules/
 .env.test.local
 .env.production.local
 
+
+# Local pipeline uploads, used instead of S3 when PIPELINE_LOCAL_ROOT is set
+.pipeline-local/

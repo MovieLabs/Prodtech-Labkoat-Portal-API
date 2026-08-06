@@ -23,6 +23,49 @@ const queryString = (query) => (
  * @returns {Promise<void>}
  */
 
+/**
+ * Call fMam and return what it said, without writing a response.
+ *
+ * The counterpart to {@link fMamProxy}, which commits the response itself and so leaves a caller no
+ * chance to act on the outcome. A controller that has work of its own to do — purging a project's
+ * stored files once fMam confirms it is gone — needs the result in hand rather than on the wire.
+ *
+ * Unlike {@link fMamFetch} this does not gate on the hardcoded project map, which is a stale mirror
+ * of the project records in fMam and knows nothing about projects added since.
+ *
+ * @param {Object} params
+ * @param {string} params.method - GET, POST, PATCH, DELETE
+ * @param {string} params.route - Path below the fMam API root, e.g. `/project`
+ * @param {Object} [params.query] - Query parameters
+ * @param {Object} [params.body] - Request body, for anything but GET
+ * @returns {Promise<{status: number, payload: *}>} fMam's status and parsed body. A transport
+ *   failure is reported as a 500 rather than thrown, so a caller has one shape to test
+ */
+export async function fMamRequest({
+    method, route, query = {}, body = null,
+}) {
+    const url = `${fMamUrl}${route}?${queryString(query)}`;
+    const bearerToken = await serviceToken.getToken();
+
+    const options = {
+        method,
+        headers: { Accept: 'application/json', Authorization: `Bearer ${bearerToken}` },
+    };
+    if (body && method !== 'GET') {
+        options.body = JSON.stringify(body);
+        options.headers['Content-Type'] = 'application/json';
+    }
+
+    try {
+        const response = await fetch(url, options);
+        const payload = await response.json().catch(() => null);
+        return { status: response.status, payload };
+    } catch (err) {
+        console.log(err);
+        return { status: 500, payload: { error: { details: err.message } } };
+    }
+}
+
 export async function fMamProxy({
     res,
     req,
