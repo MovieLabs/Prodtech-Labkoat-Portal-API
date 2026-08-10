@@ -8,6 +8,11 @@ import {
     removeProject,
     resetProject,
 } from '../controllers/admin/projects.js';
+import {
+    listMappingTemplates,
+    saveMappingTemplate,
+    removeMappingTemplate,
+} from '../controllers/admin/templates.js';
 
 const router = express.Router();
 
@@ -19,5 +24,12 @@ router.post('/project', awsJwtValidator, createProject);
 router.patch('/project', awsJwtValidator, updateProject);
 router.delete('/project', awsJwtValidator, removeProject);
 router.delete('/reset', awsJwtValidator, resetProject);
+
+// Mapping templates — how a sheet of source data becomes OMC. Authenticated like everything else
+// here: a template is not secret, but it decides what a pipeline writes into a project.
+router.get('/mappingTemplate', awsJwtValidator, listMappingTemplates);
+router.post('/mappingTemplate', awsJwtValidator, saveMappingTemplate);
+router.patch('/mappingTemplate', awsJwtValidator, saveMappingTemplate);
+router.delete('/mappingTemplate', awsJwtValidator, removeMappingTemplate);
 
 export default router;
