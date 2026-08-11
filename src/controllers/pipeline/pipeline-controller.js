@@ -6,8 +6,9 @@ import InvalidRequest from '../../errors/InvalidRequest.js';
 import {
     createRun, getRun, publicView, updateRun,
 } from '../../pipeline/jobStore.js';
+import { resolveMappings } from '../../pipeline/mappingTemplates.js';
 import { getProjectConfig, getProjectStorage } from '../../pipeline/projectConfig.js';
-import { resolveSecrets } from '../../pipeline/secrets.js';
+import { credentialsFor, resolveSecrets } from '../../pipeline/secrets.js';
 import { receiveUpload, writeSidecar } from '../../pipeline/storage.js';
 import { cancel, submit } from '../../pipeline/workerPool.js';
 
@@ -20,6 +21,10 @@ import { cancel, submit } from '../../pipeline/workerPool.js';
  *
  * Responses use the house envelope — `{ data, errors, warnings }` on success — and failures are
  * thrown to the global handler as one of `src/errors/*` rather than serialised here.
+ *
+ * **The body of `POST /run` must never be logged.** It can carry a live third-party access token
+ * belonging to the user — see `pipeline/secrets.js` for why one arrives that way — and a request
+ * log is exactly the sort of place a credential outlives the run it was sent for.
  *
  * @namespace namespace:LabkoatApi.pipelineController
  */
@@ -50,11 +55,21 @@ const pipelineRegistry = () => {
  *
  * Reading it from `data-pipeline` rather than restating it is what makes a pipeline added there
  * appear in the Portal with no change to this service or the frontend.
+ *
+ * Each entry is decorated with `credentials`, which `data-pipeline` cannot answer: a pipeline
+ * declares only the *name* of what it needs, and whether that name is satisfied by a service
+ * secret or by the user logging in is this service's decision. Sending it means a client can offer
+ * the login step for a pipeline it has never seen. Only names are sent — never a value.
  */
 export async function listPipelines(req, res, next) {
     try {
         const { catalog } = await pipelineRegistry();
-        ok(res, catalog({ schemaVersion: req.query.schemaVersion }));
+        const pipelines = catalog({ schemaVersion: req.query.schemaVersion })
+            .map((definition) => ({
+                ...definition,
+                credentials: credentialsFor(definition.secrets),
+            }));
+        ok(res, pipelines);
     } catch (err) {
         next(new InternalError(err.message));
     }
@@ -136,7 +151,7 @@ export async function uploadPipelineFile(req, res, next) {
 export async function startPipelineRun(req, res, next) {
     try {
         const {
-            pipelineId, project, inputs, options, omcOptions,
+            pipelineId, project, inputs, options, omcOptions, credentials,
         } = req.body ?? {};
 
         if (!project) {
@@ -164,14 +179,37 @@ export async function startPipelineRun(req, res, next) {
         // here has to know what any pipeline wants.
         const record = await getProjectConfig(project).catch(() => null);
 
-        // Only the credentials this pipeline declared. A missing one is refused now rather than
-        // becoming a 401 from the source with nothing to say about which secret was absent.
-        const { secrets, missing } = resolveSecrets(definition.secrets);
+        // Only the credentials this pipeline declared, whether they belong to the service or to
+        // the caller. A missing one is refused now rather than becoming a 401 from the source with
+        // nothing to say about which secret was absent.
+        const { secrets, missing, missingUser } = resolveSecrets(definition.secrets, credentials);
+        if (missingUser.length) {
+            // The caller's to fix, not the operator's — so it is a 400 naming the login, not a 500
+            // telling a user to edit a secret they cannot see.
+            next(new InvalidRequest(
+                `${pipelineId} needs a ${missingUser.join(', ')} login. Connect to it and run again.`,
+            ));
+            return;
+        }
         if (missing.length) {
             next(new InternalError(
                 `${pipelineId} needs the secret(s) ${missing.join(', ')}, which this service has `
                 + 'not been given. Add them to the Labkoat secret and restart.',
             ));
+            return;
+        }
+
+        // Mapping templates attached to this project, resolved here for the same reason `settings`
+        // is: it is configuration held against the project, and the worker should be handed what to
+        // use rather than being able to reach a database itself.
+        const { mappings, problems } = await resolveMappings({
+            definition, settings: record?.settings,
+        });
+        if (problems.length) {
+            // Refused rather than run without them. A run that quietly fell back to the pipeline's
+            // built-in mapping would succeed while ignoring the configuration, and the output would
+            // look right enough that nobody would check.
+            next(new InvalidRequest(`mapping template problem: ${problems.join('; ')}`));
             return;
         }
 
@@ -186,6 +224,7 @@ export async function startPipelineRun(req, res, next) {
                 options: options ?? {},
                 settings: record?.settings ?? {},
                 omcOptions: omcOptions ?? {},
+                mappings,
             },
         });
 
