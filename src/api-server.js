@@ -28,6 +28,12 @@ const app = express();
  * An `Origin` header is scheme + host + port and never carries a path, so these must have no
  * trailing slash — with one, nothing matches. Vite also falls back to 5174 when 5173 is taken, so
  * both dev ports are listed.
+ *
+ * **The scheme is part of the origin.** `https://localhost:5173` and `http://localhost:5173` are
+ * two different origins and both have to be listed: the Portal's dev server moved to HTTPS because
+ * Adobe IMS refuses a plain-http redirect URI, and the http entries are kept so an older checkout
+ * still works. This is the one that catches people out, because nothing else about the application
+ * changes when the dev server switches scheme.
  */
 const ALLOWED_ORIGINS = [
     'https://staging.labkoat.media',
@@ -35,6 +41,8 @@ const ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://localhost:5173',
+    'https://localhost:5174',
 ];
 
 /**
