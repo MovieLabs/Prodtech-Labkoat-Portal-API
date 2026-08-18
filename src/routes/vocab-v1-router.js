@@ -1,8 +1,10 @@
 /**
- * `/api/vocab/v1` — reading the vocabulary, and publishing a view.
+ * `/api/vocab/v1` — reading and writing the vocabulary, and publishing a view.
  *
- * Read-only for now. Writes arrive with the authoring stage; until then the old `/api/vocab` routes
- * remain the only way to change anything, and Neo4j remains authoritative.
+ * **Writes land here, not in Neo4j.** The old `/api/vocab` routes still serve the old editor, and
+ * the two stores are not synchronised: a term created here does not appear there. That is the point
+ * of the staging — the new tool is exercised against real writes while the old one keeps working —
+ * but it is worth knowing before wondering why a term is missing from the other tab.
  *
  * ## Two kinds of caller, both legitimate
  *
@@ -24,7 +26,26 @@ import { awsJwtValidator, jwtValidator } from 'mlHelpers';
 
 import config from '../config.js';
 import { generate, generatorNames } from '../vocabulary/generators/index.js';
-import { collectionUsage, getCollection, getView, listFacets, listViews, termUsage } from '../vocabulary/store/read.js';
+import {
+    collectionUsage,
+    getCollection,
+    getTerms,
+    getView,
+    listFacets,
+    listViews,
+    termUsage,
+} from '../vocabulary/store/read.js';
+import {
+    ValidationError,
+    createCollection,
+    createTerms,
+    deleteCollection,
+    deleteTerm,
+    replaceCollection,
+    replaceTerm,
+    saveFacet,
+    saveView,
+} from '../vocabulary/store/write.js';
 
 const router = express.Router();
 
@@ -180,6 +201,125 @@ router.get('/facets', authenticated, async (req, res, next) => {
         res.json(await listFacets());
     } catch (err) {
         next(err);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Writes
+// ---------------------------------------------------------------------------
+
+/**
+ * Turn a refused write into a 422 carrying every reason.
+ *
+ * All of them, not the first: a caller fixing one error at a time round-trips once per mistake,
+ * and the editor can show them together.
+ */
+function writeFailed(err, res, next) {
+    if (err instanceof ValidationError) {
+        res.status(422).json({ message: err.message, errors: err.errors });
+        return;
+    }
+    next(err);
+}
+
+/** Who is writing, for the record stamp. Cognito puts it in the token; a service token has no user. */
+const actorOf = ((req) => req.user?.username ?? req.user?.sub ?? req.auth?.sub ?? 'service');
+
+/** One term, for the editor to load before changing it. */
+router.get('/terms/:id', authenticated, async (req, res, next) => {
+    try {
+        const found = await getTerms([req.params.id]);
+        const term = found.get(req.params.id);
+        if (!term) {
+            res.status(404).json({ message: `No such term: ${req.params.id}` });
+            return;
+        }
+        res.json(term);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * Create terms. Takes one or an array.
+ *
+ * An array is minted as one block, which is what lets a spreadsheet import run in a single pass
+ * rather than one write per row waiting on the last -- the constraint that shapes the old CSV
+ * import and made a failure halfway through leave the client's ids guessing.
+ */
+router.post('/terms', authenticated, async (req, res, next) => {
+    try {
+        const incoming = Array.isArray(req.body) ? req.body : [req.body];
+        const { terms, warnings } = await createTerms(incoming, actorOf(req));
+        res.status(201).json({ terms, warnings });
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Replace a term. A full replace, so a label or note can actually be removed. */
+router.put('/terms/:id', authenticated, async (req, res, next) => {
+    try {
+        const { term, warnings } = await replaceTerm(req.params.id, req.body, actorOf(req));
+        res.json({ term, warnings });
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Delete a term and every placement of it. Refused while in use unless `?force=true`. */
+router.delete('/terms/:id', authenticated, async (req, res, next) => {
+    try {
+        const outcome = await deleteTerm(req.params.id, req.query.force === 'true');
+        res.json(outcome);
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Create a collection. */
+router.post('/collections', authenticated, async (req, res, next) => {
+    try {
+        res.status(201).json(await createCollection(req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Replace a collection, members and all -- re-parenting and reordering are edits to that array. */
+router.put('/collections/:id', authenticated, async (req, res, next) => {
+    try {
+        res.json(await replaceCollection(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Delete a collection. The terms in it stay. */
+router.delete('/collections/:id', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteCollection(req.params.id, req.query.force === 'true'));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Create or replace a view. */
+router.put('/views/:id', authenticated, async (req, res, next) => {
+    try {
+        res.json(await saveView(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Create or replace a facet -- the controlled set behind a kind of label, note, example or tag. */
+router.put('/facets/:id', authenticated, async (req, res, next) => {
+    try {
+        const { facet, warnings } = await saveFacet(req.params.id, req.body, actorOf(req));
+        res.json({ facet, warnings });
+    } catch (err) {
+        writeFailed(err, res, next);
     }
 });
 
