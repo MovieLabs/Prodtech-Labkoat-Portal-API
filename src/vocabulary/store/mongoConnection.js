@@ -23,9 +23,18 @@ import { MongoClient } from 'mongodb';
 
 import config from '../../config.js';
 
-// Matching fMam. Atlas resolves through SRV records, and a host whose DNS returns IPv6 first will
-// hang rather than fail on a network that cannot route it.
+// Both lines match fMam, and both are load-bearing.
+//
+// Atlas is reached through a `mongodb+srv://` URL, so the driver does an **SRV** lookup before it
+// can connect to anything. A resolver that refuses SRV queries — which the default one here does —
+// fails with `querySrv ECONNREFUSED` and no amount of retrying helps. Naming public resolvers is
+// what fMam does for the same cluster, and it is why fMam can reach it.
+//
+// The blast radius is smaller than it looks: `setServers` governs the `dns.resolve*` family, which
+// is what the driver uses for SRV. Ordinary hostname lookups go through `dns.lookup` and the OS
+// resolver, so the gateway's other outbound calls — Okta, AWS, fMam, Neo4j — are unaffected.
 dns.setDefaultResultOrder('ipv4first');
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 /**
  * The one client for this process.
