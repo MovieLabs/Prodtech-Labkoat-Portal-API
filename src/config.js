@@ -19,6 +19,12 @@ const configEnv = {
         OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
         OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
         OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
+        // The vocabulary's Mongo store. Same cluster and same credentials fMam uses — the
+        // gateway already holds SECRET_ARN.FMAM, so this needs no new secret to rotate. The
+        // collections sit in `app_config` beside `projects` and `mappingTemplates`, all of them
+        // prefixed `vocab_`, because the cluster is shared and users name their own collections.
+        VOCAB_MONGO_URL: 'mongodb+srv://${username}:${password}@ml-prodtech.inwvg0.mongodb.net/?appName=ML-Prodtech',
+        VOCAB_DB: 'app_config',
         AWS_NEO4J_URI: 'neo4j://35.85.154.154:7687',
         AWS_NEO4J_USERNAME: 'neo4j',
         AWS_NEO4J_DATABASE: 'neo4j',
