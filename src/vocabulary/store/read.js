@@ -219,6 +219,21 @@ export function listCollections() {
 }
 
 /**
+ * Every term.
+ *
+ * For an editor, not for a picker. The table has to be able to list terms that sit in **no
+ * collection** — 96 do — and those appear in no view, because a view publishes a collection. Search
+ * cannot reach them either without knowing their names first.
+ *
+ * Uncapped on purpose. The store holds hundreds and this is one request that loads it, the same way
+ * the SKOS editor loads its whole dictionary at boot. If it ever grows past what a browser should
+ * hold, the answer is a paged table, not a silent cap here.
+ *
+ * @returns {Promise<Array<object>>}
+ */
+export const allTerms = (() => vocabCollection(VOCAB_TERMS).find({}).toArray());
+
+/**
  * Terms whose name starts with, or contains, some text.
  *
  * Prefix-first because that is what somebody typing into a picker means: typing "cap" wants

@@ -28,6 +28,7 @@ import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
 import { generate, generatorNames } from '../vocabulary/generators/index.js';
 import {
+    allTerms,
     collectionUsage,
     getCollection,
     getTerms,
@@ -283,6 +284,15 @@ const actorOf = ((req) => req.user?.username ?? req.user?.sub ?? req.auth?.sub ?
  */
 router.get('/terms', authenticated, async (req, res, next) => {
     try {
+        // `?all=true` is for an editor rather than a picker: the table lists every term so the ones
+        // in no collection are reachable — 96 of them, invisible in any view because a view
+        // publishes a collection. The search cap does not apply, deliberately; this is one request
+        // returning the store, the way the SKOS editor loads its whole dictionary.
+        if (req.query.all === 'true') {
+            res.json(await allTerms());
+            return;
+        }
+
         // `?ids=` is the other question this route answers: the membership editor holds a member
         // list of term ids and has to render names for all of them. One lookup rather than one
         // request per row — a collection here holds 312 members.
