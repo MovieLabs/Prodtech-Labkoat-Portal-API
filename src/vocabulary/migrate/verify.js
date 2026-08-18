@@ -43,21 +43,49 @@ export function verifyMigration({ graph, terms, collections, root }) {
         `${terms.length} terms from ${sourceConcepts} Concepts`,
     );
 
+    // `coll:unplaced` is excluded: it derives from the terms no scheme claimed, not from a scheme,
+    // so counting it here would compare 13 collections against 12 schemes and read as a fault.
     const sourceSchemes = sourceOfType('skos:ConceptScheme');
+    const schemeCollections = collections.filter((collection) => collection._id !== 'coll:unplaced');
     add(
         'every ConceptScheme became a collection',
-        collections.length === sourceSchemes,
-        `${collections.length} collections from ${sourceSchemes} ConceptSchemes`,
+        schemeCollections.length === sourceSchemes,
+        `${schemeCollections.length} collections from ${sourceSchemes} ConceptSchemes`,
     );
 
     // Every inScheme edge in the source must be a member somewhere. This is the check that would
     // catch the per-scheme resolution dropping a placement.
-    const sourceMemberships = graph.edges.filter((edge) => edge.relation === 'inScheme').length;
-    const builtMembers = collections.reduce((total, collection) => total + collection.member.length, 0);
+    //
+    // Counted as **distinct** source edges, because the graph carries duplicate relationships (139
+    // of them, all `topConceptOf`) and a raw instance count would compare a deduplicated model
+    // against a source that double-counts.
+    //
+    // The unplaced collection is excluded from both sides. Its members come from terms that have no
+    // `inScheme` edge at all — that is what makes them unplaced — so counting them against a total
+    // of inScheme edges compares two different things. They get their own check below.
+    const sourceMemberships = new Set(
+        graph.edges.filter((edge) => edge.relation === 'inScheme')
+            .map((edge) => `${edge.source}|${edge.target}`),
+    ).size;
+    const fromSchemes = collections.filter((collection) => collection._id !== 'coll:unplaced');
+    const builtMembers = fromSchemes.reduce((total, collection) => total + collection.member.length, 0);
     add(
         'every inScheme edge became a member',
         builtMembers === sourceMemberships,
-        `${builtMembers} members from ${sourceMemberships} inScheme edges`,
+        `${builtMembers} members from ${sourceMemberships} distinct inScheme edges`,
+    );
+
+    // Terms in no scheme are gathered rather than dropped. The old serializer emitted them because
+    // it walked every Concept rather than any membership; a view publishes a collection, so without
+    // this they would silently stop appearing in the SKOS output.
+    const unplacedCollection = collections.find((collection) => collection._id === 'coll:unplaced');
+    const withScheme = new Set(graph.edges.filter((edge) => edge.relation === 'inScheme').map((edge) => edge.source));
+    const sourceUnplaced = [...graph.nodes.entries()]
+        .filter(([id, node]) => node.type === 'skos:Concept' && !withScheme.has(id)).length;
+    add(
+        'terms in no scheme are gathered, not dropped',
+        (unplacedCollection?.member.length ?? 0) === sourceUnplaced,
+        `${unplacedCollection?.member.length ?? 0} gathered from ${sourceUnplaced} scheme-less Concepts`,
     );
 
     // ---- the new model's invariants ----

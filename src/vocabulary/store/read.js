@@ -1,0 +1,137 @@
+/**
+ * Reading terms, collections, views and facets, and the small accessors everything else asks
+ * questions of a term through.
+ *
+ * The accessors matter more than they look. A term's names live in one faceted `label` array where
+ * the preferred name is just the entry whose `labelType` is `pref` — there is no `prefLabel` field
+ * to reach for. Every consumer that wants a display name has to agree on how to find it, so it is
+ * written once here rather than in each generator.
+ *
+ * @module vocabulary/store/read
+ */
+
+import {
+    VOCAB_COLLECTIONS,
+    VOCAB_FACETS,
+    VOCAB_TERMS,
+    VOCAB_VIEWS,
+    vocabCollection,
+} from './collections.js';
+
+export const DEFAULT_LANGUAGE = 'en';
+
+/**
+ * The preferred label, as text.
+ *
+ * Falls back across languages rather than returning nothing: a term with a label in some language
+ * but not the requested one is still better rendered by its French name than by its identifier.
+ * Returns the id only when the term genuinely carries no label at all, which the migration's
+ * one-pref-per-language check says should not happen.
+ *
+ * @param {object} term
+ * @param {string} [language]
+ * @returns {string}
+ */
+export function prefLabel(term, language = DEFAULT_LANGUAGE) {
+    const labels = term?.label ?? [];
+    const pref = labels.filter((entry) => entry.labelType === 'pref');
+    return (pref.find((entry) => entry.language === language) ?? pref[0])?.value ?? term?._id ?? '';
+}
+
+/**
+ * Labels that are not the preferred one, with their types intact.
+ *
+ * @param {object} term
+ * @returns {Array<{value: string, language: string, labelType: string}>}
+ */
+export const otherLabels = ((term) => (term?.label ?? []).filter((entry) => entry.labelType !== 'pref'));
+
+/**
+ * A multilingual field as text, with the same cross-language fallback as `prefLabel`.
+ *
+ * @param {object} field - e.g. `term.definition`
+ * @param {string} [language]
+ * @returns {string}
+ */
+export function localised(field, language = DEFAULT_LANGUAGE) {
+    if (!field || typeof field !== 'object') return '';
+    return field[language] ?? Object.values(field)[0] ?? '';
+}
+
+/** One view. */
+export const getView = ((id) => vocabCollection(VOCAB_VIEWS).findOne({ _id: id }));
+
+/** Every view, for the list route. */
+export const listViews = (() => vocabCollection(VOCAB_VIEWS).find({}).toArray());
+
+/** One collection. */
+export const getCollection = ((id) => vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id }));
+
+/** Every facet, for projection lookup and for the editor. */
+export const listFacets = (() => vocabCollection(VOCAB_FACETS).find({}).toArray());
+
+/**
+ * Collections by id, in one query.
+ *
+ * The resolver discovers what it needs as it walks, so it cannot name every collection up front —
+ * it loads a level, sees which collections that level references, and loads those. One round trip
+ * per level of nesting rather than one per collection.
+ *
+ * @param {string[]} ids
+ * @returns {Promise<Map<string, object>>}
+ */
+export async function getCollections(ids) {
+    if (!ids.length) return new Map();
+    const docs = await vocabCollection(VOCAB_COLLECTIONS).find({ _id: { $in: ids } }).toArray();
+    return new Map(docs.map((doc) => [doc._id, doc]));
+}
+
+/**
+ * Terms by id, in one query.
+ *
+ * @param {string[]} ids
+ * @returns {Promise<Map<string, object>>}
+ */
+export async function getTerms(ids) {
+    if (!ids.length) return new Map();
+    const docs = await vocabCollection(VOCAB_TERMS).find({ _id: { $in: ids } }).toArray();
+    return new Map(docs.map((doc) => [doc._id, doc]));
+}
+
+/**
+ * Where a term is used: the collections holding a member for it, and the views publishing those.
+ *
+ * This is the query the change-everywhere / separate-copy prompt is built on, so it is on the
+ * interactive path — hence the `member.term` index. It answers with collection and view documents
+ * rather than ids because the caller is about to show them to somebody.
+ *
+ * @param {string} termId
+ * @returns {Promise<{collections: Array<object>, views: Array<object>}>}
+ */
+export async function termUsage(termId) {
+    const collections = await vocabCollection(VOCAB_COLLECTIONS)
+        .find({ 'member.term': termId })
+        .toArray();
+    const ids = collections.map((collection) => collection._id);
+    // A view uses a term if the term is in the view's root collection — or in anything that
+    // collection reaches. Answering that exactly means resolving every view, so this reports the
+    // direct case and the caller can resolve if it needs certainty.
+    const views = ids.length
+        ? await vocabCollection(VOCAB_VIEWS).find({ root: { $in: ids } }).toArray()
+        : [];
+    return { collections, views };
+}
+
+/**
+ * Where a collection is used: the collections naming it as a member, and the views rooted on it.
+ *
+ * @param {string} collectionId
+ * @returns {Promise<{collections: Array<object>, views: Array<object>}>}
+ */
+export async function collectionUsage(collectionId) {
+    const [collections, views] = await Promise.all([
+        vocabCollection(VOCAB_COLLECTIONS).find({ 'member.collection': collectionId }).toArray(),
+        vocabCollection(VOCAB_VIEWS).find({ root: collectionId }).toArray(),
+    ]);
+    return { collections, views };
+}

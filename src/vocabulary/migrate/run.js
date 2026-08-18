@@ -26,14 +26,16 @@ import {
     VOCAB_COLLECTIONS,
     VOCAB_FACETS,
     VOCAB_TERMS,
+    VOCAB_VIEWS,
     createVocabIndexes,
     vocabCollection,
 } from '../store/collections.js';
 import { seedFacets } from '../store/facetSeeds.js';
 import { raiseTermCounter, termIdNumber } from '../store/ids.js';
 import { closeVocabMongo, initializeVocabMongo, vocabDatabase } from '../store/mongoConnection.js';
+import { seedViews } from '../store/viewSeeds.js';
 
-import { buildModel, buildRootCollection } from './buildModel.js';
+import { buildModel, buildRootCollection, buildUnplacedCollection } from './buildModel.js';
 import { auditGraph, readSkosGraph } from './readGraph.js';
 import { formatChecks, verifyMigration } from './verify.js';
 
@@ -52,6 +54,7 @@ const heading = ((text) => `\n${text}\n${'-'.repeat(text.length)}`);
 async function writeModel({ terms, collections, root }) {
     await createVocabIndexes();
     await seedFacets(vocabCollection(VOCAB_FACETS));
+    await seedViews(vocabCollection(VOCAB_VIEWS));
 
     // Only documents this migration produced. A term somebody authored in the new tool is not the
     // migration's to remove.
@@ -107,8 +110,12 @@ async function main() {
 
     // ---- build ----
 
-    const { terms, collections, report } = buildModel(graph);
-    const root = buildRootCollection(collections);
+    const { terms, collections, unplaced, report } = buildModel(graph);
+    // Terms in no scheme are gathered rather than dropped -- the old serializer emitted them, and a
+    // view publishes a collection, so without this they would silently stop appearing.
+    const unplacedCollection = buildUnplacedCollection(unplaced);
+    const allSchemes = unplacedCollection ? [...collections, unplacedCollection] : collections;
+    const root = buildRootCollection(allSchemes);
 
     console.log(heading('Built model'));
     Object.entries(report).forEach(([key, value]) => {
@@ -118,7 +125,7 @@ async function main() {
     // ---- verify ----
 
     console.log(heading('Checks'));
-    const result = verifyMigration({ graph, terms, collections, root });
+    const result = verifyMigration({ graph, terms, collections: allSchemes, root });
     console.log(formatChecks(result));
 
     if (!write) {
@@ -140,7 +147,7 @@ async function main() {
         mongoUrl: config.VOCAB_MONGO_URL,
     });
 
-    await writeModel({ terms, collections, root });
+    await writeModel({ terms, collections: allSchemes, root });
 
     const stored = await Promise.all(
         ALL_VOCAB_COLLECTIONS.map(async (name) => `${name}: ${await vocabDatabase().collection(name).countDocuments()}`),

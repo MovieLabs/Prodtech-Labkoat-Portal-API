@@ -191,7 +191,7 @@ function createJsonLd(dict) {
     const scheme = publishedScheme.map((n) => createConceptScheme(n));
 
     header['@graph'] = [omcNamespace, ...scheme, ...concept, ...label];
-;
+    ;
     console.log('Created JSON-LD file');
     return header;
 }

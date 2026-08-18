@@ -14,11 +14,14 @@ import omcRouter from '../src/routes/omc-router.js';
 import pipelineRouter from '../src/routes/pipeline-router.js';
 import routeLog from '../src/routes/routeLog.js';
 import { vocabRouter, vocabSetup } from '../src/routes/vocab-router.js';
+import vocabV1Router from '../src/routes/vocab-v1-router.js';
 
 import config from './config.js';
 import { oktaSetup } from './controllers/oktaInterface.js';
 import { localStorageRoot } from './pipeline/projectConfig.js';
 import { setPipelineSecrets } from './pipeline/secrets.js';
+import { createVocabIndexes } from './vocabulary/store/collections.js';
+import { initializeVocabMongo } from './vocabulary/store/mongoConnection.js';
 
 const app = express();
 
@@ -78,6 +81,19 @@ export default async function apiServer() {
     });
     await oktaSetup(secrets);
     await vocabSetup(secrets);
+    // The vocabulary's Mongo store, alongside Neo4j rather than instead of it. Nothing reads it
+    // except /api/vocab/v1, so a failure here must not stop the service booting -- the old routes
+    // still work and Neo4j is still authoritative.
+    try {
+        await initializeVocabMongo({
+            username: secrets.FMAM.FMAM_MONGO_USER,
+            password: secrets.FMAM.FMAM_MONGO_PASSWORD,
+            mongoUrl: config.VOCAB_MONGO_URL,
+        });
+        await createVocabIndexes();
+    } catch (err) {
+        console.error('Vocabulary Mongo unavailable; /api/vocab/v1 will fail:', err.message);
+    }
     setPipelineSecrets(secrets); // So pipeline dispatch can hand a run only what it declared
     // await serviceSetup(secrets);
     await serviceToken.setup({
@@ -116,6 +132,7 @@ export default async function apiServer() {
     app.use('/api/admin', adminRouter); // Add the route controllers for the Admin page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab', vocabRouter);
+    app.use('/api/vocab/v1', vocabV1Router); // The Mongo-backed vocabulary: views, generators, usage
     app.use('/api/greenlight', greenlightRouter);
     app.use('/api/pipeline/v1', pipelineRouter); // Select, feed and run an OMC processing pipeline
     app.use('/api/ingest/v1', ingestRouter); // Files as OMC assets; same modules, its own contract

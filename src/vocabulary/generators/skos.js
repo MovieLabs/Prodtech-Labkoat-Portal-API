@@ -1,0 +1,262 @@
+/**
+ * Project a resolved view into SKOS, as Turtle or JSON-LD.
+ *
+ * One projection, two encodings. The old code had two hand-written serializers that had drifted
+ * apart — JSON-LD emitted `skos:altLabel` as a literal and Turtle emitted it as a URI, which is
+ * wrong; both duplicated the status filter as a literal; and JSON-LD put an always-empty
+ * `vmc:hasAcronym` on every concept. Building the triples once and encoding them twice makes that
+ * class of divergence impossible rather than merely fixed.
+ *
+ * ## Loss is declared, not accidental
+ *
+ * The vocabulary records more than SKOS can say. Each label, note and example **type** declares the
+ * predicate it projects to, in its facet — so an abbreviation and a synonym both arrive as
+ * `skos:altLabel` while staying distinct in the store, and a type whose facet says `skos: null` is
+ * omitted **because somebody decided it should be**. A type with no facet entry at all is a
+ * different thing: it is unknown, and it is reported rather than dropped in silence.
+ *
+ * @module vocabulary/generators/skos
+ */
+
+import { broaderOf, placementsByTerm, schemesOf, topConceptOf } from '../resolve.js';
+import { localised, otherLabels, prefLabel } from '../store/read.js';
+
+const PREFIXES = {
+    skos: 'http://www.w3.org/2004/02/skos/core#',
+    skosxl: 'http://www.w3.org/2008/05/skos-xl#',
+    owl: 'http://www.w3.org/2002/07/owl#',
+    rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+    vmc: 'https://mc.movielabs.com/vmc#',
+};
+
+const ONTOLOGY = 'https://mc.movielabs.com/vmc';
+
+/**
+ * @typedef {object} Triple
+ * @property {string} subject - A prefixed id
+ * @property {string} predicate - A prefixed predicate
+ * @property {object|string} object - `{ id }` for a reference, or `{ value, language }` for a literal
+ */
+
+/**
+ * Look up the predicate a facet value projects to.
+ *
+ * Three outcomes, and they are deliberately different: a known type with a predicate projects; a
+ * known type with `skos: null` is dropped by declaration; an unknown type is dropped *and reported*,
+ * because it means a facet value was removed while terms still use it.
+ *
+ * @param {Map<string, Map<string, string|null>>} index - From `skosProjectionIndex`
+ * @param {string} target - `label` | `note` | `example`
+ * @param {string} type - The value, e.g. `abbreviation`
+ * @returns {{predicate: string|null, known: boolean}}
+ */
+function projection(index, target, type) {
+    const values = index.get(target);
+    if (!values || !values.has(type)) return { predicate: null, known: false };
+    return { predicate: values.get(type), known: true };
+}
+
+/**
+ * Build the triples for a resolved view.
+ *
+ * @param {object} resolution - From `resolveView`
+ * @param {Map<string, Map<string, string|null>>} projections - From `skosProjectionIndex`
+ * @returns {{triples: Triple[], problems: object}}
+ */
+export function skosTriples(resolution, projections) {
+    const { terms, language } = resolution;
+    const triples = [];
+    const problems = { unknownTypes: [], nestedSchemes: [] };
+
+    const add = ((subject, predicate, object) => triples.push({ subject, predicate, object }));
+    const literal = ((value, lang = language) => ({ value, language: lang }));
+    const ref = ((id) => ({ id }));
+
+    // ---- the ontology itself ----
+    add(`<${ONTOLOGY}>`, 'rdf:type', ref('owl:Ontology'));
+
+    // ---- collections ----
+
+    // A scheme nested inside another scheme cannot be expressed: SKOS has no scheme-within-a-scheme.
+    // Lifted to a sibling and reported. It must never be resolved silently, because the two readings
+    // — lift, or degrade to a Collection — produce materially different output.
+    const schemeDepth = new Map();
+    resolution.placements.forEach((placement) => {
+        const schemes = schemesOf(placement);
+        if (schemes.length > 1) {
+            schemes.slice(1).forEach((inner) => {
+                if (!schemeDepth.has(inner)) {
+                    schemeDepth.set(inner, schemes[0]);
+                    problems.nestedSchemes.push({ scheme: inner, insideOf: schemes[0] });
+                }
+            });
+        }
+    });
+
+    const usedCollections = new Set(
+        resolution.placements.flatMap((placement) => placement.path
+            .filter((entry) => entry.kind === 'collection')
+            .map((entry) => entry.id)),
+    );
+
+    usedCollections.forEach((id) => {
+        const collection = resolution.collections.get(id);
+        if (!collection) return;
+        const skosAs = collection.skosAs ?? 'collection';
+        if (skosAs === 'transparent') return; // Contributes structure, emits no node — by declaration
+
+        add(id, 'rdf:type', ref(skosAs === 'conceptScheme' ? 'skos:ConceptScheme' : 'skos:Collection'));
+        add(id, 'skos:prefLabel', literal(prefLabel(collection, language)));
+        const definition = localised(collection.definition, language);
+        if (definition) add(id, 'skos:definition', literal(definition));
+    });
+
+    // `skos:member` for the grouping collections, pointing at whatever sits directly inside them.
+    resolution.placements.forEach((placement) => {
+        const parent = [...placement.path].reverse()
+            .find((entry) => entry.kind === 'collection' || entry.kind === 'term');
+        if (parent?.kind !== 'collection') return;
+        const collection = resolution.collections.get(parent.id);
+        if ((collection?.skosAs ?? 'collection') === 'collection') {
+            add(parent.id, 'skos:member', ref(placement.termId));
+        }
+    });
+
+    // ---- concepts ----
+
+    const byTerm = placementsByTerm(resolution);
+
+    byTerm.forEach((placements, termId) => {
+        const term = terms.get(termId);
+        if (!term) return;
+
+        add(termId, 'rdf:type', ref('skos:Concept'));
+
+        // Labels. The preferred one is the entry whose type is `pref`; everything else projects
+        // through its facet.
+        add(termId, 'skos:prefLabel', literal(prefLabel(term, language)));
+        otherLabels(term).forEach((entry) => {
+            const { predicate, known } = projection(projections, 'label', entry.labelType);
+            if (!known) {
+                problems.unknownTypes.push({ term: termId, target: 'label', type: entry.labelType });
+                return;
+            }
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+        });
+
+        const definition = localised(term.definition, language);
+        if (definition) add(termId, 'skos:definition', literal(definition));
+
+        (term.note ?? []).forEach((entry) => {
+            const { predicate, known } = projection(projections, 'note', entry.noteType);
+            if (!known) {
+                problems.unknownTypes.push({ term: termId, target: 'note', type: entry.noteType });
+                return;
+            }
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+        });
+
+        (term.example ?? []).forEach((entry) => {
+            const { predicate, known } = projection(projections, 'example', entry.exampleType);
+            if (!known) {
+                problems.unknownTypes.push({ term: termId, target: 'example', type: entry.exampleType });
+                return;
+            }
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+        });
+
+        // Structure. Deduplicated across placements: a term appearing three times in one scheme
+        // says `inScheme` once, and a `broader` reached by two routes is asserted once.
+        const inScheme = new Set();
+        const tops = new Set();
+        const broader = new Set();
+
+        placements.forEach((placement) => {
+            schemesOf(placement).forEach((scheme) => inScheme.add(scheme));
+            topConceptOf(placement).forEach((scheme) => tops.add(scheme));
+            const above = broaderOf(placement);
+            if (above) broader.add(above);
+        });
+
+        inScheme.forEach((scheme) => add(termId, 'skos:inScheme', ref(scheme)));
+        tops.forEach((scheme) => {
+            add(termId, 'skos:topConceptOf', ref(scheme));
+            add(scheme, 'skos:hasTopConcept', ref(termId)); // Both halves, as SKOS expects
+        });
+        broader.forEach((above) => {
+            add(termId, 'skos:broader', ref(above));
+            add(above, 'skos:narrower', ref(termId));
+        });
+    });
+
+    return { triples, problems };
+}
+
+/** Escape a literal for Turtle. The old serializer did none of this. */
+const escapeTurtle = ((value) => String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t'));
+
+/**
+ * Turtle.
+ *
+ * @param {Triple[]} triples
+ * @returns {string}
+ */
+export function toTurtle(triples) {
+    const header = Object.entries(PREFIXES)
+        .map(([prefix, uri]) => `@prefix ${prefix}: <${uri}> .`)
+        .join('\n');
+
+    // Grouped by subject so the output reads as a document rather than a triple dump.
+    const bySubject = new Map();
+    triples.forEach((triple) => {
+        if (!bySubject.has(triple.subject)) bySubject.set(triple.subject, []);
+        bySubject.get(triple.subject).push(triple);
+    });
+
+    const blocks = [...bySubject.entries()].map(([subject, subjectTriples]) => {
+        const lines = subjectTriples.map((triple) => {
+            const object = triple.object.id
+                ? triple.object.id
+                : `"${escapeTurtle(triple.object.value)}"${triple.object.language ? `@${triple.object.language}` : ''}`;
+            return `    ${triple.predicate} ${object}`;
+        });
+        return `${subject}\n${lines.join(' ;\n')} .`;
+    });
+
+    return `${header}\n\n${blocks.join('\n\n')}\n`;
+}
+
+/**
+ * JSON-LD.
+ *
+ * @param {Triple[]} triples
+ * @returns {object}
+ */
+export function toJsonLd(triples) {
+    const bySubject = new Map();
+    triples.forEach((triple) => {
+        if (!bySubject.has(triple.subject)) bySubject.set(triple.subject, {});
+        const node = bySubject.get(triple.subject);
+
+        if (triple.predicate === 'rdf:type') {
+            node['@type'] = node['@type'] ?? [];
+            node['@type'].push(triple.object.id);
+            return;
+        }
+        node[triple.predicate] = node[triple.predicate] ?? [];
+        node[triple.predicate].push(
+            triple.object.id
+                ? { '@id': triple.object.id }
+                : { '@value': triple.object.value, '@language': triple.object.language },
+        );
+    });
+
+    const graph = [...bySubject.entries()].map(([subject, node]) => ({ '@id': subject, ...node }));
+    return { '@context': { ...PREFIXES }, '@graph': graph };
+}

@@ -250,6 +250,7 @@ export function buildModel(graph) {
     return {
         terms,
         collections,
+        unplaced,
         report: {
             terms: terms.length,
             collections: collections.length,
@@ -260,6 +261,41 @@ export function buildModel(graph) {
             labelDisagreements: terms.filter((t) => t.labelDisagreement).length,
             collectionsWithMultipleParents: collections.filter((c) => c.multipleParents).length,
         },
+    };
+}
+
+/**
+ * The terms that belong to no scheme, gathered so they keep publishing.
+ *
+ * The old table showed these in a permanent "no scheme" bucket and the old serializer emitted them
+ * anyway, because it walked every Concept in the cache rather than anything's membership. A view
+ * publishes a *collection*, so without this they would simply stop appearing — 93 published terms
+ * with real labels and definitions, gone from the SKOS output with nothing to say they had been
+ * dropped. That is the failure this whole migration is written to avoid.
+ *
+ * A `conceptScheme` rather than a plain grouping so its terms still get an `inScheme` and the SKOS
+ * stays valid. It is meant to empty out: as terms are placed properly the collection shrinks, and
+ * when it is empty it can be deleted.
+ *
+ * @param {Array<object>} termIds - Terms in no scheme collection
+ * @returns {object|null} A `vocab_collections` document, or null when everything is placed
+ */
+export function buildUnplacedCollection(termIds) {
+    if (!termIds.length) return null;
+    return {
+        _id: 'coll:unplaced',
+        label: [{ value: 'Unplaced Terms', language: DEFAULT_LANGUAGE, labelType: 'pref' }],
+        definition: {
+            en: 'Terms that belonged to no scheme in the original vocabulary. Gathered so they '
+                + 'keep publishing; expected to empty as they are placed.',
+        },
+        skosAs: 'conceptScheme',
+        member: termIds.map((termId, index) => ({
+            mid: `m${index + 1}`,
+            term: termId,
+            parent: null,
+        })),
+        migrated: true,
     };
 }
 
