@@ -180,8 +180,14 @@ export async function collectionUsage(collectionId) {
  * large — one collection holds 817 of them. A picker showing fourteen names has no use for the
  * arrangement inside each, so `memberCount` is computed server-side and the array is left behind.
  *
+ * **`includes` is the exception, and it is not optional.** A collection that includes another can be
+ * included by a third, and a client offering "drop this collection into that one" has to know which
+ * choices would close a loop — a loop the resolver only discovers when someone next opens the view.
+ * Answering that needs the inclusion edges, so those come back while the term members stay behind.
+ * It stays small: only two collections here name any, 13 and 33.
+ *
  * @returns {Promise<Array<{_id: string, label: object[], definition: object, skosAs: string,
- *   memberCount: number}>>}
+ *   memberCount: number, includes: string[]}>>}
  */
 export function listCollections() {
     return vocabCollection(VOCAB_COLLECTIONS).aggregate([
@@ -191,6 +197,21 @@ export function listCollections() {
                 definition: 1,
                 skosAs: 1,
                 memberCount: { $size: { $ifNull: ['$member', []] } },
+                includes: {
+                    $setUnion: [{
+                        $map: {
+                            input: {
+                                $filter: {
+                                    input: { $ifNull: ['$member', []] },
+                                    as: 'member',
+                                    cond: { $ne: [{ $ifNull: ['$$member.collection', null] }, null] },
+                                },
+                            },
+                            as: 'member',
+                            in: '$$member.collection',
+                        },
+                    }],
+                },
             },
         },
         { $sort: { _id: 1 } },
