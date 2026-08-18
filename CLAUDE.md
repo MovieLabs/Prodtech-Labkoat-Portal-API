@@ -74,7 +74,7 @@ npm run link:local
 | `/api/admin` | `admin-router` | projects (GET/POST/PATCH/DELETE), `DELETE /reset`, mapping templates |
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
 | `/api/vocab` | `vocab-router` | SKOS and OMC vocabulary, backed by Neo4j (authoritative) |
-| `/api/vocab/v1` | `vocab-v1-router` | Views, generators and usage, backed by Mongo (read-only) |
+| `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo |
 | `/api/greenlight` | `greenlight-router` | approval / permitting workflow |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
@@ -161,8 +161,10 @@ worker modules purely so the built ingest UI stayed untouched.
 
 ### The vocabulary — two stores, mid-migration
 
-**`/api/vocab` (Neo4j) is still authoritative. `/api/vocab/v1` (Mongo) is read-only and additive.**
-Both are live; nothing writes to Mongo except the migration.
+**`/api/vocab` (Neo4j) still backs the three old tabs. `/api/vocab/v1` (Mongo) now reads *and
+writes*** — terms, collections, views and facets, from the `OMC Testing` tab. Both are live and
+**they are not synchronised**: a term written to one does not appear in the other. That is the
+staging working as intended, and it is the first thing to check when something looks missing.
 
 *Old, unchanged:* `neo4j-driver` is a dependency of **this repo only** — fMam does not touch Neo4j.
 `src/neo4J/` and `src/vocabulary/{ttl,jsonld}.js` back `/api/vocab`.
@@ -196,6 +198,16 @@ Things that will bite:
   walked every Concept; a view publishes a *collection*, so without it they vanish silently.
 - `/api/vocab/v1` accepts **either** a Cognito user token or an Okta service token — the Portal and a
   build script are both legitimate callers and hold different credentials.
+- **`GET /terms` answers two different questions.** With `?q=` it searches by name, prefix-first;
+  with `?ids=` it looks up a named batch. The membership editor needs the second to put a name on
+  each of a collection's members — 312 in the largest — and the client batches at 150 ids because a
+  query string is not unbounded.
+- **A collection's `_id` is minted from its name and never changes.** `createCollection` ignores an
+  `_id` in the body, so a caller that sets one and then reads it back by that id finds nothing.
+- **A collection is written whole.** `PUT /collections/:id` replaces the member array, which is what
+  makes re-parenting and reordering ordinary edits. Validation refuses an orphan, a parent cycle and
+  a self-inclusion, so the *intermediate* states of an ordinary rearrangement would each be rejected
+  — which is why the editor holds the arrangement locally and writes once.
 
 ### Okta is still live here
 

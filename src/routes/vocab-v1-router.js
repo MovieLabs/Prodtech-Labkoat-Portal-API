@@ -31,8 +31,10 @@ import {
     getCollection,
     getTerms,
     getView,
+    listCollections,
     listFacets,
     listViews,
+    searchTerms,
     termUsage,
 } from '../vocabulary/store/read.js';
 import {
@@ -159,6 +161,20 @@ router.get('/views/:id/record', authenticated, async (req, res, next) => {
     }
 });
 
+/**
+ * Every collection, without its members.
+ *
+ * For the membership editor's picker: which collections exist, and how big each is. The members
+ * themselves are the bulk of these documents and a picker has no use for them.
+ */
+router.get('/collections', authenticated, async (req, res, next) => {
+    try {
+        res.json(await listCollections());
+    } catch (err) {
+        next(err);
+    }
+});
+
 /** One collection, unresolved. */
 router.get('/collections/:id', authenticated, async (req, res, next) => {
     try {
@@ -226,6 +242,31 @@ function writeFailed(err, res, next) {
 
 /** Who is writing, for the record stamp. Cognito puts it in the token; a service token has no user. */
 const actorOf = ((req) => req.user?.username ?? req.user?.sub ?? req.auth?.sub ?? 'service');
+
+/**
+ * Search terms by name.
+ *
+ * Registered before `/terms/:id` would match it — Express takes the first route whose path matches,
+ * and `/terms` is not `/terms/:id`, so the two do not collide. `?q=` empty returns the first page,
+ * which is what an editor opening the picker before typing anything should see.
+ */
+router.get('/terms', authenticated, async (req, res, next) => {
+    try {
+        // `?ids=` is the other question this route answers: the membership editor holds a member
+        // list of term ids and has to render names for all of them. One lookup rather than one
+        // request per row — a collection here holds 312 members.
+        if (typeof req.query.ids === 'string') {
+            const ids = req.query.ids.split(',').map((id) => id.trim()).filter(Boolean);
+            const found = await getTerms(ids);
+            res.json([...found.values()]);
+            return;
+        }
+        const limit = Math.min(Number(req.query.limit) || 25, 200);
+        res.json(await searchTerms(req.query.q ?? '', limit));
+    } catch (err) {
+        next(err);
+    }
+});
 
 /** One term, for the editor to load before changing it. */
 router.get('/terms/:id', authenticated, async (req, res, next) => {

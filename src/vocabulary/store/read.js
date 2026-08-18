@@ -135,3 +135,66 @@ export async function collectionUsage(collectionId) {
     ]);
     return { collections, views };
 }
+
+/**
+ * Every collection, without its members.
+ *
+ * The membership editor needs a list to pick from, and the members are what make these documents
+ * large — one collection holds 817 of them. A picker showing fourteen names has no use for the
+ * arrangement inside each, so `memberCount` is computed server-side and the array is left behind.
+ *
+ * @returns {Promise<Array<{_id: string, label: object[], definition: object, skosAs: string,
+ *   memberCount: number}>>}
+ */
+export function listCollections() {
+    return vocabCollection(VOCAB_COLLECTIONS).aggregate([
+        {
+            $project: {
+                label: 1,
+                definition: 1,
+                skosAs: 1,
+                memberCount: { $size: { $ifNull: ['$member', []] } },
+            },
+        },
+        { $sort: { _id: 1 } },
+    ]).toArray();
+}
+
+/**
+ * Terms whose name starts with, or contains, some text.
+ *
+ * Prefix-first because that is what somebody typing into a picker means: typing "cap" wants
+ * `Capture` before `Motion Capture`, and a plain substring search buries it. Two queries rather
+ * than one aggregation with a computed rank — at this size the second round trip costs less than
+ * the pipeline, and the intent stays readable.
+ *
+ * Case-insensitive, so the `label.value` index cannot serve the regex. That is deliberate and
+ * affordable: the store holds hundreds of terms, not millions, and a picker that only matched the
+ * capitalisation an editor happened to use would be worse than a collection scan.
+ *
+ * @param {string} text
+ * @param {number} [limit]
+ * @returns {Promise<Array<object>>}
+ */
+export async function searchTerms(text, limit = 25) {
+    const trimmed = (text ?? '').trim();
+    if (!trimmed) return vocabCollection(VOCAB_TERMS).find({}).limit(limit).toArray();
+
+    // The search text is somebody's typing, and Mongo would read it as a pattern. Left unescaped, a
+    // stray `(` throws rather than matching nothing.
+    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prefix = await vocabCollection(VOCAB_TERMS)
+        .find({ 'label.value': { $regex: `^${escaped}`, $options: 'i' } })
+        .limit(limit)
+        .toArray();
+
+    if (prefix.length >= limit) return prefix;
+
+    const found = new Set(prefix.map((term) => term._id));
+    const contains = await vocabCollection(VOCAB_TERMS)
+        .find({ 'label.value': { $regex: escaped, $options: 'i' }, '_id': { $nin: [...found] } })
+        .limit(limit - prefix.length)
+        .toArray();
+
+    return [...prefix, ...contains];
+}

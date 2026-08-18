@@ -98,6 +98,27 @@ export const FACET_SEEDS = [
             { tag: 'role', label: { en: 'Role' } },
         ],
     },
+    {
+        _id: 'facet:status',
+        appliesTo: 'status',
+        key: 'status',
+        label: { en: 'Status' },
+        definition: {
+            en: 'How settled a term is. A view publishes some of these and not others, and a '
+                + 'collection can narrow an inclusion by them.',
+        },
+        // Held as data for the same reason the rest are: the old serializers each carried their own
+        // copy of this list (`const status = ['published','review']`, twice) and an editor could not
+        // see it, let alone change it. **Not yet enforced on write** — every migrated term already
+        // carries a status, and turning validation on before checking the store against this list
+        // would refuse edits to terms nobody has touched.
+        values: [
+            { status: 'published', label: { en: 'Published' }, skos: null },
+            { status: 'review', label: { en: 'In review' }, skos: null },
+            { status: 'proposed', label: { en: 'Proposed' }, skos: null },
+            { status: 'deprecated', label: { en: 'Deprecated' }, skos: null },
+        ],
+    },
 ];
 
 /**
