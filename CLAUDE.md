@@ -73,7 +73,8 @@ npm run link:local
 |---|---|---|
 | `/api/admin` | `admin-router` | projects (GET/POST/PATCH/DELETE), `DELETE /reset`, mapping templates |
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
-| `/api/vocab` | `vocab-router` | SKOS and OMC vocabulary, backed by Neo4j |
+| `/api/vocab` | `vocab-router` | SKOS and OMC vocabulary, backed by Neo4j (authoritative) |
+| `/api/vocab/v1` | `vocab-v1-router` | Views, generators and usage, backed by Mongo (read-only) |
 | `/api/greenlight` | `greenlight-router` | approval / permitting workflow |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
@@ -158,11 +159,43 @@ Portal's mocks implement them exactly. Both routers carry a JSDoc pointer to the
 shape here and change it there**; ingest is a separate namespace over the same storage, job-store and
 worker modules purely so the built ingest UI stayed untouched.
 
-### Neo4j and the vocabulary
+### The vocabulary — two stores, mid-migration
 
-`neo4j-driver` is a dependency of **this repo only** — fMam does not touch Neo4j. `src/neo4J/`
-(`neo4JInterface.js`, `neo4jUpdate.js`) and `src/vocabulary/` back the SKOS vocabulary and ontology
-served at `/api/vocab`, with JSON and Turtle download endpoints.
+**`/api/vocab` (Neo4j) is still authoritative. `/api/vocab/v1` (Mongo) is read-only and additive.**
+Both are live; nothing writes to Mongo except the migration.
+
+*Old, unchanged:* `neo4j-driver` is a dependency of **this repo only** — fMam does not touch Neo4j.
+`src/neo4J/` and `src/vocabulary/{ttl,jsonld}.js` back `/api/vocab`.
+
+*New:* `src/vocabulary/{store,migrate,generators}/`, `resolve.js`, `generate.js` and
+`src/routes/vocab-v1-router.js`. Five `vocab_`-prefixed collections in fMam's **`app_config`**
+database — no new database, no new credential (the gateway already loads `SECRET_ARN.FMAM`, which
+holds the Mongo user). **Every collection this subsystem creates is `vocab_`-prefixed**; the cluster
+is shared and users name their own.
+
+```bash
+node src/vocabulary/migrate/run.js env=local            # read, build, verify, print. Writes nothing.
+node src/vocabulary/migrate/run.js env=local --write    # ...then write, only if every check passed
+node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --out vocab.ttl
+```
+
+Things that will bite:
+
+- **Never migrate through `neo4JInterface.query()`.** `getHierarchy` caps `narrower` at `*1..2`;
+  three collections are four deep, so it silently loses a level. `getConcept` needs an outgoing
+  `broader|narrower`, `getScheme` needs a `prefLabel` Label node. `migrate/readGraph.js` runs its own
+  uncapped Cypher for exactly this reason — and finds **3 concepts no cache query returns**, which
+  are therefore invisible in the old editor and its export.
+- **The live graph has 139 duplicate `topConceptOf` relationships** over 199 distinct pairs. Count
+  instances *and* distinct pairs; either alone hides it.
+- **`broader`/`narrower` and `topConceptOf` are computed over terms only**, skipping grouping
+  members — a grouping is not a broader concept. `resolve.js` owns this.
+- **Filtering promotes, it does not strand.** A kept term under a filtered one attaches to the
+  nearest surviving ancestor.
+- **`coll:unplaced`** holds the 96 terms in no scheme. The old serializer emitted them because it
+  walked every Concept; a view publishes a *collection*, so without it they vanish silently.
+- `/api/vocab/v1` accepts **either** a Cognito user token or an Okta service token — the Portal and a
+  build script are both legitimate callers and hold different credentials.
 
 ### Okta is still live here
 
