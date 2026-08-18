@@ -34,6 +34,11 @@ function node(resolution, placement) {
         prefLabel: prefLabel(term, language),
         definition: localised(term.definition, language),
         status: term.status,
+        // Which collection *declares* this placement, as distinct from the schemes enclosing it.
+        // An editor forking a term needs this: a fork repoints one collection's placements and
+        // leaves every other collection on the original, so it has to name the right one.
+        collection: placement.collectionId,
+        mid: placement.mid,
         children: [],
     };
 

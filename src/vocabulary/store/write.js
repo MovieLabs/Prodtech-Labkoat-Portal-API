@@ -24,7 +24,7 @@ import {
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
-import { collectionId, mintTermIds } from './ids.js';
+import { collectionId as collectionId_, mintTermIds } from './ids.js';
 import { collectionUsage, termUsage } from './read.js';
 import {
     allowedFacetValues,
@@ -182,7 +182,7 @@ export async function deleteTerm(id, force = false) {
         // A member whose parent was one of the removed members is now orphaned. Re-parenting them to
         // the removed member's parent is the same promotion the resolver does for a filtered term,
         // and keeps the collection valid rather than leaving it to fail validation later.
-        await Promise.all(removedFrom.map((collectionId_) => repairParents(collectionId_)));
+        await Promise.all(removedFrom.map((id_) => repairParents(id_)));
     }
 
     const outcome = await vocabCollection(VOCAB_TERMS).deleteOne({ _id: id });
@@ -231,7 +231,7 @@ export async function createCollection(collection, actor) {
     const name = (collection.label ?? []).find((label) => label.labelType === 'pref')?.value;
     if (!name) throw new ValidationError(['A collection must have a preferred label']);
 
-    const id = collectionId(name);
+    const id = collectionId_(name);
     const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id });
     if (clash) throw new ValidationError([`A collection named "${name}" already exists (${id})`]);
 
@@ -388,4 +388,126 @@ export async function saveFacet(id, facet, actor) {
 
     await vocabCollection(VOCAB_FACETS).replaceOne({ _id: id }, prepared, { upsert: true });
     return { facet: prepared, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Forking — "use a separate copy here"
+// ---------------------------------------------------------------------------
+
+/**
+ * Copy a term and repoint one collection's placements at the copy.
+ *
+ * ## Why this exists rather than a policy
+ *
+ * When several collections share a term, an edit raises a question with two legitimate answers:
+ * change it everywhere, or change it only here. Neither is right in general — a corrected definition
+ * belongs everywhere, a term one audience uses differently does not — so the system does not choose.
+ * It shows where the term is used and asks, and this is the second answer.
+ *
+ * ## What it costs, and why the caller must be told
+ *
+ * **A fork mints a new identifier.** For a consumer keying on `vmc:c-0000b8` that is a breaking
+ * change dressed up as an edit: the term they were reading is still there, but the one in *this*
+ * collection is now something else. That is why the two options are not presented as symmetric.
+ *
+ * The copy records `forkedFrom`, so the relationship is recoverable — someone looking at two similar
+ * terms can see that one came from the other rather than guessing.
+ *
+ * @param {string} termId - The term to copy
+ * @param {string} inCollection - The collection whose placements move to the copy
+ * @param {string} [actor]
+ * @returns {Promise<{term: object, repointed: number}>}
+ * @throws {ValidationError}
+ */
+export async function forkTerm(termId, inCollection, actor) {
+    const source = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
+    if (!source) throw new ValidationError([`No such term: ${termId}`]);
+
+    const collection = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: inCollection });
+    if (!collection) throw new ValidationError([`No such collection: ${inCollection}`]);
+
+    const placements = (collection.member ?? []).filter((member) => member.term === termId);
+    if (!placements.length) {
+        throw new ValidationError([`${termId} is not placed in ${inCollection}, so there is nothing to fork`]);
+    }
+
+    const [newId] = await mintTermIds(1);
+    const {
+        _id: _sourceId, migrated: _migrated, modified: _modified, modifiedBy: _by, ...content
+    } = source;
+
+    const copy = stamped({ ...content, _id: newId, forkedFrom: termId }, actor);
+    await vocabCollection(VOCAB_TERMS).insertOne(copy);
+
+    // Only this collection's placements move. Every other collection keeps the original, which is
+    // the whole point — a fork is local by definition.
+    const repointed = (collection.member ?? []).map((member) => (
+        member.term === termId ? { ...member, term: newId } : member
+    ));
+    await vocabCollection(VOCAB_COLLECTIONS).updateOne(
+        { _id: inCollection },
+        { $set: { member: repointed, modified: new Date().toISOString(), modifiedBy: actor ?? 'unknown' } },
+    );
+
+    return { term: copy, repointed: placements.length };
+}
+
+/**
+ * Copy a collection and repoint one including collection at the copy.
+ *
+ * The copy holds the same **terms**: forking an arrangement is not forking the meaning of what is
+ * arranged. Its members keep pointing at the original terms, so a definition corrected later still
+ * reaches both — which is almost always what is wanted, and the term-level fork above is there for
+ * when it is not.
+ *
+ * @param {string} collectionId - The collection to copy
+ * @param {string} name - The copy's preferred label; its id is a slug of this
+ * @param {string|null} inCollection - The collection whose inclusion moves to the copy; null to
+ *   create a detached copy that nothing yet includes
+ * @param {string} [actor]
+ * @returns {Promise<object>} The copy
+ * @throws {ValidationError}
+ */
+export async function forkCollection(collectionId, name, inCollection, actor) {
+    const source = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: collectionId });
+    if (!source) throw new ValidationError([`No such collection: ${collectionId}`]);
+    if (!name) throw new ValidationError(['A copy needs a name of its own']);
+
+    const newId = collectionId_(name);
+    const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: newId });
+    if (clash) throw new ValidationError([`A collection named "${name}" already exists (${newId})`]);
+
+    const {
+        _id: _sourceId, migrated: _migrated, modified: _modified, modifiedBy: _by, label, ...content
+    } = source;
+
+    const copy = stamped({
+        ...content,
+        _id: newId,
+        label: [
+            { value: name, language: 'en', labelType: 'pref' },
+            // Any other label the source carried is kept; only the preferred one is replaced.
+            ...(label ?? []).filter((entry) => entry.labelType !== 'pref'),
+        ],
+        forkedFrom: collectionId,
+    }, actor);
+
+    const check = validateCollection(copy);
+    if (!check.ok) throw new ValidationError(check.errors);
+
+    await vocabCollection(VOCAB_COLLECTIONS).insertOne(copy);
+
+    if (inCollection) {
+        const parent = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: inCollection });
+        if (!parent) throw new ValidationError([`No such collection: ${inCollection}`]);
+        const repointed = (parent.member ?? []).map((member) => (
+            member.collection === collectionId ? { ...member, collection: newId } : member
+        ));
+        await vocabCollection(VOCAB_COLLECTIONS).updateOne(
+            { _id: inCollection },
+            { $set: { member: repointed, modified: new Date().toISOString(), modifiedBy: actor ?? 'unknown' } },
+        );
+    }
+
+    return copy;
 }

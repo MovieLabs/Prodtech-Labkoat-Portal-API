@@ -40,6 +40,8 @@ import {
     createCollection,
     createTerms,
     deleteCollection,
+    forkCollection,
+    forkTerm,
     deleteTerm,
     replaceCollection,
     replaceTerm,
@@ -318,6 +320,35 @@ router.put('/facets/:id', authenticated, async (req, res, next) => {
     try {
         const { facet, warnings } = await saveFacet(req.params.id, req.body, actorOf(req));
         res.json({ facet, warnings });
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Fork a term into one collection — the "use a separate copy here" half of the edit decision.
+ *
+ * A fork mints a new identifier, so for a consumer keying on the old one this is a breaking change
+ * wearing an edit's clothes. The caller is expected to have said so before calling.
+ */
+router.post('/terms/:id/fork', authenticated, async (req, res, next) => {
+    try {
+        const { inCollection } = req.body ?? {};
+        if (!inCollection) {
+            res.status(422).json({ message: 'inCollection is required', errors: ['Say which collection the copy belongs to'] });
+            return;
+        }
+        res.status(201).json(await forkTerm(req.params.id, inCollection, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Fork a collection. The copy holds the same terms — forking an arrangement is not forking meaning. */
+router.post('/collections/:id/fork', authenticated, async (req, res, next) => {
+    try {
+        const { name, inCollection = null } = req.body ?? {};
+        res.status(201).json(await forkCollection(req.params.id, name, inCollection, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
