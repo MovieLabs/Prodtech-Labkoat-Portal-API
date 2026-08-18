@@ -207,6 +207,14 @@ export function validateView(view, allowed) {
         fail(found, 'labelStyle must be plain or dotted');
     }
 
+    // Which kind of name this view publishes. Controlled for the same reason a term's label types
+    // are: a view asking for `omcTokn` renders every name from the preferred-label fallback and
+    // looks like it worked, because a substituted name is a name.
+    const permittedLabels = allowed.get('label');
+    if (view?.labelType && permittedLabels && !permittedLabels.has(view.labelType)) {
+        fail(found, `"${view.labelType}" is not a known label type. Use one of: ${[...permittedLabels].join(', ')}`);
+    }
+
     // Tags are controlled for the reason the brief gave: an unmanaged tag set accumulates
     // misspellings, and two spellings of one designation split the thing they were meant to group.
     const permittedTags = allowed.get('tag');

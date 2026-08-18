@@ -51,6 +51,10 @@ export const FACET_SEEDS = [
             { labelType: 'synonym', label: { en: 'Synonym' }, skos: 'skos:altLabel' },
             { labelType: 'abbreviation', label: { en: 'Abbreviation' }, skos: 'skos:altLabel' },
             { labelType: 'acronym', label: { en: 'Acronym' }, skos: 'skos:altLabel' },
+            // The token OMC-JSON uses for this term — `audio` where the preferred name is `Audio`.
+            // A genuine alternative name, so `altLabel` is the honest projection, and a view that
+            // publishes controlled values renders from this kind instead of the preferred one.
+            { labelType: 'omcToken', label: { en: 'OMC Token' }, skos: 'skos:altLabel' },
             // A known-wrong spelling, recorded so a search can find it. `hiddenLabel` is exactly
             // what SKOS provides for this and the old model had no way to say it.
             { labelType: 'misspelling', label: { en: 'Misspelling' }, skos: 'skos:hiddenLabel' },
@@ -140,6 +144,50 @@ export async function seedFacets(facets) {
     }));
     const result = await facets.bulkWrite(writes);
     return { inserted: result.upsertedCount };
+}
+
+/**
+ * Add seed **values** that a facet already in the store is missing.
+ *
+ * `seedFacets` cannot do this, and the gap is not obvious: `$setOnInsert` writes a whole facet or
+ * nothing, so a value added to a seed above never reaches a store that already holds that facet. It
+ * fails quietly and downstream — the value is not in the controlled set, so the SKOS export drops
+ * every label using it and the validator refuses the next edit to any term carrying one. `omcToken`
+ * was added to `facet:labelType` and did exactly that.
+ *
+ * **This adds and never removes or rewrites.** A value an editor changed keeps their version; a
+ * value they deleted does come back, which is the one cost. Worth paying: the alternative is that a
+ * seeded value can never reach an existing store, silently.
+ *
+ * @param {import('mongodb').Collection} facets - The `vocab_facets` collection
+ * @returns {Promise<{added: Array<{facet: string, value: string}>}>}
+ */
+export async function reconcileFacetValues(facets) {
+    const stored = await facets.find({ _id: { $in: FACET_SEEDS.map((facet) => facet._id) } }).toArray();
+    const byId = new Map(stored.map((facet) => [facet._id, facet]));
+
+    const added = [];
+    const writes = [];
+
+    FACET_SEEDS.forEach((seed) => {
+        const held = byId.get(seed._id);
+        if (!held) return; // `seedFacets` inserts it whole; nothing to reconcile.
+
+        const have = new Set((held.values ?? []).map((value) => value[seed.key]));
+        const missing = (seed.values ?? []).filter((value) => !have.has(value[seed.key]));
+        if (!missing.length) return;
+
+        missing.forEach((value) => added.push({ facet: seed._id, value: value[seed.key] }));
+        writes.push({
+            updateOne: {
+                filter: { _id: seed._id },
+                update: { $push: { values: { $each: missing } } },
+            },
+        });
+    });
+
+    if (writes.length) await facets.bulkWrite(writes);
+    return { added };
 }
 
 /**

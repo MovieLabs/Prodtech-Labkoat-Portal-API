@@ -25,6 +25,7 @@ import express from 'express';
 import { awsJwtValidator, jwtValidator } from 'mlHelpers';
 
 import config from '../config.js';
+import { driftReport } from '../vocabulary/driftReport.js';
 import { generate, generatorNames } from '../vocabulary/generators/index.js';
 import {
     collectionUsage,
@@ -209,6 +210,36 @@ router.get('/collections/:id/usage', authenticated, async (req, res, next) => {
     try {
         res.json(await collectionUsage(req.params.id));
     } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * Drift between a view and a JSON Schema, in both directions.
+ *
+ * **A POST because the schema is the input.** This service does not hold the schema and must not
+ * depend on the library that does — the dependency points the other way, from a build step that
+ * consumes a view. So the caller sends the document and gets back what the two disagree about.
+ *
+ * Body: `{ schema, viewId?, status? }`. The schema is a parsed JSON Schema document; anything with
+ * `x-controlledValues` arrays in it will be read, whatever else it is.
+ */
+router.post('/drift', authenticated, async (req, res, next) => {
+    try {
+        const { schema, viewId = 'view:omc-controlled-values', status = null } = req.body ?? {};
+        if (!schema || typeof schema !== 'object') {
+            res.status(422).json({
+                message: 'A schema document is required',
+                errors: ['Send the parsed JSON Schema as `schema` in the body'],
+            });
+            return;
+        }
+        res.json(await driftReport({ viewId, schema, status }));
+    } catch (err) {
+        if (err.message?.startsWith('No such')) {
+            res.status(404).json({ message: err.message });
+            return;
+        }
         next(err);
     }
 });

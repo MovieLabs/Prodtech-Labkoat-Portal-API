@@ -169,17 +169,61 @@ staging working as intended, and it is the first thing to check when something l
 *Old, unchanged:* `neo4j-driver` is a dependency of **this repo only** — fMam does not touch Neo4j.
 `src/neo4J/` and `src/vocabulary/{ttl,jsonld}.js` back `/api/vocab`.
 
-*New:* `src/vocabulary/{store,migrate,generators}/`, `resolve.js`, `generate.js` and
-`src/routes/vocab-v1-router.js`. Five `vocab_`-prefixed collections in fMam's **`app_config`**
+*New:* `src/vocabulary/{store,migrate,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
+`drift.js` and `src/routes/vocab-v1-router.js`. Five `vocab_`-prefixed collections in fMam's **`app_config`**
 database — no new database, no new credential (the gateway already loads `SECRET_ARN.FMAM`, which
 holds the Mongo user). **Every collection this subsystem creates is `vocab_`-prefixed**; the cluster
 is shared and users name their own.
 
 ```bash
-node src/vocabulary/migrate/run.js env=local            # read, build, verify, print. Writes nothing.
+node src/vocabulary/migrate/run.js env=local            # SKOS -> Mongo. Read, build, verify, print.
 node src/vocabulary/migrate/run.js env=local --write    # ...then write, only if every check passed
+node src/vocabulary/migrate/runOmc.js --write           # then the OMC-JSON graph, merged into it
 node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --out vocab.ttl
+node src/vocabulary/drift.js --schema ../omcUtil/src/omc/validation/schema/OMC-JSON-v3.0.schema.json
 ```
+
+### The OMC merge — two graphs became one term store
+
+Neo4j held two disjoint graphs joined by a `hasSkosDefinition` edge with **no integrity behind it**.
+`runOmc.js` dissolves that: a controlled value with such an edge becomes a *placement of a term the
+vocabulary already holds*; one without becomes a term of its own, keeping its `omc:` identifier.
+Measured on the live data: 293 controlled values, 125 placements onto 107 existing terms, 183 terms
+minted, 33 collections + `coll:omc-unplaced`.
+
+- **Run `runOmc.js` after `run.js`, never before.** The merge adds an `omcToken` label to shared
+  terms; `run.js` deletes and re-inserts everything it owns, so the reverse order discards them —
+  and the controlled-value view then falls back to preferred labels, turning `audio` into `Audio` in
+  a schema table. Re-running `runOmc.js` repairs it.
+- **A view can name which kind of label it publishes** (`view.labelType`, default `pref`).
+  `view:omc-controlled-values` uses `omcToken` with `labelStyle: 'dotted'`, so `capture` +
+  `witnessCamera` renders `capture.witnessCamera` — the string the schema actually holds. Every
+  substituted name is counted in `problems.untyped`; it must stay at zero for that view, because a
+  wrong controlled value looks exactly like a right one.
+- **`seedFacets` cannot add a value to a facet that already exists.** `$setOnInsert` writes a facet
+  whole or not at all, so a new value in `FACET_SEEDS` never reaches a live store — it fails quietly
+  and downstream, where the SKOS export drops labels using it and the validator refuses the next
+  edit to any term carrying one. `reconcileFacetValues` exists for this and both CLIs call it.
+- `runOmc.js` loads existing terms with `{ omcMigrated: { $ne: true } }`. Without it a second run
+  reads its own first run as pre-existing and every minted term reports as a collision.
+- 8 `hasSubValue` edges start at a **Property**, not a ControlledValue — a miswritten
+  `hasControlledValue`. Read as top-level rather than dropped: they carry `script`, `proxy`,
+  `timeline` and `color`, four values the Asset function table needs.
+
+### The drift report
+
+`POST /api/vocab/v1/drift` with `{ schema, viewId?, status? }`, or `drift.js --schema <path>`. **The
+schema is an argument, never an import** — this service must not depend on omc-util; the dependency
+points the other way, from a build step that consumes a view.
+
+Schema tables are matched to collections by **value overlap, never by name**: `assetFunctionType` is
+the graph's `functionalType (Asset)`, and six schema tables correspond to properties all called
+`narrativeType`. A name mapping would be one more copy of the same knowledge, drifting alongside it.
+
+Live result after the merge: **268 of 307 distinct schema values are defined by a term, from 49
+before** — 39 still undefined, 30 vocabulary values the schema has no place for, 72 of 86 dotted
+values reproduced exactly. `x-controlledValues` is advisory (Ajv ignores `x-` keywords), which is
+why the drift was invisible without this.
 
 Things that will bite:
 

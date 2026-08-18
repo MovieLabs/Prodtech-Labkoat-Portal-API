@@ -51,6 +51,7 @@ const COLUMNS = [
     'noteTypes',
     'examples',
     'collections',
+    'schemes',
     'paths',
     'tags',
 ];
@@ -69,7 +70,14 @@ export function toCsv(resolution) {
 
         // Every collection this term appears in, and the rendered name at each appearance. The two
         // stay in the same order so a reader can line them up.
-        const collections = [...new Set(placements.flatMap((placement) => schemesOf(placement)))];
+        //
+        // The collections a term is *placed in*, not the schemes those sit under. `schemesOf`
+        // answers the SKOS question, and it returns nothing for a view built entirely of
+        // `skos:Collection` groupings — which the OMC controlled-value view is, so every row came
+        // out blank under a heading that said `collections`. The schemes are still reported, in
+        // their own column rather than in place of this one.
+        const collections = [...new Set(placements.map((placement) => placement.collectionId))];
+        const schemes = [...new Set(placements.flatMap((placement) => schemesOf(placement)))];
         const paths = [...new Set(placements.map((placement) => placement.display))];
 
         return {
@@ -88,6 +96,7 @@ export function toCsv(resolution) {
             noteTypes: (term.note ?? []).map((note) => note.noteType).join(MULTI),
             examples: (term.example ?? []).map((example) => example.value).join(MULTI),
             collections: collections.join(MULTI),
+            schemes: schemes.join(MULTI),
             paths: paths.join(MULTI),
             tags: tagsFor(resolution, termId).join(MULTI),
         };

@@ -30,7 +30,7 @@ import {
     createVocabIndexes,
     vocabCollection,
 } from '../store/collections.js';
-import { seedFacets } from '../store/facetSeeds.js';
+import { reconcileFacetValues, seedFacets } from '../store/facetSeeds.js';
 import { raiseTermCounter, termIdNumber } from '../store/ids.js';
 import { closeVocabMongo, initializeVocabMongo, vocabDatabase } from '../store/mongoConnection.js';
 import { seedViews } from '../store/viewSeeds.js';
@@ -54,6 +54,10 @@ const heading = ((text) => `\n${text}\n${'-'.repeat(text.length)}`);
 async function writeModel({ terms, collections, root }) {
     await createVocabIndexes();
     await seedFacets(vocabCollection(VOCAB_FACETS));
+    // A value added to a seed after the facet was first written arrives only here --
+    // `seedFacets` writes a facet whole or not at all.
+    const reconciled = await reconcileFacetValues(vocabCollection(VOCAB_FACETS));
+    reconciled.added.forEach((entry) => console.log(`  + ${entry.facet}: ${entry.value}`));
     await seedViews(vocabCollection(VOCAB_VIEWS));
 
     // Only documents this migration produced. A term somebody authored in the new tool is not the

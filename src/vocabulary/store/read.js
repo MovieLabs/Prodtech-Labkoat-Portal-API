@@ -47,6 +47,43 @@ export function prefLabel(term, language = DEFAULT_LANGUAGE) {
 export const otherLabels = ((term) => (term?.label ?? []).filter((entry) => entry.labelType !== 'pref'));
 
 /**
+ * The label of a given kind, falling back to the preferred one.
+ *
+ * A view may publish names of a kind other than the preferred one, which is what lets one audience
+ * receive `capture.witnessCamera` where another receives `Witness Camera` — the same term, named the
+ * way each consumer needs it.
+ *
+ * **The fallback is load-bearing.** A term with no label of the requested kind still has to be
+ * named, and naming it by its identifier would put `vmc:c-0003C4` in an artifact where a word
+ * belongs. So a missing label of that kind degrades to the preferred name, and the view's generator
+ * reports how many terms it happened to — a count of zero is what says the view is complete.
+ *
+ * @param {object} term
+ * @param {string} [labelType] - `'pref'` or null means the preferred label
+ * @param {string} [language]
+ * @returns {string}
+ */
+export function labelOfType(term, labelType = 'pref', language = DEFAULT_LANGUAGE) {
+    if (!labelType || labelType === 'pref') return prefLabel(term, language);
+    const typed = (term?.label ?? []).filter((entry) => entry.labelType === labelType);
+    const found = (typed.find((entry) => entry.language === language) ?? typed[0])?.value;
+    return found ?? prefLabel(term, language);
+}
+
+/**
+ * Whether a term carries a label of a given kind at all.
+ *
+ * Separate from `labelOfType` because the fallback there makes a missing label indistinguishable
+ * from a present one, and the generator has to be able to count what it substituted.
+ *
+ * @param {object} term
+ * @param {string} labelType
+ * @returns {boolean}
+ */
+export const hasLabelOfType = ((term, labelType) => (term?.label ?? [])
+    .some((entry) => entry.labelType === labelType));
+
+/**
  * A multilingual field as text, with the same cross-language fallback as `prefLabel`.
  *
  * @param {object} field - e.g. `term.definition`
