@@ -38,6 +38,7 @@ import {
     listViews,
     searchTerms,
     termUsage,
+    unplacedTerms,
 } from '../vocabulary/store/read.js';
 import {
     ValidationError,
@@ -290,6 +291,13 @@ router.get('/terms', authenticated, async (req, res, next) => {
         // returning the store, the way the SKOS editor loads its whole dictionary.
         if (req.query.all === 'true') {
             res.json(await allTerms());
+            return;
+        }
+
+        // `?unplaced=true` — terms no collection places. Computed rather than read off a
+        // collection, so placing one takes it off the list immediately.
+        if (req.query.unplaced === 'true') {
+            res.json(await unplacedTerms());
             return;
         }
 

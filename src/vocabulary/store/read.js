@@ -234,6 +234,25 @@ export function listCollections() {
 export const allTerms = (() => vocabCollection(VOCAB_TERMS).find({}).toArray());
 
 /**
+ * Terms that no collection places.
+ *
+ * **Computed, never stored.** The migration gathered the scheme-less terms into `coll:unplaced`, and
+ * that was right for a one-way import — but it is a snapshot, not a fact. Place one of those terms
+ * and it stays in `coll:unplaced` for ever, and the collection slowly becomes a list of what *used*
+ * to be unplaced. Asking the question instead means the answer is true when it is asked.
+ *
+ * `distinct` does the work in the database: one pass over the member arrays for every term id any
+ * collection names, and the terms are whatever is left.
+ *
+ * @returns {Promise<Array<object>>}
+ */
+export async function unplacedTerms() {
+    const placed = (await vocabCollection(VOCAB_COLLECTIONS).distinct('member.term'))
+        .filter(Boolean);
+    return vocabCollection(VOCAB_TERMS).find({ _id: { $nin: placed } }).toArray();
+}
+
+/**
  * Terms whose name starts with, or contains, some text.
  *
  * Prefix-first because that is what somebody typing into a picker means: typing "cap" wants
