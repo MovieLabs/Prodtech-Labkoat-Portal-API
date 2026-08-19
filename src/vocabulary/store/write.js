@@ -236,7 +236,9 @@ export async function createCollection(collection, actor) {
     if (clash) throw new ValidationError([`A collection named "${name}" already exists (${id})`]);
 
     const prepared = stamped({
-        skosAs: 'collection', // Not a scheme unless asked: a scheme is a claim about what this is
+        // Not a scheme unless asked: a scheme is a claim about what a body of terms *is*, and
+        // `collection` is the modest reading — a named group with no claim over its members.
+        projections: { skos: 'collection' },
         member: [],
         definition: {},
         ...collection,

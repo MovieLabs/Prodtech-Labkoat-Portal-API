@@ -191,7 +191,7 @@ export async function collectionUsage(collectionId) {
  * a thousand requests. Every id across every collection is 1,045 strings — smaller than one expanded
  * collection — and the same list is what lets a client work out the unplaced set for itself.
  *
- * @returns {Promise<Array<{_id: string, label: object[], definition: object, skosAs: string,
+ * @returns {Promise<Array<{_id: string, label: object[], definition: object, projections: object,
  *   memberCount: number, includes: string[], terms: string[]}>>}
  */
 export function listCollections() {
@@ -200,6 +200,9 @@ export function listCollections() {
             $project: {
                 label: 1,
                 definition: 1,
+                projections: 1,
+                // The pre-rename field, still sent so a client reading a store that has not been
+                // migrated yet has something to show. `projectionOf` prefers `projections`.
                 skosAs: 1,
                 memberCount: { $size: { $ifNull: ['$member', []] } },
                 includes: {

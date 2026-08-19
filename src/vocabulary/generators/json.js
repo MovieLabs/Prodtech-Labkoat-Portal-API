@@ -12,6 +12,7 @@
  */
 
 import { overlayFor, schemesOf, tagsFor, topConceptOf } from '../resolve.js';
+import { projectionOf } from '../store/projections.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
 /**
@@ -95,7 +96,7 @@ export function toViewJson(resolution) {
             kind: 'collection',
             label: prefLabel(collection, language),
             definition: localised(collection?.definition, language),
-            skosAs: collection?.skosAs ?? 'collection',
+            projection: projectionOf(collection, 'skos'),
             children: [],
         };
         collectionNodes.set(id, entry);
@@ -122,7 +123,7 @@ export function toViewJson(resolution) {
             return;
         }
         const collection = resolution.collections.get(parent.id);
-        if ((collection?.skosAs ?? 'collection') === 'transparent') {
+        if (projectionOf(collection, 'skos') === 'transparent') {
             roots.push(entry);
             return;
         }

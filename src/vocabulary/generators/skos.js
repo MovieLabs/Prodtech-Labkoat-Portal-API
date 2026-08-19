@@ -19,6 +19,7 @@
  */
 
 import { broaderOf, placementsByTerm, schemesOf, topConceptOf } from '../resolve.js';
+import { projectionOf } from '../store/projections.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
 const PREFIXES = {
@@ -30,6 +31,7 @@ const PREFIXES = {
     vmc: 'https://mc.movielabs.com/vmc#',
 };
 
+/** Where a view that names no ontology of its own is published. */
 const ONTOLOGY = 'https://mc.movielabs.com/vmc';
 
 /**
@@ -74,7 +76,19 @@ export function skosTriples(resolution, projections) {
     const ref = ((id) => ({ id }));
 
     // ---- the ontology itself ----
-    add(`<${ONTOLOGY}>`, 'rdf:type', ref('owl:Ontology'));
+    //
+    // The artifact's own identity, and the only place a union of vocabularies can be named. SKOS
+    // has no aggregate of schemes and needs none — publishing two vocabularies together is
+    // publishing the union of their triples, with every scheme keeping one identifier and one type.
+    // What the union needs is a name and a statement of what it gathers, which is what OWL says
+    // here without touching skos:Concept at all.
+    const ontology = resolution.view?.ontology ?? ONTOLOGY;
+    add(`<${ontology}>`, 'rdf:type', ref('owl:Ontology'));
+    const ontologyLabel = prefLabel(resolution.view, language);
+    if (ontologyLabel) add(`<${ontology}>`, 'rdfs:label', literal(ontologyLabel));
+    (resolution.imports ?? []).forEach((imported) => {
+        add(`<${ontology}>`, 'owl:imports', ref(`<${imported}>`));
+    });
 
     // ---- collections ----
 
@@ -103,10 +117,10 @@ export function skosTriples(resolution, projections) {
     usedCollections.forEach((id) => {
         const collection = resolution.collections.get(id);
         if (!collection) return;
-        const skosAs = collection.skosAs ?? 'collection';
-        if (skosAs === 'transparent') return; // Contributes structure, emits no node — by declaration
+        const as = projectionOf(collection, 'skos');
+        if (as === 'transparent') return; // Contributes structure, emits no node — by declaration
 
-        add(id, 'rdf:type', ref(skosAs === 'conceptScheme' ? 'skos:ConceptScheme' : 'skos:Collection'));
+        add(id, 'rdf:type', ref(as === 'conceptScheme' ? 'skos:ConceptScheme' : 'skos:Collection'));
         add(id, 'skos:prefLabel', literal(prefLabel(collection, language)));
         const definition = localised(collection.definition, language);
         if (definition) add(id, 'skos:definition', literal(definition));
@@ -118,7 +132,7 @@ export function skosTriples(resolution, projections) {
             .find((entry) => entry.kind === 'collection' || entry.kind === 'term');
         if (parent?.kind !== 'collection') return;
         const collection = resolution.collections.get(parent.id);
-        if ((collection?.skosAs ?? 'collection') === 'collection') {
+        if (projectionOf(collection, 'skos') === 'collection') {
             add(parent.id, 'skos:member', ref(placement.termId));
         }
     });

@@ -194,7 +194,7 @@ function buildCollection(schemeId, node, ctx) {
         }],
         definition: node.definition ? { [DEFAULT_LANGUAGE]: node.definition } : {},
         // The 12 migrated schemes are all schemes in SKOS terms, so today's output keeps its shape.
-        skosAs: 'conceptScheme',
+        projections: { skos: 'conceptScheme' },
         member,
         migrated: true,
     };
@@ -289,7 +289,7 @@ export function buildUnplacedCollection(termIds) {
             en: 'Terms that belonged to no scheme in the original vocabulary. Gathered so they '
                 + 'keep publishing; expected to empty as they are placed.',
         },
-        skosAs: 'conceptScheme',
+        projections: { skos: 'conceptScheme' },
         member: termIds.map((termId, index) => ({
             mid: `m${index + 1}`,
             term: termId,
@@ -318,7 +318,7 @@ export function buildRootCollection(collections) {
                 + 'vocabulary can be published as one.',
         },
         // A grouping of schemes, not a scheme itself — schemes cannot nest in SKOS.
-        skosAs: 'transparent',
+        projections: { skos: 'transparent' },
         member: collections.map((collection, index) => ({
             mid: `m${index + 1}`,
             collection: collection._id,

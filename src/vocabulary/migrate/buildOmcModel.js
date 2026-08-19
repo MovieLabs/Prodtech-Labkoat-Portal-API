@@ -271,7 +271,7 @@ export function buildOmcModel(graph, existingTerms) {
             definition: property?.definition ? { [DEFAULT_LANGUAGE]: property.definition } : {},
             // A grouping, not a scheme. These describe where a value is used in OMC-JSON, which is
             // not a claim that they form a vocabulary of their own — the vocabulary is the terms.
-            skosAs: 'collection',
+            projections: { skos: 'collection' },
             member,
             omcMigrated: true,
             omcSource: propertyId,
@@ -301,7 +301,7 @@ export function buildOmcModel(graph, existingTerms) {
                 en: 'Controlled values in the OMC graph that no property or parent value points at. '
                     + 'They exist and are defined; nothing says where they are used.',
             },
-            skosAs: 'collection',
+            projections: { skos: 'collection' },
             member: stranded.map((node, at) => ({
                 mid: `m${at + 1}`,
                 term: resolveTerm(node) ?? node.id,
@@ -324,7 +324,7 @@ export function buildOmcModel(graph, existingTerms) {
         // Contributes structure only. Publishing it as a scheme would assert that OMC's controlled
         // values are a vocabulary separate from the one they are drawn from, which is the fiction
         // this merge exists to remove.
-        skosAs: 'transparent',
+        projections: { skos: 'transparent' },
         member: collections.map((collection, at) => ({
             mid: `m${at + 1}`,
             collection: collection._id,

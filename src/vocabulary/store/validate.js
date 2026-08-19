@@ -21,6 +21,7 @@
  * @module vocabulary/store/validate
  */
 
+import { SKOS_PROJECTIONS } from './projections.js';
 import { listFacets } from './read.js';
 
 /**
@@ -134,9 +135,11 @@ export function validateCollection(collection) {
         fail(found, 'A collection must have a preferred label');
     }
 
-    const validProjections = ['conceptScheme', 'collection', 'transparent'];
-    if (collection?.skosAs && !validProjections.includes(collection.skosAs)) {
-        fail(found, `skosAs must be one of ${validProjections.join(', ')}`);
+    // `projections.skos`, with the pre-rename `skosAs` still accepted so a store written before
+    // it keeps validating. Both are checked against the same set.
+    const declared = collection?.projections?.skos ?? collection?.skosAs;
+    if (declared && !SKOS_PROJECTIONS.includes(declared)) {
+        fail(found, `projections.skos must be one of ${SKOS_PROJECTIONS.join(', ')}`);
     }
 
     const members = collection?.member ?? [];
