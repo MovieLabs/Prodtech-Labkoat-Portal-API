@@ -186,8 +186,13 @@ export async function collectionUsage(collectionId) {
  * Answering that needs the inclusion edges, so those come back while the term members stay behind.
  * It stays small: only two collections here name any, 13 and 33.
  *
+ * **`terms` is the id list only, and it is what makes "which collections place this term?"
+ * answerable.** A grid listing every term has to say where each one sits, and asking that per term is
+ * a thousand requests. Every id across every collection is 1,045 strings — smaller than one expanded
+ * collection — and the same list is what lets a client work out the unplaced set for itself.
+ *
  * @returns {Promise<Array<{_id: string, label: object[], definition: object, skosAs: string,
- *   memberCount: number, includes: string[]}>>}
+ *   memberCount: number, includes: string[], terms: string[]}>>}
  */
 export function listCollections() {
     return vocabCollection(VOCAB_COLLECTIONS).aggregate([
@@ -209,6 +214,21 @@ export function listCollections() {
                             },
                             as: 'member',
                             in: '$$member.collection',
+                        },
+                    }],
+                },
+                terms: {
+                    $setUnion: [{
+                        $map: {
+                            input: {
+                                $filter: {
+                                    input: { $ifNull: ['$member', []] },
+                                    as: 'member',
+                                    cond: { $ne: [{ $ifNull: ['$$member.term', null] }, null] },
+                                },
+                            },
+                            as: 'member',
+                            in: '$$member.term',
                         },
                     }],
                 },
