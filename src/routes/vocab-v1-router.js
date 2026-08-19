@@ -51,6 +51,7 @@ import {
     replaceCollection,
     replaceTerm,
     saveFacet,
+    createView,
     saveView,
 } from '../vocabulary/store/write.js';
 
@@ -391,6 +392,15 @@ router.put('/collections/:id', authenticated, async (req, res, next) => {
 router.delete('/collections/:id', authenticated, async (req, res, next) => {
     try {
         res.json(await deleteCollection(req.params.id, req.query.force === 'true'));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Create a view, its identifier minted from its name. */
+router.post('/views', authenticated, async (req, res, next) => {
+    try {
+        res.status(201).json(await createView(req.body, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }

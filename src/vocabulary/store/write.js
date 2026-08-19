@@ -24,7 +24,7 @@ import {
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
-import { collectionId as collectionId_, mintTermIds } from './ids.js';
+import { collectionId as collectionId_, mintTermIds, viewId as viewId_ } from './ids.js';
 import { collectionUsage, termUsage } from './read.js';
 import {
     allowedFacetValues,
@@ -333,6 +333,31 @@ export async function deleteCollection(id, force = false) {
  * @returns {Promise<object>}
  * @throws {ValidationError}
  */
+/**
+ * Create a view, minting its identifier from its name.
+ *
+ * The same rule collections follow, and for the same reason: the id reaches an export and a URL, so
+ * it is derived once and then fixed. **A rename changes the label and keeps the id** — the ontology
+ * URI, and anything pointing at the view, must not move because somebody improved its title.
+ *
+ * Everything else is `saveView`'s job, including the check that the root collection exists.
+ *
+ * @param {object} view - Without `_id`
+ * @param {string} [actor]
+ * @returns {Promise<object>}
+ * @throws {ValidationError}
+ */
+export async function createView(view, actor) {
+    const name = (view.label ?? []).find((label) => label.labelType === 'pref')?.value;
+    if (!name) throw new ValidationError(['A view must have a preferred label']);
+
+    const id = viewId_(name);
+    const clash = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (clash) throw new ValidationError([`A view named "${name}" already exists (${id})`]);
+
+    return saveView(id, view, actor);
+}
+
 export async function saveView(id, view, actor) {
     const allowed = await allowedFacetValues();
     const prepared = stamped({ labelStyle: 'plain', ...view, _id: id }, actor);
