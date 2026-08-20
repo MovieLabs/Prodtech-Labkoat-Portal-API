@@ -373,6 +373,28 @@ export async function saveView(id, view, actor) {
 }
 
 /**
+ * Delete a view.
+ *
+ * **Nothing else goes with it.** A view names a collection and says how to publish it; the
+ * collection, everything it reaches and every term in it are untouched, and another view rooted on
+ * the same collection carries on unaffected. So there is nothing to refuse and nothing to warn
+ * about — which is worth stating, because deleting a *collection* is a different matter and these
+ * two sit next to each other in the interface.
+ *
+ * What is lost is the record itself: the ontology URI, the label style, the statuses it publishes
+ * and its tag overlay. A seeded view comes back on the next seed run, without those edits.
+ *
+ * @param {string} id
+ * @returns {Promise<{deleted: boolean, root: string|null}>}
+ */
+export async function deleteView(id) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (!view) return { deleted: false, root: null };
+    const outcome = await vocabCollection(VOCAB_VIEWS).deleteOne({ _id: id });
+    return { deleted: outcome.deletedCount > 0, root: view.root };
+}
+
+/**
  * Create or replace a facet — the controlled set behind a kind of label, note, example or tag.
  *
  * **Removing a value does not remove it from the terms already using it.** Those terms keep it, the

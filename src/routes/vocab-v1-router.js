@@ -52,6 +52,7 @@ import {
     replaceTerm,
     saveFacet,
     createView,
+    deleteView,
     saveView,
 } from '../vocabulary/store/write.js';
 
@@ -410,6 +411,15 @@ router.post('/views', authenticated, async (req, res, next) => {
 router.put('/views/:id', authenticated, async (req, res, next) => {
     try {
         res.json(await saveView(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Delete a view. The collection it publishes, and everything in it, are untouched. */
+router.delete('/views/:id', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteView(req.params.id));
     } catch (err) {
         writeFailed(err, res, next);
     }
