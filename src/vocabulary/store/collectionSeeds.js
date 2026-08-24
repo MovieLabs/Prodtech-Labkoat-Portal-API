@@ -43,12 +43,12 @@ export const COLLECTION_SEEDS = [
         member: [
             { mid: 'm1', collection: 'coll:media-creation' },
         ],
-        // `coll:omc-controlled-values` is deliberately **not** here. Its view renders names from the
-        // `omcToken` label and joins them into dotted paths, because those strings are the
-        // controlled values in the OMC-JSON schema. Gathered into a plain-label artifact its terms
-        // would be renamed — `Audio` where the schema says `audio` — which is a wrong value rather
-        // than a cosmetic difference. It is a vocabulary with its own audience, not a member of
-        // this union.
+        // **A controlled-value vocabulary does not belong here**, and the rule is worth stating
+        // before the next one is built. Such a view renders names from the `omcToken` label and
+        // joins them into dotted paths, because those strings *are* the values in a schema.
+        // Gathered into a plain-label artifact its terms would be renamed — `Audio` where the
+        // schema says `audio` — which is a wrong value rather than a cosmetic difference. It is a
+        // vocabulary with its own audience, not a member of this union.
         seeded: true,
     },
 ];
