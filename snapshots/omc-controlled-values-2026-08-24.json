@@ -1,0 +1,5947 @@
+{
+  "view": {
+    "id": "view:omc-controlled-values",
+    "label": "OMC Controlled Values",
+    "definition": "Every controlled value OMC-JSON defines, named the way OMC-JSON names it, so a build process can regenerate a schema table from it and be sure it is current.",
+    "labelStyle": "dotted",
+    "status": null
+  },
+  "generated": null,
+  "terms": 288,
+  "placements": 304,
+  "tree": [
+    {
+      "id": "coll:omc-0002B",
+      "kind": "collection",
+      "label": "assetFC.functionalType (Asset)",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000356",
+          "label": "script",
+          "prefLabel": "Script",
+          "definition": "A Structured Document written as a blueprint to convey the creative intent for the Creative Work. Parsing the Script generates a guide to those things that are to be depicted in production.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "script",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0006B",
+          "label": "proxy",
+          "prefLabel": "proxy",
+          "definition": "A lower quality representation of an Asset.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m2",
+          "children": [
+            {
+              "id": "omc:0006D",
+              "label": "proxy.editorial",
+              "prefLabel": "editorial",
+              "definition": "A type of video proxy.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m3",
+              "children": [],
+              "labels": [
+                {
+                  "value": "editorial",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:0006E",
+              "label": "proxy.daily",
+              "prefLabel": "daily",
+              "definition": "A type of video proxy.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m4",
+              "children": [],
+              "labels": [
+                {
+                  "value": "daily",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "proxy",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00070",
+          "label": "color",
+          "prefLabel": "color",
+          "definition": "Asset containing information about color.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m5",
+          "children": [
+            {
+              "id": "vmc:c-00005E",
+              "label": "color.lut",
+              "prefLabel": "LUT",
+              "definition": "Look up table",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m6",
+              "children": [],
+              "labels": [
+                {
+                  "value": "lut",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "notes": [
+                {
+                  "value": "A look up table is an array, either two or three dimensional, that changes the way an image looks. For example, a LUT can be used to transform an image from one color space to another",
+                  "type": "editorial",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:00072",
+              "label": "color.cdl",
+              "prefLabel": "cdl",
+              "definition": "Color Decision List, describes suggested correct color for each shot.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m7",
+              "children": [],
+              "labels": [
+                {
+                  "value": "cdl",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00034D",
+              "label": "color.colorSpace",
+              "prefLabel": "Color Space",
+              "definition": "A predefined encoding for communicating color appearance.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m8",
+              "children": [],
+              "labels": [
+                {
+                  "value": "colorSpace",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "color",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000422",
+          "label": "productionSetDressing",
+          "prefLabel": "Production Set Dressing",
+          "definition": "Assets used in the depiction of Narrative Set Dressing.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m9",
+          "children": [
+            {
+              "id": "vmc:c-00040a",
+              "label": "productionSetDressing.productionVehicle",
+              "prefLabel": "Production Vehicle",
+              "definition": "An Asset used in the Depiction of a Narrative Vehicle ",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m10",
+              "children": [],
+              "labels": [
+                {
+                  "value": "productionVehicle",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000408",
+              "label": "productionSetDressing.productionGreenery",
+              "prefLabel": "Production Greenery",
+              "definition": " An Asset or Assets used to depict Narrative greenery in a Production Scene.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m11",
+              "children": [],
+              "labels": [
+                {
+                  "value": "productionGreenery",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "productionSetDressing",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003f6",
+          "label": "map",
+          "prefLabel": "Map",
+          "definition": "An image intended to drive or influence a behavior or value within a CG workflow. ",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m12",
+          "children": [],
+          "labels": [
+            {
+              "value": "map",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00000A",
+          "label": "productionProp",
+          "prefLabel": "Production Prop",
+          "definition": "An Asset used in the Depiction of a Narrative Prop.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m13",
+          "children": [
+            {
+              "id": "vmc:c-00040a",
+              "label": "productionProp.productionVehicle",
+              "prefLabel": "Production Vehicle",
+              "definition": "An Asset used in the Depiction of a Narrative Vehicle ",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m14",
+              "children": [],
+              "labels": [
+                {
+                  "value": "productionVehicle",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000408",
+              "label": "productionProp.productionGreenery",
+              "prefLabel": "Production Greenery",
+              "definition": " An Asset or Assets used to depict Narrative greenery in a Production Scene.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m15",
+              "children": [],
+              "labels": [
+                {
+                  "value": "productionGreenery",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "productionProp",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003f9",
+          "label": "material",
+          "prefLabel": "Material",
+          "definition": "Data values and relationships required to describe the look of a CG Asset. ",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m16",
+          "children": [],
+          "labels": [
+            {
+              "value": "material",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00082",
+          "label": "costume",
+          "prefLabel": "costume",
+          "definition": "An Asset used to depict the Narrative Wardrobe of a Character.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m17",
+          "children": [],
+          "labels": [
+            {
+              "value": "costume",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000442",
+          "label": "artwork",
+          "prefLabel": "Artwork",
+          "definition": "Illustrations, photographs, or other materials that illustrate some aspect of a Creative Work.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m18",
+          "children": [
+            {
+              "id": "vmc:c-00000E",
+              "label": "artwork.storyboard",
+              "prefLabel": "Storyboard",
+              "definition": "A series of images that forms a visual representation of some part of the narrative.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m19",
+              "children": [],
+              "labels": [
+                {
+                  "value": "storyboard",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00000F",
+              "label": "artwork.animatedStoryboard",
+              "prefLabel": "Animated Storyboard",
+              "definition": "A moving image produced from the individual images of a Storyboard.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m20",
+              "children": [],
+              "labels": [
+                {
+                  "value": "animatedStoryboard",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00001C",
+              "label": "artwork.conceptArt",
+              "prefLabel": "Concept Art",
+              "definition": "Images that illustrate ideas for potential depictions of elements of the creative intent.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m21",
+              "children": [],
+              "labels": [
+                {
+                  "value": "conceptArt",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "artwork",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00089",
+          "label": "configuration",
+          "prefLabel": "configuration",
+          "definition": "Asset that contains information about the configuration of components of the workflow.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m22",
+          "children": [
+            {
+              "id": "vmc:c-0003ea",
+              "label": "configuration.colorSpace",
+              "prefLabel": "Color Space Configuration",
+              "definition": "A configuration file for a color management system.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m23",
+              "children": [],
+              "labels": [
+                {
+                  "value": "colorSpace",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "configuration",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000011",
+          "label": "technicalReferenceMaterial",
+          "prefLabel": "Technical Reference Material",
+          "definition": "Images, documents, data, or other material created as part of the execution of the production.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m24",
+          "children": [],
+          "labels": [
+            {
+              "value": "technicalReferenceMaterial",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00034F",
+          "label": "shot",
+          "prefLabel": "Shot",
+          "definition": "A discrete unit of visual narrative with a specified beginning and end.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m25",
+          "children": [
+            {
+              "id": "vmc:c-000030",
+              "label": "shot.animation",
+              "prefLabel": "Animation Shot",
+              "definition": "A Shot that has been identified as requiring Animation work.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m26",
+              "children": [],
+              "labels": [
+                {
+                  "value": "animation",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00002E",
+              "label": "shot.vfx",
+              "prefLabel": "VFX Shot",
+              "definition": "A Shot that has been identified as requiring VFX work.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m27",
+              "children": [],
+              "labels": [
+                {
+                  "value": "vfx",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:0024E",
+              "label": "shot.editorial",
+              "prefLabel": "editorial",
+              "definition": "A shot that has been marked for editorial use.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m28",
+              "children": [],
+              "labels": [
+                {
+                  "value": "editorial",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "shot",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00034C",
+          "label": "sequenceChronologyDescriptor",
+          "prefLabel": "Sequence Choronolgy Descriptor",
+          "definition": "Describes how a series of Shots is used to generate a Sequence.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m29",
+          "children": [],
+          "labels": [
+            {
+              "value": "sequenceChronologyDescriptor",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000357",
+          "label": "capture",
+          "prefLabel": "Capture",
+          "definition": "The result of recording any event by any means.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m30",
+          "children": [
+            {
+              "id": "omc:00034",
+              "label": "capture.ocf",
+              "prefLabel": "ocf",
+              "definition": "Original Captured Footage, A moving image captured from a camera.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m31",
+              "children": [],
+              "labels": [
+                {
+                  "value": "ocf",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:00035",
+              "label": "capture.lidar",
+              "prefLabel": "lidar",
+              "definition": "Light Detecting and Ranging, a capture from a specialized scanning device that creates a point cloud.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m32",
+              "children": [],
+              "labels": [
+                {
+                  "value": "lidar",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:00036",
+              "label": "capture.witnessCamera",
+              "prefLabel": "witnessCamera",
+              "definition": "A video capture not intended for the creative work, but as a record of related action, typically on-set.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m33",
+              "children": [],
+              "labels": [
+                {
+                  "value": "witnessCamera",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-0003B3",
+              "label": "capture.roll",
+              "prefLabel": "Camera Roll",
+              "definition": "Identifier for a group of events captured together on the same camera and recording media.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m34",
+              "children": [],
+              "labels": [
+                {
+                  "value": "roll",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:00067",
+              "label": "capture.faceCamera",
+              "prefLabel": "faceCamera",
+              "definition": "A capture of an actor's face, often used for motion capture.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m35",
+              "children": [],
+              "labels": [
+                {
+                  "value": "faceCamera",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-0003CB",
+              "label": "capture.motionCapture",
+              "prefLabel": "Motion Capture",
+              "definition": "The recording of motion as a stream of digital data.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m36",
+              "children": [],
+              "labels": [
+                {
+                  "value": "motionCapture",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:0006A",
+              "label": "capture.calibration",
+              "prefLabel": "calibration",
+              "definition": "Captured calibration data from a device.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m37",
+              "children": [],
+              "labels": [
+                {
+                  "value": "calibration",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:0006C",
+              "label": "capture.cameraProxy",
+              "prefLabel": "cameraProxy",
+              "definition": "A proxy directly generated by the camera.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m38",
+              "children": [],
+              "labels": [
+                {
+                  "value": "cameraProxy",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "capture",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000010",
+          "label": "creativeReferenceMaterial",
+          "prefLabel": "Creative Reference Material",
+          "definition": "Images or other material used to inform the artistic aspects of creation of a production, to help convey a tone or look, etc.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m39",
+          "children": [],
+          "labels": [
+            {
+              "value": "creativeReferenceMaterial",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00043f",
+          "label": "cgModel",
+          "prefLabel": "CG Model",
+          "definition": "A generic use for Geometry.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m40",
+          "children": [],
+          "labels": [
+            {
+              "value": "cgModel",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003BF",
+          "label": "cameraMetadata",
+          "prefLabel": "Camera Metadata",
+          "definition": "Capture-specific details and information about the Camera itself.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m41",
+          "children": [],
+          "labels": [
+            {
+              "value": "cameraMetadata",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003BB",
+          "label": "lensMetadata",
+          "prefLabel": "Lens Metadata",
+          "definition": "Capture-specific details and information about the Lens itself.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m42",
+          "children": [],
+          "labels": [
+            {
+              "value": "lensMetadata",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003BC",
+          "label": "recorderMetadata",
+          "prefLabel": "Recorder Metadata",
+          "definition": "Information about a Recorder and the recording media.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m43",
+          "children": [],
+          "labels": [
+            {
+              "value": "recorderMetadata",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000041",
+          "label": "audio",
+          "prefLabel": "Audio",
+          "definition": "A representation of sound.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m44",
+          "children": [
+            {
+              "id": "vmc:c-000448",
+              "label": "audio.track",
+              "prefLabel": "Audio Track",
+              "definition": "A temporally continuous sequence of related samples.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m45",
+              "children": [],
+              "labels": [
+                {
+                  "value": "track",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000447",
+              "label": "audio.channel",
+              "prefLabel": "Audio Channel",
+              "definition": "A distinct collection of sequenced audio samples that are intended for delivery to a single loudspeaker or other reproduction device.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m46",
+              "children": [],
+              "labels": [
+                {
+                  "value": "channel",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000446",
+              "label": "audio.object",
+              "prefLabel": "Audio Object",
+              "definition": "A segment of audio essence with associated metadata describing positional and other properties which may vary with time.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m47",
+              "children": [],
+              "labels": [
+                {
+                  "value": "object",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000449",
+              "label": "audio.mix",
+              "prefLabel": "Audio Mix",
+              "definition": "A combination of multiple Audio Assets and Compositions into a particular format.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m48",
+              "children": [],
+              "labels": [
+                {
+                  "value": "mix",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:002B4",
+              "label": "audio.objectMetadata",
+              "prefLabel": "objectMetadata",
+              "definition": "A file containing metadata about the audio object.",
+              "status": "published",
+              "collection": "coll:omc-0002B",
+              "mid": "m49",
+              "children": [],
+              "labels": [
+                {
+                  "value": "objectMetadata",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "audio",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000455",
+          "label": "productionCharacter",
+          "prefLabel": "Production Character",
+          "definition": "An Asset used in the portrayal of a Character.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m50",
+          "children": [],
+          "labels": [
+            {
+              "value": "productionCharacter",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00265",
+          "label": "audioSession",
+          "prefLabel": "audioSession",
+          "definition": "An Asset that represents the state of the audio mixing and editing process.",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m51",
+          "children": [],
+          "labels": [
+            {
+              "value": "audioSession",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0006F",
+          "label": "timeline",
+          "prefLabel": "timeline",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0002B",
+          "mid": "m52",
+          "children": [],
+          "labels": [
+            {
+              "value": "timeline",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00033",
+      "kind": "collection",
+      "label": "AssetSC.structuralType",
+      "definition": "A canonical description of this assets form.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000038",
+          "label": "digital",
+          "prefLabel": "Digital Asset",
+          "definition": "Information that exists as digital data.",
+          "status": "published",
+          "collection": "coll:omc-00033",
+          "mid": "m1",
+          "children": [
+            {
+              "id": "vmc:c-00003B",
+              "label": "digital.image",
+              "prefLabel": "Image",
+              "definition": "A two-dimensional visual representation.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m2",
+              "children": [],
+              "labels": [
+                {
+                  "value": "image",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00003E",
+              "label": "digital.movingImage",
+              "prefLabel": "Moving Image",
+              "definition": "A temporally ordered sequence of Images",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m3",
+              "children": [],
+              "labels": [
+                {
+                  "value": "movingImage",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00035A",
+              "label": "digital.imageSequence",
+              "prefLabel": "Image Sequence",
+              "definition": "A temporally ordered sequence of individual images which are the constituent parts of a Moving Image.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m4",
+              "children": [],
+              "labels": [
+                {
+                  "value": "imageSequence",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000041",
+              "label": "digital.audio",
+              "prefLabel": "Audio",
+              "definition": "A representation of sound.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m5",
+              "children": [],
+              "labels": [
+                {
+                  "value": "audio",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000377",
+              "label": "digital.audioVisual",
+              "prefLabel": "Audiovisual",
+              "definition": "A Moving Image with Audio synchronized to the images.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m6",
+              "children": [],
+              "labels": [
+                {
+                  "value": "audioVisual",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000047",
+              "label": "digital.document",
+              "prefLabel": "Document",
+              "definition": "A human readable object containing text and/or images.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m7",
+              "children": [],
+              "labels": [
+                {
+                  "value": "Doc",
+                  "type": "alternate",
+                  "language": "en"
+                },
+                {
+                  "value": "document",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "examples": [
+                {
+                  "value": "Production Bible",
+                  "type": "example",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00004A",
+              "label": "digital.structuredDocument",
+              "prefLabel": "Structured Document",
+              "definition": "A Document structured according to a set of rules which are used to parse or understand the document.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m8",
+              "children": [],
+              "labels": [
+                {
+                  "value": "structuredDocument",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00003A",
+              "label": "digital.data",
+              "prefLabel": "Digital Data",
+              "definition": "An Asset Structure composed of digital data.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m9",
+              "children": [],
+              "labels": [
+                {
+                  "value": "data",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-0003e6",
+              "label": "digital.procedural",
+              "prefLabel": "Procedural Asset",
+              "definition": "An Asset Structure that produces data that does not persist outside of its immediate use.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m10",
+              "children": [],
+              "labels": [
+                {
+                  "value": "procedural",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "examples": [
+                {
+                  "value": "Procedural Texture ",
+                  "type": "example",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "digital",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000036",
+          "label": "physical",
+          "prefLabel": "Physical Asset",
+          "definition": "A physical asset is one where the tangible reality of the Asset is its defining feature.",
+          "status": "published",
+          "collection": "coll:omc-00033",
+          "mid": "m11",
+          "children": [
+            {
+              "id": "vmc:c-00003B",
+              "label": "physical.image",
+              "prefLabel": "Image",
+              "definition": "A two-dimensional visual representation.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m12",
+              "children": [],
+              "labels": [
+                {
+                  "value": "image",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00003E",
+              "label": "physical.movingImage",
+              "prefLabel": "Moving Image",
+              "definition": "A temporally ordered sequence of Images",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m13",
+              "children": [],
+              "labels": [
+                {
+                  "value": "movingImage",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00035A",
+              "label": "physical.imageSequence",
+              "prefLabel": "Image Sequence",
+              "definition": "A temporally ordered sequence of individual images which are the constituent parts of a Moving Image.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m14",
+              "children": [],
+              "labels": [
+                {
+                  "value": "imageSequence",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000377",
+              "label": "physical.audioVisual",
+              "prefLabel": "Audiovisual",
+              "definition": "A Moving Image with Audio synchronized to the images.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m15",
+              "children": [],
+              "labels": [
+                {
+                  "value": "audioVisual",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000047",
+              "label": "physical.document",
+              "prefLabel": "Document",
+              "definition": "A human readable object containing text and/or images.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m16",
+              "children": [],
+              "labels": [
+                {
+                  "value": "Doc",
+                  "type": "alternate",
+                  "language": "en"
+                },
+                {
+                  "value": "document",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "examples": [
+                {
+                  "value": "Production Bible",
+                  "type": "example",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00004A",
+              "label": "physical.structuredDocument",
+              "prefLabel": "Structured Document",
+              "definition": "A Document structured according to a set of rules which are used to parse or understand the document.",
+              "status": "published",
+              "collection": "coll:omc-00033",
+              "mid": "m17",
+              "children": [],
+              "labels": [
+                {
+                  "value": "structuredDocument",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "physical",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003ef",
+          "label": "geometry",
+          "prefLabel": "Geometry",
+          "definition": "A shape defined in three dimensions.",
+          "status": "published",
+          "collection": "coll:omc-00033",
+          "mid": "m18",
+          "children": [],
+          "labels": [
+            {
+              "value": "geometry",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00267",
+          "label": "assetGroup",
+          "prefLabel": "assetGroup",
+          "definition": "Signifies this Asset represents and Asset Group.",
+          "status": "published",
+          "collection": "coll:omc-00033",
+          "mid": "m19",
+          "children": [],
+          "labels": [
+            {
+              "value": "assetGroup",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00059",
+      "kind": "collection",
+      "label": "NarrativeAudio.narrativeType",
+      "definition": "The specific type of narrative audio.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000411",
+          "label": "narrativeAudio",
+          "prefLabel": "Narrative Audio",
+          "definition": "A significant sound in the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeAudio",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000413",
+          "label": "music",
+          "prefLabel": "Narrative Music",
+          "definition": "Music that is implicitly or explicitly used to advance or support the narrative. ",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "music",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000412",
+          "label": "soundEffect",
+          "prefLabel": "Narrative Sound Effect",
+          "definition": "A sound that explicitly or implicitly advances or supports the narrative.  ",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "soundEffect",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000009",
+          "label": "narrativeProp",
+          "prefLabel": "Narrative Prop",
+          "definition": "A Prop as specified or implied by the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeProp",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000421",
+          "label": "narrativeSetDressing",
+          "prefLabel": "Narrative Set Dressing",
+          "definition": "Set Dressing as implied or specified by the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeSetDressing",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000407",
+          "label": "narrativeGreenery",
+          "prefLabel": "Narrative Greenery",
+          "definition": "Plant material and terrain-building material described or implied in the narrative,",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeGreenery",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "this covers living plants (potted ferns, planted trees, fields of daffodils, etc.) and cut plants (e.g. single flowers, daisy chains, and sprigs of mistletoe) as well as rocks, sand, etc.",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "examples": [
+            {
+              "value": "trees",
+              "type": "example",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000409",
+          "label": "narrativeVehicle",
+          "prefLabel": "Narrative Vehicle",
+          "definition": "Any mode of transport specified or implied by the narrative. ",
+          "status": "published",
+          "collection": "coll:omc-00059",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeVehicle",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-000A9",
+      "kind": "collection",
+      "label": "Character.characterType",
+      "definition": "The specific type of character.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000404",
+          "label": "extra",
+          "prefLabel": "Extra",
+          "definition": "A sentient entity (usually a person, but not always) in the Script whose specific identity is minimally consequential to the narrative.  ",
+          "status": "published",
+          "collection": "coll:omc-000A9",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "extra",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00001A",
+          "label": "character",
+          "prefLabel": "Character",
+          "definition": "A sentient entity (usually a person but not always) in the script whose specific identity is consequential to the narrative. A Character is generally identified by a specific name.",
+          "status": "published",
+          "collection": "coll:omc-000A9",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "character",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-000B3",
+      "kind": "collection",
+      "label": "Context.contextType",
+      "definition": "The specific type of context.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000003",
+          "label": "narrative",
+          "prefLabel": "Narrative Context",
+          "definition": "Gathers relationships for narrative entities.",
+          "status": "published",
+          "collection": "coll:omc-000B3",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrative",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000007",
+          "label": "production",
+          "prefLabel": "Production Location",
+          "definition": "A real place that is used when producing the Creative Work.",
+          "status": "published",
+          "collection": "coll:omc-000B3",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "production",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "examples": [
+            {
+              "value": "Sound Stage 3 can be used to create the depiction of 'MegaCorp boardroom', and the estate at West Wycombe Park is used to depict some locations in Pride and Prejudice and Zombies.",
+              "type": "example",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00002B",
+          "label": "shootDay",
+          "prefLabel": "Shoot Day",
+          "definition": "The number of the day on the filming schedule.",
+          "status": "published",
+          "collection": "coll:omc-000B3",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "shootDay",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00001B",
+          "label": "concept",
+          "prefLabel": "Concept",
+          "definition": "An exploratory representation of something from the narrative.",
+          "status": "published",
+          "collection": "coll:omc-000B3",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "concept",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "Concept covers anything that is used or created as input to the final depiction of a narrative element in the Creative Work, including storyboards, concept art, costume ideas, possible filming locations, and so on.",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-000B9",
+      "kind": "collection",
+      "label": "Depiction.depictionType",
+      "definition": "The specific type of creative work.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-00001D",
+          "label": "depiction",
+          "prefLabel": "Depiction",
+          "definition": "The representation of a Narrative Entity (See Part 2A: Narrative Elements) by a production entity in the Creative Work, specified or implied by the Script.",
+          "status": "published",
+          "collection": "coll:omc-000B9",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "depiction",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00001E",
+          "label": "portrayal",
+          "prefLabel": "Portrayal",
+          "definition": "The Depiction of a Character.",
+          "status": "published",
+          "collection": "coll:omc-000B9",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "portrayal",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-000FA",
+      "kind": "collection",
+      "label": "Composition.compositionType",
+      "definition": "The specific type of composition.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-00002C",
+          "label": "sequence",
+          "prefLabel": "Sequence",
+          "definition": "An ordered collection of media used to organize units of work.",
+          "status": "published",
+          "collection": "coll:omc-000FA",
+          "mid": "m1",
+          "children": [
+            {
+              "id": "vmc:c-000031",
+              "label": "sequence.animation",
+              "prefLabel": "Animation Sequence",
+              "definition": "A unit of work made up of an ordered series of Animation shots.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m2",
+              "children": [],
+              "labels": [
+                {
+                  "value": "animation",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "notes": [
+                {
+                  "value": "Shots with both live action and animation would be a VFX Shot",
+                  "type": "editorial",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000032",
+              "label": "sequence.color",
+              "prefLabel": "Color Sequence",
+              "definition": "A sequence of shots with color grading characteristics linked to creative intent.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m3",
+              "children": [],
+              "labels": [
+                {
+                  "value": "color",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00002D",
+              "label": "sequence.editorial",
+              "prefLabel": "Editorial Sequence",
+              "definition": "A Sequence of Editorial Shots linked to creative intent.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m4",
+              "children": [],
+              "labels": [
+                {
+                  "value": "editorial",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "notes": [
+                {
+                  "value": "Typically has a close relationship to narrative intent",
+                  "type": "editorial",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000359",
+              "label": "sequence.vfxImage",
+              "prefLabel": "VFX Image Sequence",
+              "definition": "An Image Sequence used in VFX work.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m5",
+              "children": [],
+              "labels": [
+                {
+                  "value": "vfxImage",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-00002F",
+              "label": "sequence.vfx",
+              "prefLabel": "VFX Sequence",
+              "definition": "A unit of work made up of an ordered series of VFX shots.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m6",
+              "children": [],
+              "labels": [
+                {
+                  "value": "vfx",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "notes": [
+                {
+                  "value": "May not be a continuous narrative",
+                  "type": "editorial",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "sequence",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "A collection and grouping mechanism, usually associated with a scope of work",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003fd",
+          "label": "cgAssembly",
+          "prefLabel": "CG Assembly",
+          "definition": "A Composition that includes a collection of related CG Assets and CG Assemblies.",
+          "status": "published",
+          "collection": "coll:omc-000FA",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "cgAssembly",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003fb",
+          "label": "compositeMaterial",
+          "prefLabel": "Composite Material",
+          "definition": "A Material represented by a Composition. ",
+          "status": "published",
+          "collection": "coll:omc-000FA",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "compositeMaterial",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003fe",
+          "label": "geometryAssembly",
+          "prefLabel": "Geometry Assembly",
+          "definition": "A Composition containing only Geometry information.",
+          "status": "published",
+          "collection": "coll:omc-000FA",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "geometryAssembly",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00044e",
+          "label": "audio",
+          "prefLabel": "Audio Composition",
+          "definition": "A Composition consisting of audio assets, Audio Compositions, and an Audio Session.",
+          "status": "published",
+          "collection": "coll:omc-000FA",
+          "mid": "m10",
+          "children": [
+            {
+              "id": "omc:00263",
+              "label": "audio.soundEditorialUnit",
+              "prefLabel": "soundEditorialUnit",
+              "definition": "A collection of sound samples that have been selected in reference to the Creative Work or a portion of it.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m11",
+              "children": [],
+              "labels": [
+                {
+                  "value": "soundEditorialUnit",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:00264",
+              "label": "audio.preMix",
+              "prefLabel": "preMix",
+              "definition": "A collection of sound samples that have been processed for technical or creative review.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m12",
+              "children": [],
+              "labels": [
+                {
+                  "value": "preMix",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-0003DB",
+              "label": "audio.stem",
+              "prefLabel": "STEM",
+              "definition": "Final Audio Assets and Compositions combined based on their Audio Classification, used to produce the final sound for the Creative Work in a particular Soundfield.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m13",
+              "children": [],
+              "labels": [
+                {
+                  "value": "stem",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000452",
+              "label": "audio.bed",
+              "prefLabel": "Bed",
+              "definition": "The Channel component of an immersive STEM or Printmaster.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m14",
+              "children": [],
+              "labels": [
+                {
+                  "value": "bed",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "vmc:c-000453",
+              "label": "audio.printmaster",
+              "prefLabel": "Printmaster",
+              "definition": "The combination of STEMs for a particular soundfield at unity gain.",
+              "status": "published",
+              "collection": "coll:omc-000FA",
+              "mid": "m15",
+              "children": [],
+              "labels": [
+                {
+                  "value": "printmaster",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "audio",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00110",
+      "kind": "collection",
+      "label": "NarrativeLocation.narrativeType",
+      "definition": "The specific type of narrative location.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000006",
+          "label": "narrativeLocation",
+          "prefLabel": "Narrative Location",
+          "definition": "A location specified or implied by the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00110",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeLocation",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "These can be real (e.g., a documentary comparing Soho in London to Soho in New York), fictionalized real (e.g., The White House, as it exists in the narrative), or completely imaginary (e.g., Tatooine.)",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00111",
+      "kind": "collection",
+      "label": "NarrativeObject.narrativeType",
+      "definition": "The specific type of narrative object.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000009",
+          "label": "narrativeProp",
+          "prefLabel": "Narrative Prop",
+          "definition": "A Prop as specified or implied by the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00111",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeProp",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000405",
+          "label": "narrativeObject",
+          "prefLabel": "Narrative Object",
+          "definition": "A significant tangible thing in the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00111",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeObject",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000421",
+          "label": "narrativeSetDressing",
+          "prefLabel": "Narrative Set Dressing",
+          "definition": "Set Dressing as implied or specified by the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00111",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeSetDressing",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000407",
+          "label": "narrativeGreenery",
+          "prefLabel": "Narrative Greenery",
+          "definition": "Plant material and terrain-building material described or implied in the narrative,",
+          "status": "published",
+          "collection": "coll:omc-00111",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeGreenery",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "this covers living plants (potted ferns, planted trees, fields of daffodils, etc.) and cut plants (e.g. single flowers, daisy chains, and sprigs of mistletoe) as well as rocks, sand, etc.",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "examples": [
+            {
+              "value": "trees",
+              "type": "example",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000409",
+          "label": "narrativeVehicle",
+          "prefLabel": "Narrative Vehicle",
+          "definition": "Any mode of transport specified or implied by the narrative. ",
+          "status": "published",
+          "collection": "coll:omc-00111",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeVehicle",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00112",
+      "kind": "collection",
+      "label": "NarrativeScene.narrativeType",
+      "definition": "The specific type of narrative scene.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000015",
+          "label": "narrativeScene",
+          "prefLabel": "Narrative Scene",
+          "definition": "Taken from the narrative itself and traditionally defined by creative intent and various kinds of unity (e.g., time, place, action, or theme).",
+          "status": "published",
+          "collection": "coll:omc-00112",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeScene",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00113",
+      "kind": "collection",
+      "label": "NarrativeStyling.narrativeType",
+      "definition": "The specific type of narrative styling.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-00040f",
+          "label": "narrativeProsthetics",
+          "prefLabel": "Narrative Prosthetics",
+          "definition": " The use of molding, casting, and sculpting techniques to create the required look for a Character. ",
+          "status": "published",
+          "collection": "coll:omc-00113",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeProsthetics",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00040b",
+          "label": "narrativeHair",
+          "prefLabel": "Narrative Hair",
+          "definition": "Hair requirements, procuring and maintaining wigs, and styling and cutting the hair of Participants in Portrayals. ",
+          "status": "published",
+          "collection": "coll:omc-00113",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeHair",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00040c",
+          "label": "narrativeMakeup",
+          "prefLabel": "Narrative Makeup",
+          "definition": "Application and Maintenance of make-up for anyone appearing on-screen. ",
+          "status": "published",
+          "collection": "coll:omc-00113",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeMakeup",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00043d",
+          "label": "narrativeStyling",
+          "prefLabel": "Narrative Styling",
+          "definition": "Element of the narrative that directly influence the appearance of a Character, including hair, makeup, and prosthetics.",
+          "status": "published",
+          "collection": "coll:omc-00113",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeStyling",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00114",
+      "kind": "collection",
+      "label": "NarrativeWardrobe.narrativeType",
+      "definition": "The specific type of narrative wardrobe.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-00000C",
+          "label": "narrativeWardrobe",
+          "prefLabel": "Narrative Wardrobe",
+          "definition": "The clothing for a Character in the narrative.",
+          "status": "published",
+          "collection": "coll:omc-00114",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "narrativeWardrobe",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00115",
+      "kind": "collection",
+      "label": "SpecialAction.specialActionType",
+      "definition": "The specific type of special action.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-0003CB",
+          "label": "motionCapture",
+          "prefLabel": "Motion Capture",
+          "definition": "The recording of motion as a stream of digital data.",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "motionCapture",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00041b",
+          "label": "aerial",
+          "prefLabel": "Aerial",
+          "definition": "Anything involving work with equipment that flies.  ",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "aerial",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000419",
+          "label": "choreography",
+          "prefLabel": "Choreography",
+          "definition": "The creation, arrangement, and management of dance. ",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "choreography",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000423",
+          "label": "fight",
+          "prefLabel": "Fight",
+          "definition": "Action in a Narrative Scene that will require involving a specialist such as a Fight Coordinator in the production process.",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "fight",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00041a",
+          "label": "marine",
+          "prefLabel": "Marine",
+          "definition": "Anything involving work on water or in water-borne craft.  ",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "marine",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000418",
+          "label": "stunt",
+          "prefLabel": "Stunt",
+          "definition": "Physical action described or implied in the narrative that would put an actor in some kind of danger and so requires a specialist to manage and coordinate. ",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "stunt",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00004D",
+          "label": "specialAction",
+          "prefLabel": "Asset Function",
+          "definition": "Describes the use or purpose of an Asset within the production process.",
+          "status": "published",
+          "collection": "coll:omc-00115",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "specialAction",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00117",
+      "kind": "collection",
+      "label": "Effect.effectType",
+      "definition": "The specific type of creative work.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000414",
+          "label": "effect",
+          "prefLabel": "Effect",
+          "definition": "A technique that creates or enhances visual elements in the finished work ",
+          "status": "published",
+          "collection": "coll:omc-00117",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "effect",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000415",
+          "label": "specialEffect",
+          "prefLabel": "Special Effect",
+          "definition": " Physically based effects, such as explosions, the use of mannequins, and the use of models, the results of which are captured on-camera. ",
+          "status": "published",
+          "collection": "coll:omc-00117",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "specialEffect",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00036F",
+          "label": "visualEffect",
+          "prefLabel": "Visual Effect",
+          "definition": "Effects created on or in the footage after it is captured.",
+          "status": "published",
+          "collection": "coll:omc-00117",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "visualEffect",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "notes": [
+            {
+              "value": "Has Participant Structural Class of Organization",
+              "type": "editorial",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00138",
+      "kind": "collection",
+      "label": "gender.genderPronoun",
+      "definition": "An individual's pronoun of choice.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0013F",
+          "label": "he/him",
+          "prefLabel": "he/him",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00138",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "he/him",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00140",
+          "label": "she/her",
+          "prefLabel": "she/her",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00138",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "she/her",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00141",
+          "label": "ze/hir",
+          "prefLabel": "ze/hir",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00138",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "ze/hir",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00142",
+          "label": "they/their",
+          "prefLabel": "they/their",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00138",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "they/their",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0013A",
+      "kind": "collection",
+      "label": "gender.identifiesAs",
+      "definition": "The gender by which an individual identifies.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0013B",
+          "label": "male",
+          "prefLabel": "male",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0013A",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "male",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0013C",
+          "label": "female",
+          "prefLabel": "female",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0013A",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "female",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0013D",
+          "label": "other",
+          "prefLabel": "other",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0013A",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "other",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0013E",
+          "label": "unknown",
+          "prefLabel": "unknown",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0013A",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "unknown",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00175",
+      "kind": "collection",
+      "label": "structruralProperties.geometryType",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:00176",
+          "label": "basisCurve",
+          "prefLabel": "basisCurve",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "basisCurve",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00177",
+          "label": "capsule",
+          "prefLabel": "capsule",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "capsule",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00178",
+          "label": "cone",
+          "prefLabel": "cone",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "cone",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00179",
+          "label": "cube",
+          "prefLabel": "cube",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "cube",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017A",
+          "label": "cylinder",
+          "prefLabel": "cylinder",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "cylinder",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017B",
+          "label": "mesh",
+          "prefLabel": "mesh",
+          "definition": "A geometry type",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "mesh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017C",
+          "label": "nurbsCurve",
+          "prefLabel": "nurbsCurve",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "nurbsCurve",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017D",
+          "label": "nurbsSurface",
+          "prefLabel": "nurbsSurface",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "nurbsSurface",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017E",
+          "label": "plane",
+          "prefLabel": "plane",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "plane",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0017F",
+          "label": "teapot",
+          "prefLabel": "teapot",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "teapot",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00180",
+          "label": "torus",
+          "prefLabel": "torus",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00175",
+          "mid": "m11",
+          "children": [],
+          "labels": [
+            {
+              "value": "torus",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00186",
+      "kind": "collection",
+      "label": "coordinateOrientation.upAxis",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0018A",
+          "label": "y-up",
+          "prefLabel": "y-up",
+          "definition": "The Y coordinate is the elevation axis.",
+          "status": "published",
+          "collection": "coll:omc-00186",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "y-up",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0018B",
+          "label": "z-up",
+          "prefLabel": "z-up",
+          "definition": "The Z coordinate is the elevation axis.",
+          "status": "published",
+          "collection": "coll:omc-00186",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "z-up",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00187",
+      "kind": "collection",
+      "label": "coordinateOrientation.handedness",
+      "definition": "Relates non-narrative entities, the inverse of has.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:00188",
+          "label": "left",
+          "prefLabel": "left",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00187",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "left",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00189",
+          "label": "right",
+          "prefLabel": "right",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00187",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "right",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0018C",
+      "kind": "collection",
+      "label": "compositionProperties.purpose",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-00042b",
+          "label": "rendering",
+          "prefLabel": "Geometry Rendering",
+          "definition": "Final high-quality visual output of 3D geometry.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "rendering",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00042a",
+          "label": "proxy",
+          "prefLabel": "Geometry Proxy",
+          "definition": "Lower-resolution geometry used for faster pre-visualization and playback.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "proxy",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000429",
+          "label": "collision",
+          "prefLabel": "Geometry Collision",
+          "definition": "Simplified geometry for collision detection and physics simulations.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "collision",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000428",
+          "label": "guide",
+          "prefLabel": "Geometry Guide",
+          "definition": "Geometry used as a visual guide or reference in animation and VFX.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "guide",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000427",
+          "label": "matte/paint",
+          "prefLabel": "Geometry Matte/Paint",
+          "definition": "Geometry that acts as a background or underlay for visual atmosphere creation.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "matte/paint",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000426",
+          "label": "annotation",
+          "prefLabel": "Geometry Annotation",
+          "definition": "3D elements that provide additional information or commentary on other geometry.",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "annotation",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00193",
+          "label": "general",
+          "prefLabel": "general",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "general",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000425",
+          "label": "printing",
+          "prefLabel": "Geometry Printing",
+          "definition": "Geometry built as input for a 3D printer process",
+          "status": "published",
+          "collection": "coll:omc-0018C",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "printing",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00198",
+      "kind": "collection",
+      "label": "functionalProperties (Asset).mapType",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0019A",
+          "label": "diffuse",
+          "prefLabel": "diffuse",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "diffuse",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0019B",
+          "label": "specular",
+          "prefLabel": "specular",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "specular",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0019C",
+          "label": "metalness",
+          "prefLabel": "metalness",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "metalness",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0019D",
+          "label": "roughness",
+          "prefLabel": "roughness",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "roughness",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0019E",
+          "label": "opacity",
+          "prefLabel": "opacity",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "opacity",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0019F",
+          "label": "ambientOcclusion",
+          "prefLabel": "ambientOcclusion",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "ambientOcclusion",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A0",
+          "label": "normal",
+          "prefLabel": "normal",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "normal",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A1",
+          "label": "bump",
+          "prefLabel": "bump",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "bump",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A2",
+          "label": "uvMap",
+          "prefLabel": "uvMap",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "uvMap",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A3",
+          "label": "projectionMap",
+          "prefLabel": "projectionMap",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "projectionMap",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A4",
+          "label": "heightMap",
+          "prefLabel": "heightMap",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m11",
+          "children": [],
+          "labels": [
+            {
+              "value": "heightMap",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A5",
+          "label": "weightMap",
+          "prefLabel": "weightMap",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m12",
+          "children": [],
+          "labels": [
+            {
+              "value": "weightMap",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A6",
+          "label": "depthMap",
+          "prefLabel": "depthMap",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m13",
+          "children": [],
+          "labels": [
+            {
+              "value": "depthMap",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A7",
+          "label": "albedo",
+          "prefLabel": "albedo",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00198",
+          "mid": "m14",
+          "children": [],
+          "labels": [
+            {
+              "value": "albedo",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00199",
+      "kind": "collection",
+      "label": "functionalProperties (Asset).mapFormat",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:001A8",
+          "label": "plainTexture",
+          "prefLabel": "plainTexture",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "plainTexture",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001A9",
+          "label": "volumeTexture",
+          "prefLabel": "volumeTexture",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "volumeTexture",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001AA",
+          "label": "shadow",
+          "prefLabel": "shadow",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "shadow",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001AB",
+          "label": "cubeFaceShadow",
+          "prefLabel": "cubeFaceShadow",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "cubeFaceShadow",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001AC",
+          "label": "volumeShadow",
+          "prefLabel": "volumeShadow",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "volumeShadow",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001AD",
+          "label": "latLongEnvironment",
+          "prefLabel": "latLongEnvironment",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "latLongEnvironment",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001AE",
+          "label": "cubeFaceEnvironment",
+          "prefLabel": "cubeFaceEnvironment",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-00199",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "cubeFaceEnvironment",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-001B1",
+      "kind": "collection",
+      "label": "compositionProperties.materialType",
+      "definition": "A categorization of what the material is intended to simulate.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:001B2",
+          "label": "organic",
+          "prefLabel": "organic",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-001B1",
+          "mid": "m1",
+          "children": [
+            {
+              "id": "omc:001C2",
+              "label": "organic.plant",
+              "prefLabel": "plant",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m2",
+              "children": [],
+              "labels": [
+                {
+                  "value": "plant",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C3",
+              "label": "organic.skin",
+              "prefLabel": "skin",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m3",
+              "children": [],
+              "labels": [
+                {
+                  "value": "skin",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C4",
+              "label": "organic.hair",
+              "prefLabel": "hair",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m4",
+              "children": [],
+              "labels": [
+                {
+                  "value": "hair",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C5",
+              "label": "organic.fur",
+              "prefLabel": "fur",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m5",
+              "children": [],
+              "labels": [
+                {
+                  "value": "fur",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C6",
+              "label": "organic.scales",
+              "prefLabel": "scales",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m6",
+              "children": [],
+              "labels": [
+                {
+                  "value": "scales",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C7",
+              "label": "organic.leather",
+              "prefLabel": "leather",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m7",
+              "children": [],
+              "labels": [
+                {
+                  "value": "leather",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C8",
+              "label": "organic.wood",
+              "prefLabel": "wood",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m8",
+              "children": [],
+              "labels": [
+                {
+                  "value": "wood",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "organic",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001B3",
+          "label": "textile",
+          "prefLabel": "textile",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-001B1",
+          "mid": "m9",
+          "children": [
+            {
+              "id": "omc:001BF",
+              "label": "textile.wool",
+              "prefLabel": "wool",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m10",
+              "children": [],
+              "labels": [
+                {
+                  "value": "wool",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C0",
+              "label": "textile.silk",
+              "prefLabel": "silk",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m11",
+              "children": [],
+              "labels": [
+                {
+                  "value": "silk",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001C1",
+              "label": "textile.cotton",
+              "prefLabel": "cotton",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m12",
+              "children": [],
+              "labels": [
+                {
+                  "value": "cotton",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "textile",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001B4",
+          "label": "inorganic",
+          "prefLabel": "inorganic",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-001B1",
+          "mid": "m13",
+          "children": [
+            {
+              "id": "omc:001BB",
+              "label": "inorganic.stone",
+              "prefLabel": "stone",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m14",
+              "children": [],
+              "labels": [
+                {
+                  "value": "stone",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001BC",
+              "label": "inorganic.glass",
+              "prefLabel": "glass",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m15",
+              "children": [],
+              "labels": [
+                {
+                  "value": "glass",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001BD",
+              "label": "inorganic.metal",
+              "prefLabel": "metal",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m16",
+              "children": [],
+              "labels": [
+                {
+                  "value": "metal",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001BE",
+              "label": "inorganic.plastic",
+              "prefLabel": "plastic",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m17",
+              "children": [],
+              "labels": [
+                {
+                  "value": "plastic",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "inorganic",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:001B5",
+          "label": "gasOrLiquid",
+          "prefLabel": "gasOrLiquid",
+          "definition": "",
+          "status": "published",
+          "collection": "coll:omc-001B1",
+          "mid": "m18",
+          "children": [
+            {
+              "id": "omc:001B6",
+              "label": "gasOrLiquid.atmosphere",
+              "prefLabel": "atmosphere",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m19",
+              "children": [],
+              "labels": [
+                {
+                  "value": "atmosphere",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001B7",
+              "label": "gasOrLiquid.fog",
+              "prefLabel": "fog",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m20",
+              "children": [],
+              "labels": [
+                {
+                  "value": "fog",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001B8",
+              "label": "gasOrLiquid.water",
+              "prefLabel": "water",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m21",
+              "children": [],
+              "labels": [
+                {
+                  "value": "water",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001B9",
+              "label": "gasOrLiquid.oil",
+              "prefLabel": "oil",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m22",
+              "children": [],
+              "labels": [
+                {
+                  "value": "oil",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            },
+            {
+              "id": "omc:001BA",
+              "label": "gasOrLiquid.fire",
+              "prefLabel": "fire",
+              "definition": "",
+              "status": "published",
+              "collection": "coll:omc-001B1",
+              "mid": "m23",
+              "children": [],
+              "labels": [
+                {
+                  "value": "fire",
+                  "type": "omcToken",
+                  "language": "en"
+                }
+              ],
+              "kind": "term"
+            }
+          ],
+          "labels": [
+            {
+              "value": "gasOrLiquid",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-001FB",
+      "kind": "collection",
+      "label": "CreativeWork.creativeWorkType",
+      "definition": "The specific type of creative work.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000433",
+          "label": "series",
+          "prefLabel": "Series",
+          "definition": "A group of Creative Works with a common overarching title and a strong relationship between the individual Creative Works.",
+          "status": "published",
+          "collection": "coll:omc-001FB",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "series",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000434",
+          "label": "season",
+          "prefLabel": "Season",
+          "definition": "A group of Episodes in a Series that are made or distributed together.",
+          "status": "published",
+          "collection": "coll:omc-001FB",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "season",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00001F",
+          "label": "creativeWork",
+          "prefLabel": "Creative Work",
+          "definition": "A uniquely identified production.",
+          "status": "published",
+          "collection": "coll:omc-001FB",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "Title",
+              "type": "alternate",
+              "language": "en"
+            },
+            {
+              "value": "Production",
+              "type": "alternate",
+              "language": "en"
+            },
+            {
+              "value": "Program",
+              "type": "alternate",
+              "language": "en"
+            },
+            {
+              "value": "Show",
+              "type": "alternate",
+              "language": "en"
+            },
+            {
+              "value": "creativeWork",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000435",
+          "label": "episode",
+          "prefLabel": "Episode",
+          "definition": "A single Creative Work that is part of Series or Season",
+          "status": "published",
+          "collection": "coll:omc-001FB",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "episode",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-00200",
+      "kind": "collection",
+      "label": "CreativeWork.creativeWorkCategory",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000438",
+          "label": "supplemental",
+          "prefLabel": "Supplemental",
+          "definition": "Material created to support some other work, such as a trailer, featurette, deleted scenes, gag reel, interviews, behind-the-scenes, etc.",
+          "status": "published",
+          "collection": "coll:omc-00200",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "supplemental",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00043a",
+          "label": "movie",
+          "prefLabel": "Movie",
+          "definition": "A feature film or other long-from motion picture that first appeared in theatrical exhibition or was released directly to video (home entertainment). If the duration is ≤ 40 minutes, then the record ",
+          "status": "published",
+          "collection": "coll:omc-00200",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "movie",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00043b",
+          "label": "tv",
+          "prefLabel": "TV",
+          "definition": "Content that first appeared via broadcast (terrestrial, satellite, cable, etc.). This includes telefilms, other one-off programs, and Episodes of television series.  ",
+          "status": "published",
+          "collection": "coll:omc-00200",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "tv",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-00043c",
+          "label": "short",
+          "prefLabel": "Short",
+          "definition": "A short program (≤ 40 minutes) that first appeared in theatrical exhibition or was released directly to video (home entertainment). If the duration is > 40 minutes, then the record is a Movie.",
+          "status": "published",
+          "collection": "coll:omc-00200",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "short",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0021B",
+      "kind": "collection",
+      "label": "creativeWorkTitle.titleType",
+      "definition": "The specific type of title.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0021D",
+          "label": "internal",
+          "prefLabel": "internal",
+          "definition": "An internal title or code name, not used in commercial release. ",
+          "status": "published",
+          "collection": "coll:omc-0021B",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "internal",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0021E",
+          "label": "working",
+          "prefLabel": "working",
+          "definition": "Working title, used during the course of production.",
+          "status": "published",
+          "collection": "coll:omc-0021B",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "working",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0021F",
+          "label": "regional",
+          "prefLabel": "regional",
+          "definition": "A title unique to a particular territory or otherwise used outside the work’s original home territory, such as local titles given to foreign imports. May be in the same language as the Release title.",
+          "status": "published",
+          "collection": "coll:omc-0021B",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "regional",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00220",
+          "label": "release",
+          "prefLabel": "release",
+          "definition": "The original release title for the work.",
+          "status": "published",
+          "collection": "coll:omc-0021B",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "release",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0022A",
+      "kind": "collection",
+      "label": "ProductionLocation.locationType",
+      "definition": "The specific type of production location.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "vmc:c-000007",
+          "label": "production",
+          "prefLabel": "Production Location",
+          "definition": "A real place that is used when producing the Creative Work.",
+          "status": "published",
+          "collection": "coll:omc-0022A",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "production",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "examples": [
+            {
+              "value": "Sound Stage 3 can be used to create the depiction of 'MegaCorp boardroom', and the estate at West Wycombe Park is used to depict some locations in Pride and Prejudice and Zombies.",
+              "type": "example",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-0003BD",
+          "label": "shooting",
+          "prefLabel": "Shooting Location",
+          "definition": "A fixed, specified physical Location used for shooting/filming the production.",
+          "status": "published",
+          "collection": "coll:omc-0022A",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "shooting",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "examples": [
+            {
+              "value": "Sound Stage 3 can be used to create the depiction of 'MegaCorp boardroom', and the estate at West Wycombe Park is used to depict some locations in Pride and Prejudice and Zombies.",
+              "type": "example",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0025B",
+      "kind": "collection",
+      "label": "functionalProperties (Asset).audioChannelName",
+      "definition": "A formalization of the name of the loudspeaker the Audio Channel in intended to drive.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:00291",
+          "label": "L",
+          "prefLabel": "L",
+          "definition": "Left channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "L",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00292",
+          "label": "R",
+          "prefLabel": "R",
+          "definition": "Right channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "R",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00293",
+          "label": "C",
+          "prefLabel": "C",
+          "definition": "Center channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "C",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00294",
+          "label": "LFE",
+          "prefLabel": "LFE",
+          "definition": "Low Frequency Effects channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "LFE",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00295",
+          "label": "Ls",
+          "prefLabel": "Ls",
+          "definition": "Left Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "Ls",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00296",
+          "label": "Rs",
+          "prefLabel": "Rs",
+          "definition": "Right Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rs",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00297",
+          "label": "Lss",
+          "prefLabel": "Lss",
+          "definition": "Left Side Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lss",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00298",
+          "label": "Rss",
+          "prefLabel": "Rss",
+          "definition": "Right Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rss",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00299",
+          "label": "Lrs",
+          "prefLabel": "Lrs",
+          "definition": "Left Rear Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lrs",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029A",
+          "label": "Rrs",
+          "prefLabel": "Rrs",
+          "definition": "Right Rear Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rrs",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029B",
+          "label": "Lc",
+          "prefLabel": "Lc",
+          "definition": "Left Center channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m11",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lc",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029C",
+          "label": "Rc",
+          "prefLabel": "Rc",
+          "definition": "Right Center channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m12",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rc",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029D",
+          "label": "Cs",
+          "prefLabel": "Cs",
+          "definition": "Center Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m13",
+          "children": [],
+          "labels": [
+            {
+              "value": "Cs",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029E",
+          "label": "HI",
+          "prefLabel": "HI",
+          "definition": "Hearing Impaired channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m14",
+          "children": [],
+          "labels": [
+            {
+              "value": "HI",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0029F",
+          "label": "VIN",
+          "prefLabel": "VIN",
+          "definition": "Visually Impaired channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m15",
+          "children": [],
+          "labels": [
+            {
+              "value": "VIN",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A0",
+          "label": "Lh",
+          "prefLabel": "Lh",
+          "definition": "Left Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m16",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A1",
+          "label": "Rh",
+          "prefLabel": "Rh",
+          "definition": "Right Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m17",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A2",
+          "label": "Ch",
+          "prefLabel": "Ch",
+          "definition": "Center Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m18",
+          "children": [],
+          "labels": [
+            {
+              "value": "Ch",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A3",
+          "label": "Lsh",
+          "prefLabel": "Lsh",
+          "definition": "Left Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m19",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lsh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A4",
+          "label": "Rsh",
+          "prefLabel": "Rsh",
+          "definition": "Right Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m20",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rsh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A5",
+          "label": "Lssh",
+          "prefLabel": "Lssh",
+          "definition": "Left Side Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m21",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lssh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A6",
+          "label": "Rssh",
+          "prefLabel": "Rssh",
+          "definition": "Right Side Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m22",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rssh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A7",
+          "label": "Lrsh",
+          "prefLabel": "Lrsh",
+          "definition": "Left Rear Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m23",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lrsh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A8",
+          "label": "Rtsh",
+          "prefLabel": "Rtsh",
+          "definition": "Right Rear Surround Height channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m24",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rtsh",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002A9",
+          "label": "Lts",
+          "prefLabel": "Lts",
+          "definition": "Left Top Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m25",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lts",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002AA",
+          "label": "Rts",
+          "prefLabel": "Rts",
+          "definition": "Right Top Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m26",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rts",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002AB",
+          "label": "Ts",
+          "prefLabel": "Ts",
+          "definition": "Top Surround channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m27",
+          "children": [],
+          "labels": [
+            {
+              "value": "Ts",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B6",
+          "label": "M1",
+          "prefLabel": "M1",
+          "definition": "Mono One",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m28",
+          "children": [],
+          "labels": [
+            {
+              "value": "M1",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B7",
+          "label": "M2",
+          "prefLabel": "M2",
+          "definition": "Mono Two",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m29",
+          "children": [],
+          "labels": [
+            {
+              "value": "M2",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B8",
+          "label": "Lt",
+          "prefLabel": "Lt",
+          "definition": "Left Total",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m30",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lt",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B9",
+          "label": "Rt",
+          "prefLabel": "Rt",
+          "definition": "Right Total",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m31",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rt",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BA",
+          "label": "Lst",
+          "prefLabel": "Lst",
+          "definition": "Left Surround Top",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m32",
+          "children": [],
+          "labels": [
+            {
+              "value": "Lst",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BB",
+          "label": "Rst",
+          "prefLabel": "Rst",
+          "definition": "Right Surround Top",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m33",
+          "children": [],
+          "labels": [
+            {
+              "value": "Rst",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BC",
+          "label": "S",
+          "prefLabel": "S",
+          "definition": "Surround",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m34",
+          "children": [],
+          "labels": [
+            {
+              "value": "S",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BD",
+          "label": "NSC[channel number]",
+          "prefLabel": "NSC[channel number]",
+          "definition": "Numbered Source Channel",
+          "status": "published",
+          "collection": "coll:omc-0025B",
+          "mid": "m35",
+          "children": [],
+          "labels": [
+            {
+              "value": "NSC[channel number]",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0025E",
+      "kind": "collection",
+      "label": "functionalProperties (Asset).audioMixType",
+      "definition": "A description of the type or use for this mix.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:00076",
+          "label": "onSetMix",
+          "prefLabel": "onSetMix",
+          "definition": "A Mix of the on-set captured Audio.",
+          "status": "published",
+          "collection": "coll:omc-0025E",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "onSetMix",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00260",
+          "label": "finalMix",
+          "prefLabel": "finalMix",
+          "definition": "A Mix for distribution of the Creative Work.",
+          "status": "published",
+          "collection": "coll:omc-0025E",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "finalMix",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00261",
+          "label": "temporaryMix",
+          "prefLabel": "temporaryMix",
+          "definition": "A non-final Mix used in the creative process, e.g. for review.",
+          "status": "published",
+          "collection": "coll:omc-0025E",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "temporaryMix",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000453",
+          "label": "printmaster",
+          "prefLabel": "Printmaster",
+          "definition": "The combination of STEMs for a particular soundfield at unity gain.",
+          "status": "published",
+          "collection": "coll:omc-0025E",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "printmaster",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "vmc:c-000454",
+          "label": "finalDeliverable",
+          "prefLabel": "Final Deliverable Audio",
+          "definition": "Playable audio that can be packaged and distributed with a finished Creative Work.",
+          "status": "published",
+          "collection": "coll:omc-0025E",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "finalDeliverable",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-0025F",
+      "kind": "collection",
+      "label": "functionalProperties (Asset).soundfield",
+      "definition": "",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:002AE",
+          "label": "51",
+          "prefLabel": "51",
+          "definition": "5.1 - Uses channels: L, C, R, LS, RS, LFE",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "51",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002AF",
+          "label": "71",
+          "prefLabel": "71",
+          "definition": "7.1DS - Uses channels: L, C, R, Lss, Rss, Lrs, Rrs, LFE",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "71",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B0",
+          "label": "SDS",
+          "prefLabel": "SDS",
+          "definition": "7.1SDS - Uses channels: L, Lc, C, Rc, R, Ls, Rs, LFE",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "SDS",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B1",
+          "label": "61",
+          "prefLabel": "61",
+          "definition": "6.1 - Uses channels: L, R, C, Lss, Rss, Cs, LFE",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "61",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002B2",
+          "label": "M",
+          "prefLabel": "M",
+          "definition": "1.0 Monaural - Uses channel: C",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "M",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BE",
+          "label": "ST",
+          "prefLabel": "ST",
+          "definition": "Standard Stereo - Uses channels L, R",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "ST",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002BF",
+          "label": "DM",
+          "prefLabel": "DM",
+          "definition": "Dual Mono - Uses channels M1, M2",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "DM",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C0",
+          "label": "DNS",
+          "prefLabel": "DNS",
+          "definition": "Discrete Numbered Sources - Uses channels NSC001, NSC002",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "DNS",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C1",
+          "label": "30",
+          "prefLabel": "30",
+          "definition": "3.0 - Uses channels L, C, R",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "30",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C2",
+          "label": "40",
+          "prefLabel": "40",
+          "definition": "4.0 - Uses channels L, C, R, S",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "40",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C3",
+          "label": "50",
+          "prefLabel": "50",
+          "definition": "5.0 - Uses channels L, C, R, Ls, Rs",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m11",
+          "children": [],
+          "labels": [
+            {
+              "value": "50",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C4",
+          "label": "60",
+          "prefLabel": "60",
+          "definition": "6.0 - Uses channels L, C, R, Ls, Rs, Cs",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m12",
+          "children": [],
+          "labels": [
+            {
+              "value": "60",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C5",
+          "label": "70",
+          "prefLabel": "70",
+          "definition": "7.0 DS - Uses channels L, C, R, Lss, Rss, Rls, Rrs",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m13",
+          "children": [],
+          "labels": [
+            {
+              "value": "70",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C6",
+          "label": "LtRt",
+          "prefLabel": "LtRt",
+          "definition": "Lt-Rt - Uses channels Lt, Rt",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m14",
+          "children": [],
+          "labels": [
+            {
+              "value": "LtRt",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:002C7",
+          "label": "51EX",
+          "prefLabel": "51EX",
+          "definition": "5.1 EX - Uses channels L, C, R, Lst, Rst, LFE",
+          "status": "published",
+          "collection": "coll:omc-0025F",
+          "mid": "m15",
+          "children": [],
+          "labels": [
+            {
+              "value": "51EX",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-002AC",
+      "kind": "collection",
+      "label": "audioContent.mcaContent",
+      "definition": "Indicates the nature of the content.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:0026C",
+          "label": "PRM",
+          "prefLabel": "PRM",
+          "definition": "Primary audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "PRM",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0026D",
+          "label": "SAP",
+          "prefLabel": "SAP",
+          "definition": "Secondary audio program",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "SAP",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0026E",
+          "label": "HI",
+          "prefLabel": "HI",
+          "definition": "Hearing Impaired audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "HI",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0026F",
+          "label": "DV",
+          "prefLabel": "DV",
+          "definition": "Descriptive Video audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "DV",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00270",
+          "label": "DX",
+          "prefLabel": "DX",
+          "definition": "Dialog audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "DX",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00271",
+          "label": "MX",
+          "prefLabel": "MX",
+          "definition": "Music audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "MX",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00272",
+          "label": "FX",
+          "prefLabel": "FX",
+          "definition": "Effects audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "FX",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00273",
+          "label": "FFX",
+          "prefLabel": "FFX",
+          "definition": "Filled Effects audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "FFX",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00274",
+          "label": "ME",
+          "prefLabel": "ME",
+          "definition": "Music and Effects audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "ME",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00275",
+          "label": "OP",
+          "prefLabel": "OP",
+          "definition": "Optional Music and Effects audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "OP",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00276",
+          "label": "MESP",
+          "prefLabel": "MESP",
+          "definition": "Music and Effects with Optional audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m11",
+          "children": [],
+          "labels": [
+            {
+              "value": "MESP",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00277",
+          "label": "DME",
+          "prefLabel": "DME",
+          "definition": "DME audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m12",
+          "children": [],
+          "labels": [
+            {
+              "value": "DME",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00278",
+          "label": "NDME",
+          "prefLabel": "NDME",
+          "definition": "NDME audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m13",
+          "children": [],
+          "labels": [
+            {
+              "value": "NDME",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00279",
+          "label": "PNAR",
+          "prefLabel": "PNAR",
+          "definition": "Program Narration audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m14",
+          "children": [],
+          "labels": [
+            {
+              "value": "PNAR",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027A",
+          "label": "ONAR",
+          "prefLabel": "ONAR",
+          "definition": "Optional Narration audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m15",
+          "children": [],
+          "labels": [
+            {
+              "value": "ONAR",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027B",
+          "label": "VO",
+          "prefLabel": "VO",
+          "definition": "Voice Over audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m16",
+          "children": [],
+          "labels": [
+            {
+              "value": "VO",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027C",
+          "label": "VI",
+          "prefLabel": "VI",
+          "definition": "Visually Impaired audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m17",
+          "children": [],
+          "labels": [
+            {
+              "value": "VI",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027D",
+          "label": "CM",
+          "prefLabel": "CM",
+          "definition": "Recorded Commentary audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m18",
+          "children": [],
+          "labels": [
+            {
+              "value": "CM",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027E",
+          "label": "LCM",
+          "prefLabel": "LCM",
+          "definition": "Live commentary audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m19",
+          "children": [],
+          "labels": [
+            {
+              "value": "LCM",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0027F",
+          "label": "MOS",
+          "prefLabel": "MOS",
+          "definition": "Silence audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m20",
+          "children": [],
+          "labels": [
+            {
+              "value": "MOS",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00280",
+          "label": "ADR",
+          "prefLabel": "ADR",
+          "definition": "Automated Dialog Replacement audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m21",
+          "children": [],
+          "labels": [
+            {
+              "value": "ADR",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00281",
+          "label": "GRP",
+          "prefLabel": "GRP",
+          "definition": "Group audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m22",
+          "children": [],
+          "labels": [
+            {
+              "value": "GRP",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00282",
+          "label": "WLA",
+          "prefLabel": "WLA",
+          "definition": "Walla audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m23",
+          "children": [],
+          "labels": [
+            {
+              "value": "WLA",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00283",
+          "label": "CRD",
+          "prefLabel": "CRD",
+          "definition": "Crowd audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m24",
+          "children": [],
+          "labels": [
+            {
+              "value": "CRD",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00284",
+          "label": "VOC",
+          "prefLabel": "VOC",
+          "definition": "Vocal audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m25",
+          "children": [],
+          "labels": [
+            {
+              "value": "VOC",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00285",
+          "label": "FOL",
+          "prefLabel": "FOL",
+          "definition": "Foley audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m26",
+          "children": [],
+          "labels": [
+            {
+              "value": "FOL",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00286",
+          "label": "BG",
+          "prefLabel": "BG",
+          "definition": "Backgrounds audio channel",
+          "status": "published",
+          "collection": "coll:omc-002AC",
+          "mid": "m27",
+          "children": [],
+          "labels": [
+            {
+              "value": "BG",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    },
+    {
+      "id": "coll:omc-002AD",
+      "kind": "collection",
+      "label": "audioContent.mcaContentSubtype",
+      "definition": "Granular indication of the nature of the content if required.",
+      "projection": "collection",
+      "children": [
+        {
+          "id": "omc:00287",
+          "label": "DIR",
+          "prefLabel": "DIR",
+          "definition": "Director: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m1",
+          "children": [],
+          "labels": [
+            {
+              "value": "DIR",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00288",
+          "label": "TECH",
+          "prefLabel": "TECH",
+          "definition": "Technical: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m2",
+          "children": [],
+          "labels": [
+            {
+              "value": "TECH",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00289",
+          "label": "WRT",
+          "prefLabel": "WRT",
+          "definition": "Writer: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m3",
+          "children": [],
+          "labels": [
+            {
+              "value": "WRT",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028A",
+          "label": "CAST",
+          "prefLabel": "CAST",
+          "definition": "Cast: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m4",
+          "children": [],
+          "labels": [
+            {
+              "value": "CAST",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028B",
+          "label": "ANN",
+          "prefLabel": "ANN",
+          "definition": "Announcer: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m5",
+          "children": [],
+          "labels": [
+            {
+              "value": "ANN",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028C",
+          "label": "CTR",
+          "prefLabel": "CTR",
+          "definition": "Commentator: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m6",
+          "children": [],
+          "labels": [
+            {
+              "value": "CTR",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028D",
+          "label": "FS",
+          "prefLabel": "FS",
+          "definition": "Footsteps: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m7",
+          "children": [],
+          "labels": [
+            {
+              "value": "FS",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028E",
+          "label": "PRP",
+          "prefLabel": "PRP",
+          "definition": "Props: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m8",
+          "children": [],
+          "labels": [
+            {
+              "value": "PRP",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:0028F",
+          "label": "CL",
+          "prefLabel": "CL",
+          "definition": "Cloth: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m9",
+          "children": [],
+          "labels": [
+            {
+              "value": "CL",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        },
+        {
+          "id": "omc:00290",
+          "label": "OTHER",
+          "prefLabel": "OTHER",
+          "definition": "Other: audio content information.",
+          "status": "published",
+          "collection": "coll:omc-002AD",
+          "mid": "m10",
+          "children": [],
+          "labels": [
+            {
+              "value": "OTHER",
+              "type": "omcToken",
+              "language": "en"
+            }
+          ],
+          "kind": "term"
+        }
+      ]
+    }
+  ]
+}
