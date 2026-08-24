@@ -44,6 +44,7 @@ import {
     ValidationError,
     createCollection,
     createTerms,
+    extractSubtree,
     deleteCollection,
     forkCollection,
     forkTerm,
@@ -459,6 +460,25 @@ router.post('/collections/:id/fork', authenticated, async (req, res, next) => {
     try {
         const { name, inCollection = null } = req.body ?? {};
         res.status(201).json(await forkCollection(req.params.id, name, inCollection, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Take a term and its descendants into a collection of their own, so the subtree can be reused.
+ *
+ * The new collection is `transparent`, so what the source publishes does not change — see
+ * `extractSubtree` for why the term is still a SKOS concept afterwards.
+ */
+router.post('/collections/:id/extract', authenticated, async (req, res, next) => {
+    try {
+        const { mid, name } = req.body ?? {};
+        if (!mid) {
+            res.status(422).json({ message: 'mid is required', errors: ['Say which member to take'] });
+            return;
+        }
+        res.status(201).json(await extractSubtree(req.params.id, { mid, name }, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }

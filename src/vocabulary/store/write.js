@@ -290,6 +290,161 @@ export async function replaceCollection(id, collection, actor) {
 }
 
 /**
+ * Take a term and everything under it into a collection of its own.
+ *
+ * ## What this is for
+ *
+ * **A collection is the unit of reuse, and a hierarchy is usually a subtree inside one.** `Asset`
+ * holds 122 members, of which `Asset Function` and its descendants are 80. Another view can include
+ * `Asset` whole, and nothing lets it include just that subtree — so an arrangement somebody built
+ * cannot be used elsewhere without being rebuilt by hand, and the rebuild is a copy that drifts.
+ *
+ * After this the subtree is a collection, so it can be included anywhere, live.
+ *
+ * ## Why the term is still a concept afterwards
+ *
+ * The new collection is `transparent`: it exports as nothing and its members come out as though they
+ * sat where it does. `broaderOf` and `topConceptOf` count **term** entries only and skip collections,
+ * so the term at the head keeps the same `broader`, and a top concept stays a top concept. The SKOS
+ * output does not change. The collection is a handle, not a thing in the vocabulary.
+ *
+ * ## The three things that have to be got exactly right
+ *
+ * - **The inclusion takes the moved row's array position.** Array order is sibling order, so adding
+ *   it at the end would silently reorder the source.
+ * - **Mids are preserved**, so the arrangement inside the subtree is untouched. But a placement key
+ *   is `collectionId/mid`, so every `view.arrange` entry naming a moved row is repointed at the new
+ *   collection — otherwise a hidden heading quietly comes back.
+ * - **Two documents are written and no transaction is asked for.** The new collection goes first: if
+ *   the second write fails the term is placed twice, which is visible and removable, where the other
+ *   order would lose the rows.
+ *
+ * @param {string} id - The collection holding the subtree
+ * @param {object} params
+ * @param {string} params.mid - The member row of the term to take
+ * @param {string} [params.name] - The new collection's name; defaults to the term's preferred label
+ * @param {string} [actor]
+ * @returns {Promise<{collection: object, source: object, moved: number, repointed: number}>}
+ * @throws {ValidationError}
+ */
+export async function extractSubtree(id, { mid, name }, actor) {
+    const source = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id });
+    if (!source) throw new ValidationError([`No such collection: ${id}`]);
+
+    const members = source.member ?? [];
+    const at = members.findIndex((member) => member.mid === mid);
+    if (at < 0) throw new ValidationError([`No member "${mid}" in ${id}`]);
+
+    const row = members[at];
+    if (!row.term) {
+        throw new ValidationError(['Only a term can be taken into a collection — a collection member is already reusable']);
+    }
+
+    // Everything below it, at any depth. A queue rather than recursion, for the reason
+    // `descendantsOf` uses one: this runs on data somebody may be midway through editing.
+    const moved = new Set([mid]);
+    let frontier = [mid];
+    while (frontier.length) {
+        const next = [];
+        members.forEach((member) => {
+            if (frontier.includes(member.parent) && !moved.has(member.mid)) {
+                moved.add(member.mid);
+                next.push(member.mid);
+            }
+        });
+        frontier = next;
+    }
+
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: row.term });
+    const label = name ?? (term?.label ?? []).find((entry) => entry.labelType === 'pref')?.value;
+    if (!label) throw new ValidationError(['The new collection needs a name']);
+
+    const newId = collectionId_(label);
+    const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: newId });
+    if (clash) throw new ValidationError([`A collection named "${label}" already exists (${newId})`]);
+
+    // The moved rows in the order they were in. The head loses its parent — it is the top of its own
+    // collection now — and the rest keep theirs, which all point inside the moved set.
+    const taken = members
+        .filter((member) => moved.has(member.mid))
+        .map((member) => {
+            if (member.mid !== mid) return { ...member };
+            const { parent: _wasParented, ...head } = member;
+            return head;
+        });
+
+    const created = stamped({
+        _id: newId,
+        label: [{ value: label, language: 'en', labelType: 'pref' }],
+        definition: term?.definition ?? {},
+        // Emits nothing of its own, so its terms come out exactly where they did before.
+        projections: { skos: 'transparent' },
+        member: taken,
+        extractedFrom: id,
+    }, actor);
+
+    const createdCheck = validateCollection(created);
+    if (!createdCheck.ok) throw new ValidationError(createdCheck.errors);
+
+    const remaining = members.filter((member) => !moved.has(member.mid));
+    // Spliced in where the term row was, because array order is sibling order.
+    const before = members.slice(0, at).filter((member) => !moved.has(member.mid)).length;
+    const inclusion = { mid, collection: newId };
+    if (row.parent) inclusion.parent = row.parent;
+    remaining.splice(before, 0, inclusion);
+
+    const updated = stamped({ ...source, member: remaining }, actor);
+    const updatedCheck = validateCollection(updated);
+    if (!updatedCheck.ok) throw new ValidationError(updatedCheck.errors);
+
+    await vocabCollection(VOCAB_COLLECTIONS).insertOne(created);
+    await vocabCollection(VOCAB_COLLECTIONS).replaceOne({ _id: id }, updated);
+
+    const repointed = await repointArrange(id, newId, moved);
+
+    return { collection: created, source: updated, moved: taken.length, repointed };
+}
+
+/**
+ * Move every `view.arrange` entry naming one of the moved rows onto the new collection.
+ *
+ * A placement key is `collectionId/mid`, so a subtree changing hands invalidates every key naming
+ * it. Left alone, a hidden heading silently reappears and a moved term silently returns to where it
+ * was stored — both of them changes to a published artifact that nobody asked for.
+ *
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {Set<string>} mids - The rows that moved
+ * @returns {Promise<number>} How many views were rewritten
+ */
+async function repointArrange(fromId, toId, mids) {
+    const swap = ((key) => {
+        if (typeof key !== 'string') return key;
+        const cut = key.indexOf('/');
+        if (cut < 0) return key;
+        const collection = key.slice(0, cut);
+        const mid = key.slice(cut + 1);
+        return collection === fromId && mids.has(mid) ? `${toId}/${mid}` : key;
+    });
+
+    const views = await vocabCollection(VOCAB_VIEWS).find({ arrange: { $exists: true } }).toArray();
+    const rewritten = await Promise.all(views.map(async (view) => {
+        const arrange = { ...view.arrange };
+        if (view.arrange.hide) arrange.hide = view.arrange.hide.map(swap);
+        if (view.arrange.move) {
+            arrange.move = view.arrange.move.map((entry) => ({
+                ...entry, placement: swap(entry.placement), under: swap(entry.under),
+            }));
+        }
+        if (JSON.stringify(arrange) === JSON.stringify(view.arrange)) return 0;
+        await vocabCollection(VOCAB_VIEWS).updateOne({ _id: view._id }, { $set: { arrange } });
+        return 1;
+    }));
+
+    return rewritten.reduce((total, one) => total + one, 0);
+}
+
+/**
  * Delete a collection.
  *
  * The terms in it stay. They keep every other collection they belong to, and those left in none show

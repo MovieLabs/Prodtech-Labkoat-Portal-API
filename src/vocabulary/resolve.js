@@ -331,10 +331,10 @@ export async function resolveView({ viewId, status = null, language = DEFAULT_LA
             // are different facts, and deliberately not added to `promoted`: promotion is what
             // hiding is *for*, so counting it there would bury the surprises that number reports.
             hidden: 0,
-            // Terms named by their preferred label because they carry none of the kind the view
-            // asked for. Reported rather than silent: for a view whose names *are* the artifact —
-            // controlled values in a schema — a substituted name is a wrong value, not a cosmetic
-            // difference, and it looks identical to a right one.
+            // Terms carrying no label of the kind the view asked for, whose name was therefore
+            // derived or substituted. Reported rather than silent: for a view whose names *are* the
+            // artifact — controlled values in a schema — a name that was worked out is a guess, and
+            // it looks identical to one somebody decided.
             untyped: [],
         },
     };

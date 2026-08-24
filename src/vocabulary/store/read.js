@@ -47,16 +47,63 @@ export function prefLabel(term, language = DEFAULT_LANGUAGE) {
 export const otherLabels = ((term) => (term?.label ?? []).filter((entry) => entry.labelType !== 'pref'));
 
 /**
+ * Turn a name into the camelCase token a schema would use.
+ *
+ * `Set Dressing` becomes `setDressing`, `STEM` becomes `stem`, `VFX Shot` becomes `vfxShot`. A word
+ * in full capitals is lowered whole rather than character by character, because `sTEM` is what the
+ * naive rule produces and it is nobody's idea of a token.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function tokenFromName(name) {
+    const words = String(name ?? '').split(/[^A-Za-z0-9]+/).filter(Boolean);
+    return words.map((word, at) => {
+        // `VFX` -> `vfx`, not `vFX`. Any word that is already all capitals is an acronym.
+        const settled = /^[A-Z0-9]+$/.test(word) && /[A-Z]/.test(word) ? word.toLowerCase() : word;
+        if (at === 0) return settled.charAt(0).toLowerCase() + settled.slice(1);
+        return settled.charAt(0).toUpperCase() + settled.slice(1);
+    }).join('');
+}
+
+/**
+ * Label types that can be worked out from the preferred name when a term carries none.
+ *
+ * ## Why deriving is a fallback and never the value
+ *
+ * Of the 290 terms carrying an authored `omcToken`, **123 are not what deriving would produce** —
+ * and the differences are a rule, not noise: the token drops the part of the name the dotted path
+ * already supplies. `VFX Shot` is `vfx` because it sits under `shot`, so the value reads `shot.vfx`
+ * and saying "shot" twice would be wrong. That decision depends on *where the term sits*, and the
+ * same term in two arrangements would want two different tokens, so nothing can derive it. One
+ * authored token even corrects a misspelling in the label, which deriving would faithfully repeat.
+ *
+ * So an authored label always wins. What deriving replaces is the **other** fallback — naming the
+ * term by its preferred label, which put `Set Dressing` into a schema expecting `setDressing`. A
+ * derived token is a good guess where there was previously a certain mistake, and `problems.untyped`
+ * reports every one so a guess can be checked before it is published.
+ *
+ * @type {Object<string, function(object): string>}
+ */
+const DERIVABLE = {
+    omcToken: ((term) => tokenFromName(prefLabel(term))),
+};
+
+/**
  * The label of a given kind, falling back to the preferred one.
  *
  * A view may publish names of a kind other than the preferred one, which is what lets one audience
  * receive `capture.witnessCamera` where another receives `Witness Camera` — the same term, named the
  * way each consumer needs it.
  *
- * **The fallback is load-bearing.** A term with no label of the requested kind still has to be
- * named, and naming it by its identifier would put `vmc:c-0003C4` in an artifact where a word
- * belongs. So a missing label of that kind degrades to the preferred name, and the view's generator
- * reports how many terms it happened to — a count of zero is what says the view is complete.
+ * **The fallback is load-bearing, and it has two steps.** A term with no label of the requested
+ * kind still has to be named. Where the kind can be worked out from the preferred name it is
+ * derived — see `DERIVABLE` — which is how a schema view stops publishing `Set Dressing` where it
+ * needs `setDressing`. Where it cannot, the preferred name is used as it stands, because naming the
+ * term by its identifier would put `vmc:c-0003C4` in an artifact where a word belongs.
+ *
+ * Either way it is a substitution, and `problems.untyped` counts every one: a derived token is a
+ * good guess, and a guess in a schema is worth checking before it is published.
  *
  * @param {object} term
  * @param {string} [labelType] - `'pref'` or null means the preferred label
@@ -67,7 +114,11 @@ export function labelOfType(term, labelType = 'pref', language = DEFAULT_LANGUAG
     if (!labelType || labelType === 'pref') return prefLabel(term, language);
     const typed = (term?.label ?? []).filter((entry) => entry.labelType === labelType);
     const found = (typed.find((entry) => entry.language === language) ?? typed[0])?.value;
-    return found ?? prefLabel(term, language);
+    if (found) return found;
+    // Deliberately here and not in `otherLabels`: this answers "what does *this view* call the
+    // term", where that one lists the labels a term actually carries. Deriving there would give
+    // every term in the vocabulary a `skos:altLabel` it was never given.
+    return DERIVABLE[labelType]?.(term) ?? prefLabel(term, language);
 }
 
 /**
