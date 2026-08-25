@@ -58,7 +58,7 @@ for (const view of all) {
     }
     const root = await collections.findOne({ _id: view.root });
     if (!root) {
-        plan.push({ view: view._id, action: `root ${view.root} is missing — attaching nothing` , attach: 0 });
+        plan.push({ view: view._id, action: `root ${view.root} is missing — attaching nothing`, attach: 0 });
         continue;
     }
     if (headsATerm(root)) {
