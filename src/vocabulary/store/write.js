@@ -236,9 +236,10 @@ export async function createCollection(collection, actor) {
     if (clash) throw new ValidationError([`A collection named "${name}" already exists (${id})`]);
 
     const prepared = stamped({
-        // Not a scheme unless asked: a scheme is a claim about what a body of terms *is*, and
-        // `collection` is the modest reading — a named group with no claim over its members.
-        projections: { skos: 'collection' },
+        // A collection is a term made reusable, so it emits no node of its own and its members
+        // come out where it sits. Nothing asks for anything else any more — the pickers that
+        // offered the other two values are gone, and the flag itself goes with the export work.
+        projections: { skos: 'transparent' },
         member: [],
         definition: {},
         ...collection,
