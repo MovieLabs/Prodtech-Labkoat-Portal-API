@@ -710,10 +710,11 @@ export async function deleteView(id) {
  * @param {string} id
  * @param {object} facet
  * @param {string} [actor]
+ * @param {boolean} [force=false] - Remove a value terms still carry
  * @returns {Promise<{facet: object, warnings: string[]}>}
- * @throws {ValidationError}
+ * @throws {ValidationError} When a removed value is still in use and `force` is not set
  */
-export async function saveFacet(id, facet, actor) {
+export async function saveFacet(id, facet, actor, force = false) {
     if (!facet?.appliesTo || !facet?.key) {
         throw new ValidationError(['A facet must say what it applies to and which key its values carry']);
     }
@@ -730,6 +731,25 @@ export async function saveFacet(id, facet, actor) {
         if (removed.length) {
             const inUse = await vocabCollection(VOCAB_TERMS)
                 .countDocuments({ [`${prepared.appliesTo}.${prepared.key}`]: { $in: removed } });
+            // **Refused, not warned.** A value removed while terms still carry it does not rewrite
+            // those terms — that would be a list edit silently changing hundreds of records — so
+            // they keep a value the controlled set no longer admits. The consequence lands nowhere
+            // near the action: the export reports the value as unknown rather than omitting it, and
+            // `validateTerm` refuses the next edit to every one of those terms. Removing `omcToken`
+            // blocked a sixth of the vocabulary this way.
+            //
+            // To stop a type reaching an export, give it `skos: null` instead. That is what the
+            // projection is for, and it costs nothing.
+            if (inUse && !force) {
+                throw new ValidationError([
+                    `${inUse} term(s) still use ${removed.join(', ')}, and would keep a value this `
+                    + 'set no longer admits — the export would report it as unknown, and editing any '
+                    + 'of those terms would be refused.',
+                    'To stop a type being exported while leaving the terms alone, set its SKOS '
+                    + 'projection to none rather than removing it.',
+                    'Pass force=true to remove it anyway.',
+                ]);
+            }
             if (inUse) {
                 warnings.push(
                     `${inUse} term(s) still use ${removed.join(', ')}. They keep the value, it is `

@@ -405,7 +405,9 @@ router.delete('/views/:id', authenticated, async (req, res, next) => {
 /** Create or replace a facet -- the controlled set behind a kind of label, note, example or tag. */
 router.put('/facets/:id', authenticated, async (req, res, next) => {
     try {
-        const { facet, warnings } = await saveFacet(req.params.id, req.body, actorOf(req));
+        const { facet, warnings } = await saveFacet(
+            req.params.id, req.body, actorOf(req), req.query.force === 'true',
+        );
         res.json({ facet, warnings });
     } catch (err) {
         writeFailed(err, res, next);
