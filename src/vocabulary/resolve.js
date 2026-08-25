@@ -483,6 +483,13 @@ export function schemeHeads(resolution) {
         placement.path.forEach((entry) => {
             if (entry.scheme) heads.set(entry.id, schemeIdFor(entry.id));
         });
+        // A head is normally found in its children's paths, but one whose children were all filtered
+        // out by status appears in none — and it is still the vocabulary the view attached. Read off
+        // the placement instead: an empty path means the view attached it, and an arrangement is
+        // what makes it a scheme rather than a concept.
+        if (placement.path.length) return;
+        const term = resolution.terms.get(placement.termId);
+        if (term?.member?.length) heads.set(placement.termId, schemeIdFor(placement.termId));
     });
     return heads;
 }

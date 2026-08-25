@@ -96,15 +96,14 @@ export function skosTriples(resolution, projections) {
 
     // ---- schemes ----
     //
-    // A term the view attaches directly, carrying an arrangement, is what a SKOS consumer receives
-    // as a `skos:ConceptScheme`. Nothing on the term declares that: it is where the term sits, so
-    // the same term heads a vocabulary in the view that attaches it and is an ordinary concept in a
-    // view that reaches it three levels down.
+    // A term the view attaches directly, carrying an arrangement, **is** the vocabulary: it comes
+    // out as a `skos:ConceptScheme` and not as a concept, and its children are that scheme's top
+    // concepts. Nothing on the term declares this — it is where the term sits, so the same term
+    // heads a vocabulary in the view that attaches it and is an ordinary concept in a view that
+    // reaches it three levels down.
     //
-    // **It is published twice, under two identifiers.** SKOS declares Concept and ConceptScheme
-    // mutually disjoint (SKOS Reference S9, S12), so the scheme takes the derived `vmc:s-` id while
-    // the concept keeps its own — and the head still appears among its own top concepts, which is
-    // where it was before the arrangement moved onto it.
+    // A term the view attaches that carries no arrangement is just a concept, and the tree below it
+    // works the usual way.
     heads.forEach((schemeId, termId) => {
         const term = terms.get(termId);
         if (!term) return;
@@ -118,9 +117,19 @@ export function skosTriples(resolution, projections) {
 
     const byTerm = placementsByTerm(resolution);
 
-    byTerm.forEach((placements, termId) => {
+    byTerm.forEach((all, termId) => {
         const term = terms.get(termId);
         if (!term) return;
+
+        // **A scheme head's own placement is the scheme, not a concept appearance.** It is the one
+        // placement the view attaches directly, so it is the one with an empty path; every other
+        // placement of the same term is a genuine appearance somewhere else and still counts.
+        //
+        // A term that is *only* a scheme head therefore emits no concept at all — which is the
+        // point. Emitting one made `Audio` a scheme whose single top concept was `Audio`, and every
+        // real top concept then carried a `broader` back to it.
+        const placements = heads.has(termId) ? all.filter((one) => one.path.length) : all;
+        if (!placements.length) return;
 
         add(termId, 'rdf:type', ref('skos:Concept'));
 
@@ -169,15 +178,6 @@ export function skosTriples(resolution, projections) {
             const above = broaderOf(placement);
             if (above) broader.add(above);
         });
-
-        // A term that heads a scheme is a concept in its own vocabulary, and a top one — it is what
-        // the scheme is about. Stated rather than derived: a placement's path holds its ancestors,
-        // and the head has none, so nothing above it could say this.
-        const ownScheme = heads.get(termId);
-        if (ownScheme) {
-            inScheme.add(ownScheme);
-            tops.add(ownScheme);
-        }
 
         inScheme.forEach((scheme) => add(termId, 'skos:inScheme', ref(scheme)));
         tops.forEach((scheme) => {

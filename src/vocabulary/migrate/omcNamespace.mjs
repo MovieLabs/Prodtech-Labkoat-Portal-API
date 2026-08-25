@@ -32,8 +32,9 @@
  * @module vocabulary/migrate/omcNamespace
  */
 
-import { awsSecrets } from 'mlHelpers';
 import fs from 'node:fs';
+
+import { awsSecrets } from 'mlHelpers';
 
 import config from '../../config.js';
 import { VOCAB_TERMS, VOCAB_VIEWS, vocabCollection } from '../store/collections.js';
