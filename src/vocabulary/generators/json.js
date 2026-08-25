@@ -11,8 +11,9 @@
  * @module vocabulary/generators/json
  */
 
-import { schemesOf, tagsFor, topConceptOf } from '../resolve.js';
-import { projectionOf } from '../store/projections.js';
+import {
+    schemeHeads, schemesOf, tagsFor, topConceptOf,
+} from '../resolve.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
 /**
@@ -80,57 +81,32 @@ function node(resolution, placement) {
 export function toViewJson(resolution) {
     const { view, language } = resolution;
 
-    // Rebuild the nesting from the flat list. A placement's parent is the last entry in its path,
-    // whether that is a term or a collection, so one pass keyed on that gives the whole tree.
-    const nodesByMid = new Map();
-    const collectionNodes = new Map();
-
-    const collectionNode = ((id) => {
-        if (collectionNodes.has(id)) return collectionNodes.get(id);
-        const collection = resolution.collections.get(id);
-        const entry = {
-            id,
-            kind: 'collection',
-            label: prefLabel(collection, language),
-            definition: localised(collection?.definition, language),
-            projection: projectionOf(collection, 'skos'),
-            children: [],
-        };
-        collectionNodes.set(id, entry);
-        return entry;
-    });
-
+    // Rebuild the nesting from the flat list. Every path entry is a term, so a placement's parent is
+    // simply the last one and a single pass gives the whole tree.
+    //
+    // **Keyed by the path, not by the term id.** A term sits in several places, and its children
+    // belong under the copy they were declared beneath; keying by id alone gathers all of them under
+    // whichever copy happened to be built first. The one case a path cannot separate — two
+    // placements of one term under one parent — is the same ambiguity the editor's published tree
+    // documents, and it is rare enough to state rather than solve.
+    const byPath = new Map();
     const roots = [];
+    const heads = schemeHeads(resolution);
+
+    const pathKey = ((entries) => entries.map((entry) => entry.id).join('>'));
 
     resolution.placements.forEach((placement) => {
         const entry = node(resolution, placement);
         entry.kind = 'term';
-        nodesByMid.set(`${placement.collectionId}/${placement.mid}`, entry);
+        // The vocabulary this term heads, where a view attaches it. A consumer reading the JSON gets
+        // the same answer the SKOS gives without having to know how the identifier is derived.
+        if (!placement.path.length && heads.has(placement.termId)) {
+            entry.scheme = heads.get(placement.termId);
+        }
+        byPath.set(pathKey([...placement.path, { id: placement.termId }]), entry);
 
-        const parent = placement.path[placement.path.length - 1];
-        if (!parent) {
-            roots.push(entry);
-            return;
-        }
-        if (parent.kind === 'term') {
-            // The parent term's own placement shares this path minus its last entry. Found by id
-            // rather than by mid because a promoted child's parent may be in another collection.
-            const parentEntry = [...nodesByMid.values()].find((candidate) => candidate.id === parent.id);
-            (parentEntry ?? { children: roots }).children.push(entry);
-            return;
-        }
-        const collection = resolution.collections.get(parent.id);
-        if (projectionOf(collection, 'skos') === 'transparent') {
-            roots.push(entry);
-            return;
-        }
-        collectionNode(parent.id).children.push(entry);
-    });
-
-    // Collections that hold something, hung under the root. A transparent one contributes no node,
-    // so its children were already promoted above.
-    collectionNodes.forEach((entry) => {
-        if (entry.children.length) roots.push(entry);
+        const parent = placement.path.length ? byPath.get(pathKey(placement.path)) : null;
+        (parent ?? { children: roots }).children.push(entry);
     });
 
     return {

@@ -22,7 +22,6 @@ import { awsSecrets } from 'mlHelpers';
 import config from '../../config.js';
 import VocabNeo4j from '../../neo4J/neo4JInterface.js';
 import {
-    VOCAB_COLLECTIONS,
     VOCAB_FACETS,
     VOCAB_TERMS,
     VOCAB_VIEWS,
@@ -36,6 +35,35 @@ import { seedViews } from '../store/viewSeeds.js';
 import { OMC_TOKEN, buildOmcModel } from './buildOmcModel.js';
 import { auditOmcGraph, readOmcGraph } from './readOmcGraph.js';
 import { formatOmcChecks, verifyOmcMerge } from './verifyOmc.js';
+
+/**
+ * **This cannot run against the store as it now is, and must not be made to.**
+ *
+ * It rebuilds `vocab_collections`, which no longer exists: an arrangement is a property of the term
+ * that carries it, not a record of its own. Rebuilding would put the two-record model back and undo
+ * the collapse.
+ *
+ * **A faithful port is not possible**, which is worth saying plainly rather than leaving as a task
+ * somebody picks up. Choosing which term heads each arrangement was a human decision, not a
+ * derivation: `vmc:s-Security` held the security model while the term "Security" was a crew
+ * department above Security Coordinator, Captain and Crew, and no rule could tell those apart.
+ * `migrate/collapse.mjs` is where those decisions are written down, and it has run.
+ *
+ * Left in place because it is the record of how the vocabulary came out of Neo4j, and reading it is
+ * still the way to answer questions about what the import did.
+ */
+const REBUILDS_A_STORE_THAT_IS_GONE = true;
+if (REBUILDS_A_STORE_THAT_IS_GONE) {
+    console.error([
+        'This migration rebuilds vocab_collections, which no longer exists.',
+        'An arrangement now belongs to the term that carries it; see migrate/collapse.mjs.',
+        'Running this would restore the two-record model and undo that.',
+    ].join('\n'));
+    process.exit(1);
+}
+
+/** The Mongo collection this used to write. Named here because the store no longer exports it. */
+const VOCAB_COLLECTIONS = 'vocab_collections';
 
 const heading = ((text) => `\n${text}\n${'-'.repeat(text.length)}`);
 

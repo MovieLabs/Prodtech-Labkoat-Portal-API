@@ -1,5 +1,5 @@
 /**
- * Minting identifiers for terms and collections.
+ * Minting identifiers for terms and views, and deriving the scheme id a published term takes.
  *
  * ## Why this moved to the server, and became atomic
  *
@@ -31,8 +31,11 @@ import { VOCAB_COUNTERS, vocabCollection } from './collections.js';
 /** Terms: `vmc:c-0000b8`. Six lowercase hex digits, as the live vocabulary has. */
 const TERM_PREFIX = 'vmc:c-';
 
-/** Collections: `coll:asset-function`, a slug — see `collectionId` for why these are not counted. */
-const COLLECTION_PREFIX = 'coll:';
+/** Concept schemes: `vmc:s-0000b8`, derived from a term id at export. Never stored. */
+const SCHEME_PREFIX = 'vmc:s-';
+
+/** Views: `view:media-creation`, a slug — see `viewId` for why these are not counted. */
+const VIEW_PREFIX = 'view:';
 
 /** Width of the hex suffix. Six digits allows 16.7M terms; the vocabulary holds 413. */
 const HEX_WIDTH = 6;
@@ -112,36 +115,39 @@ export function termIdNumber(id) {
 }
 
 /**
- * The identifier for a collection, derived from its name.
+ * The identifier for a view, derived from its name.
  *
- * A slug, not a counter, continuing what schemes already do (`vmc:s-Computer-Graphics`) — a
- * collection id is meant to be recognisable in an export and in a URL. It is lowercased here, which
- * scheme ids were not: `vmc:s-Asset` and `vmc:s-asset` were two different schemes, and nobody meant
- * them to be.
+ * A slug rather than a counter: a view id is meant to be recognisable in an export and in a URL.
  *
  * **The consequence to know:** the id is derived from the name, so it does not survive a rename.
  * There is no rename path today, and adding one has to mean "keep the id, change the label" rather
- * than "mint a new id" — otherwise every view rooted on the collection breaks. Callers must check
- * for an existing id before creating.
- *
- * @param {string} name - The collection's preferred label
- * @returns {string} e.g. `coll:computer-graphics`
- */
-export function collectionId(name) {
-    const slug = String(name)
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-') // Any run of non-alphanumerics becomes one hyphen
-        .replace(/^-+|-+$/g, ''); // No leading or trailing hyphen
-    return `${COLLECTION_PREFIX}${slug}`;
-}
-
-/**
- * The identifier for a view. Same slug rule as a collection, its own namespace.
+ * than "mint a new id". Callers must check for an existing id before creating.
  *
  * @param {string} name
  * @returns {string} e.g. `view:omc-controlled-values`
  */
 export function viewId(name) {
-    return `view:${collectionId(name).slice(COLLECTION_PREFIX.length)}`;
+    const slug = String(name)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-') // Any run of non-alphanumerics becomes one hyphen
+        .replace(/^-+|-+$/g, ''); // No leading or trailing hyphen
+    return `${VIEW_PREFIX}${slug}`;
+}
+
+/**
+ * The SKOS `ConceptScheme` identifier for a term published as one.
+ *
+ * A term that a view attaches directly is published twice over: as the scheme, and as a concept
+ * inside it. **SKOS declares Concept and ConceptScheme mutually disjoint** (SKOS Reference S9, S12),
+ * so those cannot be the same URI — hence a second identifier, derived rather than stored.
+ *
+ * Derived from the term id and not from its name, so a rename never moves a published scheme.
+ *
+ * @param {string} id - A term id, `vmc:c-000041`
+ * @returns {string} `vmc:s-000041`
+ */
+export function schemeIdFor(id) {
+    if (typeof id !== 'string' || !id.startsWith(TERM_PREFIX)) return id;
+    return `${SCHEME_PREFIX}${id.slice(TERM_PREFIX.length)}`;
 }

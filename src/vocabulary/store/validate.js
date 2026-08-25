@@ -21,7 +21,6 @@
  * @module vocabulary/store/validate
  */
 
-import { SKOS_PROJECTIONS } from './projections.js';
 import { listFacets } from './read.js';
 
 /**
@@ -118,18 +117,20 @@ export function validateTerm(term, allowed) {
     checkTypes(term?.note, 'note', 'noteType');
     checkTypes(term?.example, 'example', 'exampleType');
 
+    checkArrangement(term, found);
+
     return found;
 }
 
 /**
- * Check a member list — a collection's arrangement, or a view's own.
+ * Check a member list — a term's arrangement, or a view's own.
  *
- * The same rules either way, which is the point of a view holding members rather than pointing at a
- * collection that holds them: there is one shape, and one thing that checks it.
+ * The same rules either way, which is the point of both holding members in one shape: there is one
+ * thing to check, and a row means the same wherever it sits.
  *
  * @param {Array<object>} members
  * @param {ValidationResult} found - Accumulated into
- * @param {string} where - Named in the messages, e.g. "this collection"
+ * @param {string} where - Named in the messages, e.g. "this arrangement"
  */
 function validateMembers(members, found, where) {
     const mids = new Set();
@@ -139,12 +140,7 @@ function validateMembers(members, found, where) {
         if (mids.has(member.mid)) fail(found, `Duplicate member id "${member.mid}"`);
         mids.add(member.mid);
 
-        if (!member.term && !member.collection) {
-            fail(found, `Member "${member.mid}" names neither a term nor a collection`);
-        }
-        if (member.term && member.collection) {
-            fail(found, `Member "${member.mid}" names both a term and a collection — it must be one`);
-        }
+        if (!member.term) fail(found, `Member "${member.mid}" names no term`);
     });
 
     // A parent outside the list would break the walk that derives dotted labels and the
@@ -174,44 +170,38 @@ function validateMembers(members, found, where) {
 }
 
 /**
- * Check a collection.
+ * Check the arrangement a term carries.
  *
- * @param {object} collection
- * @returns {ValidationResult}
+ * Called as part of checking the term: an arrangement is a property of a term, so there is no
+ * separate record to validate on its own.
+ *
+ * @param {object} term
+ * @param {ValidationResult} found - Accumulated into
  */
-export function validateCollection(collection) {
-    const found = result();
-
-    if (!collection?._id) fail(found, 'A collection must have an identifier');
-    if (!(collection?.label ?? []).some((label) => label.labelType === 'pref')) {
-        fail(found, 'A collection must have a preferred label');
+function checkArrangement(term, found) {
+    if (term?.member === undefined) return; // A plain term, which is most of them
+    if (!Array.isArray(term.member)) {
+        fail(found, 'An arrangement must be a list of members');
+        return;
     }
 
-    const declared = collection?.projections?.skos;
-    if (declared && !SKOS_PROJECTIONS.includes(declared)) {
-        fail(found, `projections.skos must be one of ${SKOS_PROJECTIONS.join(', ')}`);
-    }
+    validateMembers(term.member, found, 'this arrangement');
 
-    validateMembers(collection?.member ?? [], found, 'this collection');
-
-    // A collection that includes itself, directly. Indirect cycles need every collection to check,
-    // so they are caught at resolve time and reported there — this catches the common case cheaply.
-    (collection?.member ?? []).forEach((member) => {
-        if (member.collection === collection._id) {
-            fail(found, 'A collection cannot include itself');
-        }
+    // A term whose arrangement reaches itself, directly. Indirect cycles need every arrangement in
+    // hand to check, so those are caught at resolve time and reported there — this catches the
+    // common case cheaply, at the write that caused it.
+    term.member.forEach((member) => {
+        if (member.term === term._id) fail(found, 'A term cannot be placed inside its own arrangement');
     });
-
-    return found;
 }
 
 /**
  * Check the shape of a view's `arrange` block.
  *
- * **Shape only, and that is the whole design.** Whether `coll:audio/m7` names a placement this view
- * actually reaches depends on the arrangement of every collection the view gathers, which is not in
- * hand here and changes without this view being written to. So it is reported at resolve time, in
- * `problems` — the same split `validateCollection` already makes for indirect collection cycles.
+ * **Shape only, and that is the whole design.** Whether `vmc:c-000041/m7` names a placement this
+ * view actually reaches depends on every arrangement the view gathers, which is not in hand here and
+ * changes without this view being written to. So it is reported at resolve time, in `problems` — the
+ * same split `checkArrangement` already makes for indirect cycles.
  *
  * What is worth refusing here is a key that could never name anything, because that is a typo rather
  * than a stale reference and it would otherwise fail silently — a view that hides nothing looks
@@ -224,8 +214,8 @@ function checkArrange(view, found) {
     const arrange = view?.arrange;
     if (!arrange) return;
 
-    // Exactly one slash, with something either side. A collection id carries a colon and never a
-    // slash, and a mid is `m` followed by digits, so this is the whole of the rule.
+    // Exactly one slash, with something either side. A term id carries a colon and never a slash,
+    // and a mid is `m` followed by digits, so this is the whole of the rule.
     const wellFormed = ((key) => {
         if (typeof key !== 'string') return false;
         const parts = key.split('/');
@@ -238,7 +228,7 @@ function checkArrange(view, found) {
         } else {
             arrange.hide.forEach((key) => {
                 if (!wellFormed(key)) {
-                    fail(found, `"${key}" is not a placement key — it must read collectionId/memberId, e.g. coll:audio/m7`);
+                    fail(found, `"${key}" is not a placement key — it must read containerId/memberId, e.g. vmc:c-000041/m7`);
                 }
             });
         }
@@ -257,7 +247,7 @@ export function validateView(view, allowed) {
 
     if (!view?._id) fail(found, 'A view must have an identifier');
     // A view **is** the root. What it publishes is what is attached to it, in the same member shape
-    // a collection uses — so a view can attach a plain term as readily as a collection.
+    // a term's arrangement uses — so a view attaches a plain term and an arranged one alike.
     if (view?.member !== undefined && !Array.isArray(view.member)) {
         fail(found, 'A view’s member list must be a list');
     } else {
@@ -315,25 +305,29 @@ export function checkTermDeletion(usage) {
 }
 
 /**
- * What deleting a collection would cost.
+ * What reverting an arrangement would cost.
  *
- * @param {object} usage - From `collectionUsage`
+ * Nothing is deleted and nothing stops resolving — the term stays, and so does every placement of
+ * it. What changes is that its members go back to being local to one container, so **every other
+ * placement of the term loses them**. That is a consequence worth reading before it happens, and it
+ * is a warning rather than a refusal because it is exactly what the reader asked for.
+ *
+ * @param {object} usage - From `termUsage`
+ * @param {string} keepingIn - The container the members are going back to
  * @returns {ValidationResult}
  */
-export function checkCollectionDeletion(usage) {
+export function checkArrangementRemoval(usage, keepingIn) {
     const found = result();
 
-    // A view attaching a collection that no longer exists resolves to a hole, and says so only when
-    // somebody next opens it. That is an error rather than a warning.
-    if (usage?.views?.length) {
-        fail(found, `${usage.views.length} view(s) publish this collection: `
-        + `${usage.views.map((view) => view._id).join(', ')}. Detach or delete them first.`);
-    }
-    if (usage?.collections?.length) {
+    const elsewhere = [
+        ...(usage?.collections ?? []),
+        ...(usage?.views ?? []),
+    ].map((one) => one._id).filter((id) => id !== keepingIn);
+
+    if (elsewhere.length) {
         found.warnings.push(
-            `${usage.collections.length} collection(s) include this one: `
-            + `${usage.collections.map((collection) => collection._id).join(', ')}. `
-            + 'Those inclusions will stop resolving.',
+            `The term is also placed in ${elsewhere.join(', ')}. `
+            + `Those placements will lose what is under it, which stays in ${keepingIn}.`,
         );
     }
     return found;
