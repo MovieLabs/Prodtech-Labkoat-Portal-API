@@ -44,6 +44,10 @@ const GENERATORS = {
             view: resolution.view,
             status: resolution.status,
             placements: resolution.placements,
+            // What `arrange.hide` left out. Only this format carries them: an editor showing what a
+            // view publishes has to draw the headings it does not, or there is no way to see what
+            // was left out and no way to put it back.
+            suppressed: resolution.suppressed,
             terms: Object.fromEntries(resolution.terms),
             collections: Object.fromEntries(resolution.collections),
             problems: resolution.problems,
