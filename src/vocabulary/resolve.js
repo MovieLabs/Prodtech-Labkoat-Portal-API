@@ -26,8 +26,8 @@
  *
  * ## Filtering promotes rather than strands
  *
- * When a term is excluded by status or by an `exclude` list, its children attach to the nearest
- * surviving ancestor instead of disappearing with it. A published term under a proposed one is
+ * When a term is filtered out by status, its children attach to the nearest surviving ancestor
+ * instead of disappearing with it. A published term under a proposed one is
  * content somebody wants; dropping it because of its parent loses it, and keeping it with a
  * `broader` pointing at something that is not in the output produces SKOS that does not resolve.
  * Promotion is also the correct reading: if B is broader than C and B is gone, C's broader is
@@ -136,10 +136,8 @@ async function loadReachable(rootId) {
  * @param {PathEntry[]} params.path - Ancestors of this collection, outermost first
  * @param {object} params.ctx - Shared state: collections, keep predicate, output, problems
  * @param {Set<string>} params.chain - Collection ids currently being expanded, for cycle detection
- * @param {string[]} [params.exclude] - Term ids this inclusion drops
- * @param {object} [params.filter] - `{ status: [...] }` this inclusion narrows by
  */
-function walkCollection({ collectionId, path, ctx, chain, exclude = [], filter = null }) {
+function walkCollection({ collectionId, path, ctx, chain }) {
     // A collection that includes itself, directly or through others, would recurse forever. Stop,
     // record it, and carry on with the rest — one bad reference must not take the whole view down.
     if (chain.has(collectionId)) {
@@ -152,7 +150,6 @@ function walkCollection({ collectionId, path, ctx, chain, exclude = [], filter =
 
     const nextChain = new Set(chain).add(collectionId);
     const members = collection.member ?? [];
-    const excluded = new Set(exclude);
 
     // The path entry this collection contributes. A `transparent` collection contributes structure
     // but no node, so it is still recorded here — generators decide whether to emit it, and the
@@ -191,15 +188,13 @@ function walkCollection({ collectionId, path, ctx, chain, exclude = [], filter =
         const inherited = member.parent ? childPath.get(member.parent) ?? here : here;
 
         if (member.collection) {
-            // A nested collection. Its own `exclude`/`filter` narrow it, and they compose with
-            // whatever this inclusion was already narrowing by.
+            // A nested collection, whole. What it contributes is decided where it is arranged and
+            // by the view — never by the row that includes it.
             walkCollection({
                 collectionId: member.collection,
                 path: inherited,
                 ctx,
                 chain: nextChain,
-                exclude: [...exclude, ...(member.exclude ?? [])],
-                filter: member.filter ?? filter,
             });
             // A collection member contributes no term, so its children inherit its own path.
             childPath.set(member.mid, inherited);
@@ -215,9 +210,9 @@ function walkCollection({ collectionId, path, ctx, chain, exclude = [], filter =
             return;
         }
 
-        // A heading this view does not publish. Asked before the filters because it is a decision
-        // about this view rather than a consequence of one, and an editor drawing what was left out
-        // has to be able to say which of the two happened.
+        // A heading this view does not publish. Asked before the status filter because it is a
+        // decision about this view rather than a consequence of one, and an editor drawing what was
+        // left out has to be able to say which of the two happened.
         if (ctx.hidden.has(placementKey(collectionId, member.mid))) {
             childPath.set(member.mid, inherited);
             ctx.suppressed.push({
@@ -227,10 +222,9 @@ function walkCollection({ collectionId, path, ctx, chain, exclude = [], filter =
             return;
         }
 
-        const keptByStatus = ctx.keep(term) && (!filter?.status || filter.status.includes(term.status));
-        if (excluded.has(member.term) || !keptByStatus) {
-            // Filtered out. Children inherit this member's *own* inherited path, so they attach to
-            // the nearest surviving ancestor rather than vanishing.
+        if (!ctx.keep(term)) {
+            // Filtered out by status. Children inherit this member's *own* inherited path, so they
+            // attach to the nearest surviving ancestor rather than vanishing.
             childPath.set(member.mid, inherited);
             ctx.problems.filtered += 1;
             if ((byParent.get(member.mid) ?? []).length) ctx.problems.promoted += 1;
