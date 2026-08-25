@@ -260,6 +260,16 @@ export function validateView(view, allowed) {
         fail(found, 'labelStyle must be plain or dotted');
     }
 
+    // How wide the editor draws a pill for this view. Bounded rather than free: below about 120 a
+    // pill cannot hold a word, and past 800 one node fills the canvas — both are ways of making the
+    // graph unusable by typing a number into a form.
+    if (view?.nodeWidth !== undefined && view.nodeWidth !== null) {
+        const width = Number(view.nodeWidth);
+        if (!Number.isFinite(width) || width < 120 || width > 800) {
+            fail(found, 'nodeWidth must be a number between 120 and 800');
+        }
+    }
+
     // Which kind of name this view publishes. Controlled for the same reason a term's label types
     // are: a view asking for `omcTokn` renders every name from the preferred-label fallback and
     // looks like it worked, because a substituted name is a name.
