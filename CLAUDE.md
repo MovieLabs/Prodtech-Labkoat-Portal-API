@@ -162,7 +162,9 @@ worker modules purely so the built ingest UI stayed untouched.
 ### The vocabulary — two stores, mid-migration
 
 **`/api/vocab` (Neo4j) still backs the three old tabs. `/api/vocab/v1` (Mongo) now reads *and
-writes*** — terms, collections, views and facets, from the `OMC Testing` tab. Both are live and
+writes*** — terms, views and facets, from the `OMC Testing` tab. **There is no collection store**: a
+collection is a `member` array on the term that carries it, so `vocab_collections` is gone and an
+arrangement has no identifier of its own. See the Portal's `src/Components/Vocabulary/CLAUDE.md`. Both are live and
 **they are not synchronised**: a term written to one does not appear in the other. That is the
 staging working as intended, and it is the first thing to check when something looks missing.
 
@@ -170,26 +172,41 @@ staging working as intended, and it is the first thing to check when something l
 `src/neo4J/` and `src/vocabulary/{ttl,jsonld}.js` back `/api/vocab`.
 
 *New:* `src/vocabulary/{store,migrate,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
-`drift.js` and `src/routes/vocab-v1-router.js`. Five `vocab_`-prefixed collections in fMam's **`app_config`**
+`drift.js` and `src/routes/vocab-v1-router.js`. Four `vocab_`-prefixed collections in fMam's **`app_config`**
 database — no new database, no new credential (the gateway already loads `SECRET_ARN.FMAM`, which
 holds the Mongo user). **Every collection this subsystem creates is `vocab_`-prefixed**; the cluster
 is shared and users name their own.
 
 ```bash
-node src/vocabulary/migrate/run.js env=local            # SKOS -> Mongo. Read, build, verify, print.
-node src/vocabulary/migrate/run.js env=local --write    # ...then write, only if every check passed
-node src/vocabulary/migrate/runOmc.js --write           # then the OMC-JSON graph, merged into it
 node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --out vocab.ttl
 node src/vocabulary/drift.js --schema ../omcUtil/src/omc/validation/schema/OMC-JSON-v3.0.schema.json
+node src/vocabulary/migrate/seed.js env=local --write   # indexes, facet and view seeds. Safe to re-run.
 ```
+
+**`migrate/run.js` and `migrate/runOmc.js` no longer run — they refuse, and should.** Both rebuild
+`vocab_collections`, and restoring that would undo the collapse. A faithful port is not possible
+either: choosing which term heads each arrangement was a human decision, not a derivation —
+`vmc:s-Security` held the security model while the term "Security" was a crew department above
+Security Coordinator, Captain and Crew, and no rule tells those apart. `migrate/collapse.mjs` is
+where those decisions are written down, and it has run. Both files stay because they are the record
+of how the vocabulary came out of Neo4j.
+
+Every migration under `migrate/` is dry by default and takes `--write`. The ones that have run:
+`collapse.mjs` (collections onto terms), `omcNamespace.mjs` (`omc:` ids into `vmc:`), and
+`pruneTokens.mjs` (the authored `omcToken`s derivation already reproduces).
 
 ### The OMC merge — two graphs became one term store
 
 Neo4j held two disjoint graphs joined by a `hasSkosDefinition` edge with **no integrity behind it**.
-`runOmc.js` dissolves that: a controlled value with such an edge becomes a *placement of a term the
-vocabulary already holds*; one without becomes a term of its own, keeping its `omc:` identifier.
-Measured on the live data: 293 controlled values, 125 placements onto 107 existing terms, 183 terms
-minted, 33 collections + `coll:omc-unplaced`.
+`runOmc.js` dissolved that: a controlled value with such an edge became a *placement of a term the
+vocabulary already held*; one without became a term of its own. Measured on the live data at the
+time: 293 controlled values, 125 placements onto 107 existing terms, 183 terms minted.
+
+**Those 183 kept an `omc:` identifier, and no longer do.** Two namespaces for one kind of thing meant
+a term in the second was indistinguishable from a term in the first until it reached an export —
+where `omc:` was not even in the Turtle's prefix map, so it emitted an undeclared CURIE.
+`migrate/omcNamespace.mjs` moved them, keeping the number where it was free (`omc:002A0` →
+`vmc:c-0002a0`) and minting where it was not. Every term id is `vmc:` now.
 
 - **Run `runOmc.js` after `run.js`, never before.** The merge adds an `omcToken` label to shared
   terms; `run.js` deletes and re-inserts everything it owns, so the reverse order discards them —
@@ -235,16 +252,19 @@ Things that will bite:
 - **The live graph has 139 duplicate `topConceptOf` relationships** over 199 distinct pairs. Count
   instances *and* distinct pairs; either alone hides it.
 - **`broader`/`narrower` and `topConceptOf` are computed over terms only**, skipping grouping
-  members — a grouping is not a broader concept. `resolve.js` owns this.
+  members — a scheme head is the vocabulary, not a concept broader than what is in it. `resolve.js`
+  owns this, and `schemeHeads` decides which terms are schemes at all.
 - **Filtering promotes, it does not strand.** A kept term under a filtered one attaches to the
   nearest surviving ancestor.
-- **`coll:unplaced`** holds the 96 terms in no scheme. The old serializer emitted them because it
-  walked every Concept; a view publishes a *collection*, so without it they vanish silently.
+- **Unplaced terms are computed, never stored.** `coll:unplaced` was a snapshot that went stale the
+  moment one of its terms was placed. `unplacedTerms()` asks the question instead — a term nothing
+  places, counting views as placing, since a term attached straight to a view sits in no other term's
+  arrangement and is not unplaced.
 - `/api/vocab/v1` accepts **either** a Cognito user token or an Okta service token — the Portal and a
   build script are both legitimate callers and hold different credentials.
 - **`GET /terms` answers two different questions.** With `?q=` it searches by name, prefix-first;
   with `?ids=` it looks up a named batch. The membership editor needs the second to put a name on
-  each of a collection's members — 312 in the largest — and the client batches at 150 ids because a
+  each of an arrangement's members — 312 in the largest — and the client batches at 150 ids because a
   query string is not unbounded.
 - **A collection's `_id` is minted from its name and never changes.** `createCollection` ignores an
   `_id` in the body, so a caller that sets one and then reads it back by that id finds nothing.
