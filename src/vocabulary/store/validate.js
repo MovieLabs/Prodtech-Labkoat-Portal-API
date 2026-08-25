@@ -222,17 +222,19 @@ function checkArrange(view, found) {
         return parts.length === 2 && Boolean(parts[0]) && Boolean(parts[1]);
     });
 
-    if (arrange.hide !== undefined) {
-        if (!Array.isArray(arrange.hide)) {
-            fail(found, 'arrange.hide must be a list of placement keys');
-        } else {
-            arrange.hide.forEach((key) => {
-                if (!wellFormed(key)) {
-                    fail(found, `"${key}" is not a placement key — it must read containerId/memberId, e.g. vmc:c-000041/m7`);
-                }
-            });
+    // Both lists name placements the same way, and neither can be checked further than its shape.
+    [['hide', arrange.hide], ['dotFrom', arrange.dotFrom]].forEach(([name, list]) => {
+        if (list === undefined) return;
+        if (!Array.isArray(list)) {
+            fail(found, `arrange.${name} must be a list of placement keys`);
+            return;
         }
-    }
+        list.forEach((key) => {
+            if (!wellFormed(key)) {
+                fail(found, `"${key}" is not a placement key — it must read containerId/memberId, e.g. vmc:c-000041/m7`);
+            }
+        });
+    });
 }
 
 /**

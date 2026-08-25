@@ -438,6 +438,106 @@ export async function unarrangeSubtree(containerId, mid, actor, force = false) {
 }
 
 /**
+ * Move a placement, and everything arranged beneath it, to another parent.
+ *
+ * ## Why this is one operation and not a detach followed by a drop
+ *
+ * The graph's move gesture used to remove the row, hand the reader a floating pill, and write it
+ * back where they dropped it. A pill carries one thing, so anything with children under it had to be
+ * refused — which is exactly the case somebody means by "move this branch". Doing both halves here
+ * means the rows never exist in neither place, and a subtree is no harder than a leaf.
+ *
+ * Within one container this is very nearly free: children are grouped by their parent's `mid`, so
+ * re-parenting the top row moves the whole branch and nothing below it is touched.
+ *
+ * ## The two things that have to be got right
+ *
+ * - **A mid is only unique inside its container.** Moving between containers can collide, so a
+ *   colliding row is reminted and the rows pointing at it are rewritten together — otherwise two
+ *   rows share a mid and a placement key stops naming one thing.
+ * - **A placement key is `containerId/mid`**, so every `view.arrange` entry naming a moved row is
+ *   repointed. Left alone, a hidden heading quietly comes back and a dotted name silently lengthens.
+ *
+ * @param {object} params
+ * @param {string} params.fromId - The container the rows are in
+ * @param {string} params.mid - The row at the top of what moves
+ * @param {string} params.toId - The container they are going to
+ * @param {string|null} [params.toParent] - The row they become children of, or null for the top
+ * @param {string} [actor]
+ * @returns {Promise<{moved: number, repointed: number, mid: string}>}
+ * @throws {ValidationError}
+ */
+export async function movePlacement({ fromId, mid, toId, toParent = null }, actor) {
+    const from = await containerOf(fromId);
+    if (!from) throw new ValidationError([`No such container: ${fromId}`]);
+    const to = fromId === toId ? from : await containerOf(toId);
+    if (!to) throw new ValidationError([`No such container: ${toId}`]);
+
+    const source = from.doc.member ?? [];
+    const row = source.find((member) => member.mid === mid);
+    if (!row) throw new ValidationError([`No member "${mid}" in ${fromId}`]);
+
+    const moving = new Set([mid, ...descendantsOf(source, mid)]);
+
+    // Into its own branch, which would detach it from the tree entirely.
+    if (fromId === toId && toParent && moving.has(toParent)) {
+        throw new ValidationError(['That would move it inside itself']);
+    }
+
+    // The simple case, and the common one: same container, so only the top row's parent changes and
+    // every mid stays exactly as it was.
+    if (fromId === toId) {
+        if ((row.parent ?? null) === toParent) return { moved: 0, repointed: 0, mid };
+        const next = source.map((member) => {
+            if (member.mid !== mid) return member;
+            const { parent: _wasParented, ...rest } = member;
+            return toParent ? { ...rest, parent: toParent } : rest;
+        });
+        const updated = stamped({ ...from.doc, member: next }, actor);
+        await vocabCollection(from.store).replaceOne({ _id: fromId }, updated);
+        return { moved: moving.size, repointed: 0, mid };
+    }
+
+    // Across containers. Remint anything that would collide, before the rows are rewritten, so a
+    // parent and its children agree on the new id.
+    const target = to.doc.member ?? [];
+    const used = target.map((member) => ({ mid: member.mid }));
+    const rename = new Map();
+    source.filter((member) => moving.has(member.mid)).forEach((member) => {
+        if (!target.some((existing) => existing.mid === member.mid)) return;
+        const fresh = nextMid(used);
+        rename.set(member.mid, fresh);
+        used.push({ mid: fresh });
+    });
+
+    const taken = source.filter((member) => moving.has(member.mid)).map((member) => {
+        const moved = { ...member, mid: rename.get(member.mid) ?? member.mid };
+        if (member.mid === mid) {
+            // The top of the branch takes its new parent; everything else keeps the one it had,
+            // under its new name where it was reminted.
+            if (toParent) moved.parent = toParent;
+            else delete moved.parent;
+        } else if (member.parent) {
+            moved.parent = rename.get(member.parent) ?? member.parent;
+        }
+        return moved;
+    });
+
+    const remaining = source.filter((member) => !moving.has(member.mid));
+    const nextSource = stamped({ ...from.doc, member: remaining }, actor);
+    const nextTarget = stamped({ ...to.doc, member: [...target, ...taken] }, actor);
+
+    // The source first: if the second write fails the rows are gone rather than duplicated, and a
+    // duplicate placement is the harder of the two to find afterwards.
+    await vocabCollection(from.store).replaceOne({ _id: fromId }, nextSource);
+    await vocabCollection(to.store).replaceOne({ _id: toId }, nextTarget);
+
+    const repointed = await repointArrange(fromId, toId, moving, rename);
+
+    return { moved: taken.length, repointed, mid: rename.get(mid) ?? mid };
+}
+
+/**
  * Move every `view.arrange` entry naming one of the moved rows onto its new container.
  *
  * A placement key is `containerId/mid`, so a subtree changing hands invalidates every key naming it.
@@ -447,22 +547,27 @@ export async function unarrangeSubtree(containerId, mid, actor, force = false) {
  * @param {string} fromId
  * @param {string} toId
  * @param {Set<string>} mids - The rows that moved
+ * @param {Map<string, string>} [rename] - New mids, where moving forced a row to be reminted
  * @returns {Promise<number>} How many views were rewritten
  */
-async function repointArrange(fromId, toId, mids) {
+async function repointArrange(fromId, toId, mids, rename = new Map()) {
     const swap = ((key) => {
         if (typeof key !== 'string') return key;
         const cut = key.indexOf('/');
         if (cut < 0) return key;
         const container = key.slice(0, cut);
         const mid = key.slice(cut + 1);
-        return container === fromId && mids.has(mid) ? `${toId}/${mid}` : key;
+        if (container !== fromId || !mids.has(mid)) return key;
+        return `${toId}/${rename.get(mid) ?? mid}`;
     });
 
     const views = await vocabCollection(VOCAB_VIEWS).find({ arrange: { $exists: true } }).toArray();
     const rewritten = await Promise.all(views.map(async (view) => {
         const arrange = { ...view.arrange };
+        // Every list that names a placement, or a subtree changing hands silently loses whichever
+        // one was not thought of here.
         if (view.arrange.hide) arrange.hide = view.arrange.hide.map(swap);
+        if (view.arrange.dotFrom) arrange.dotFrom = view.arrange.dotFrom.map(swap);
         if (JSON.stringify(arrange) === JSON.stringify(view.arrange)) return 0;
         await vocabCollection(VOCAB_VIEWS).updateOne({ _id: view._id }, { $set: { arrange } });
         return 1;

@@ -43,6 +43,7 @@ import {
     ValidationError,
     arrangeSubtree,
     createTerms,
+    movePlacement,
     forkTerm,
     deleteTerm,
     replaceTerm,
@@ -444,6 +445,30 @@ router.post('/containers/:id/arrange', authenticated, async (req, res, next) => 
             return;
         }
         res.status(201).json(await arrangeSubtree(req.params.id, mid, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Move a placement, and everything beneath it, to another parent.
+ *
+ * One request rather than a remove and an add, so a subtree is no harder to move than a leaf and the
+ * rows are never in neither place.
+ */
+router.post('/containers/:id/move', authenticated, async (req, res, next) => {
+    try {
+        const { mid, toId, toParent = null } = req.body ?? {};
+        if (!mid || !toId) {
+            res.status(422).json({
+                message: 'mid and toId are required',
+                errors: ['Say which member to move, and where it is going'],
+            });
+            return;
+        }
+        res.json(await movePlacement({
+            fromId: req.params.id, mid, toId, toParent,
+        }, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
