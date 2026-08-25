@@ -284,6 +284,31 @@ function descendantsOf(members, mid) {
 }
 
 /**
+ * Splice rows in as the last children of a parent.
+ *
+ * **Array order is sibling order**, so where a row sits decides where it is drawn — and a row that
+ * lands anywhere other than the end of its new parent's children is drawn somewhere the reader did
+ * not put it. Placed after the parent's whole subtree rather than immediately after the parent, or
+ * it would arrive above its new siblings' descendants instead of below them.
+ *
+ * @param {Array<object>} members - Without the rows being placed
+ * @param {Array<object>} rows - In order, the first being the top of the branch
+ * @param {string|null} parentMid - Null for the top level, which is the end of the list
+ * @returns {Array<object>}
+ */
+function insertUnder(members, rows, parentMid) {
+    if (!parentMid) return [...members, ...rows];
+
+    const below = descendantsOf(members, parentMid);
+    let after = members.findIndex((member) => member.mid === parentMid);
+    if (after < 0) return [...members, ...rows];
+    members.forEach((member, index) => {
+        if (below.has(member.mid) && index > after) after = index;
+    });
+    return [...members.slice(0, after + 1), ...rows, ...members.slice(after + 1)];
+}
+
+/**
  * Make a term's subtree its own arrangement, so it can be reused.
  *
  * ## What this is for
@@ -484,18 +509,24 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
         throw new ValidationError(['That would move it inside itself']);
     }
 
-    // The simple case, and the common one: same container, so only the top row's parent changes and
-    // every mid stays exactly as it was.
+    // The common case: same container, so every mid stays exactly as it was and only the top row's
+    // parent changes.
+    //
+    // **The rows still move in the array.** Re-parenting alone would leave the branch wherever it
+    // happened to sit, which is sibling order saying one thing while the graph — which draws it as
+    // the newest child — says another. `Move Up` then refuses from the top of a list the reader can
+    // see it at the bottom of.
     if (fromId === toId) {
         if ((row.parent ?? null) === toParent) return { moved: 0, repointed: 0, mid };
-        const next = source.map((member) => {
-            if (member.mid !== mid) return member;
+        const taken = source.filter((member) => moving.has(member.mid)).map((member) => {
+            if (member.mid !== mid) return { ...member };
             const { parent: _wasParented, ...rest } = member;
             return toParent ? { ...rest, parent: toParent } : rest;
         });
-        const updated = stamped({ ...from.doc, member: next }, actor);
+        const rest = source.filter((member) => !moving.has(member.mid));
+        const updated = stamped({ ...from.doc, member: insertUnder(rest, taken, toParent) }, actor);
         await vocabCollection(from.store).replaceOne({ _id: fromId }, updated);
-        return { moved: moving.size, repointed: 0, mid };
+        return { moved: taken.length, repointed: 0, mid };
     }
 
     // Across containers. Remint anything that would collide, before the rows are rewritten, so a
@@ -525,7 +556,7 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
 
     const remaining = source.filter((member) => !moving.has(member.mid));
     const nextSource = stamped({ ...from.doc, member: remaining }, actor);
-    const nextTarget = stamped({ ...to.doc, member: [...target, ...taken] }, actor);
+    const nextTarget = stamped({ ...to.doc, member: insertUnder(target, taken, toParent) }, actor);
 
     // The source first: if the second write fails the rows are gone rather than duplicated, and a
     // duplicate placement is the harder of the two to find afterwards.
