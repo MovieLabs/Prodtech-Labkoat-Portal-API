@@ -510,13 +510,27 @@ export async function createView(view, actor) {
 
 export async function saveView(id, view, actor) {
     const allowed = await allowedFacetValues();
-    const prepared = stamped({ labelStyle: 'plain', ...view, _id: id }, actor);
+    const prepared = stamped({ labelStyle: 'plain', member: [], ...view, _id: id }, actor);
 
     const check = validateView(prepared, allowed);
     if (!check.ok) throw new ValidationError(check.errors);
 
-    const root = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: prepared.root });
-    if (!root) throw new ValidationError([`No such collection: ${prepared.root}`]);
+    // Everything the view attaches has to exist, the same check `replaceCollection` makes: a view
+    // that names a collection nobody has renders with a hole, and says so only when somebody opens
+    // it.
+    const attached = prepared.member ?? [];
+    await Promise.all([
+        [VOCAB_COLLECTIONS, attached.map((member) => member.collection).filter(Boolean), 'collections'],
+        [VOCAB_TERMS, attached.map((member) => member.term).filter(Boolean), 'terms'],
+    ].map(async ([name, ids, what]) => {
+        if (!ids.length) return;
+        const found = await vocabCollection(name)
+            .find({ _id: { $in: ids } }, { projection: { _id: 1 } })
+            .toArray();
+        const known = new Set(found.map((doc) => doc._id));
+        const missing = [...new Set(ids.filter((one) => !known.has(one)))];
+        if (missing.length) throw new ValidationError([`These ${what} do not exist: ${missing.join(', ')}`]);
+    }));
 
     await vocabCollection(VOCAB_VIEWS).replaceOne({ _id: id }, prepared, { upsert: true });
     return prepared;
@@ -526,7 +540,7 @@ export async function saveView(id, view, actor) {
  * Delete a view.
  *
  * **Nothing else goes with it.** A view names a collection and says how to publish it; the
- * collection, everything it reaches and every term in it are untouched, and another view rooted on
+ * collection, everything it reaches and every term in it are untouched, and another view attaching
  * the same collection carries on unaffected. So there is nothing to refuse and nothing to warn
  * about — which is worth stating, because deleting a *collection* is a different matter and these
  * two sit next to each other in the interface.
@@ -541,7 +555,7 @@ export async function deleteView(id) {
     const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
     if (!view) return { deleted: false, root: null };
     const outcome = await vocabCollection(VOCAB_VIEWS).deleteOne({ _id: id });
-    return { deleted: outcome.deletedCount > 0, root: view.root };
+    return { deleted: outcome.deletedCount > 0, attached: (view.member ?? []).length };
 }
 
 /**

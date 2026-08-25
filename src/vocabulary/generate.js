@@ -56,7 +56,7 @@ async function main() {
     if (options.list) {
         const views = await listViews();
         console.log('Views:');
-        views.forEach((view) => console.log(`  ${view._id}  (root: ${view.root})`));
+        views.forEach((view) => console.log(`  ${view._id}  (${(view.member ?? []).length} attached)`));
         console.log(`\nFormats: ${generatorNames().join(', ')}`);
         return;
     }

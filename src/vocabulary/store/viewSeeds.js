@@ -33,7 +33,9 @@ export const VIEW_SEEDS = [
             en: 'The whole vocabulary, published as SKOS. Replaces the single export the old '
                 + 'tool produced, and is what the Explore page reads.',
         },
-        root: 'coll:media-creation',
+        // What it attaches is filled in by the migration, which is what knows the schemes it made.
+        // A view is the root; there is no collection above these.
+        member: [],
         // The artifact's own identity. Named here so a view that gathers this one can declare the
         // composition with `owl:imports` rather than inventing a structure SKOS cannot express.
         ontology: 'https://mc.movielabs.com/vmc/media-creation',
@@ -54,7 +56,7 @@ export const VIEW_SEEDS = [
                 + 'published independently; this gathers their roots, so it is always the current '
                 + 'union rather than a copy taken at some past moment.',
         },
-        root: 'coll:all-vocab',
+        member: [],
         // The name of the whole. Every vocabulary it gathers keeps its own ontology, and this one
         // declares what it is made of with `owl:imports` — which is where an aggregate belongs,
         // because SKOS has no aggregate of schemes and adding one would mean retyping a scheme as

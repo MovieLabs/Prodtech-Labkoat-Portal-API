@@ -24,11 +24,11 @@
  * @param {object} params
  * @param {import('./readGraph.js').SkosGraph} params.graph - What was read
  * @param {Array<object>} params.terms
- * @param {Array<object>} params.collections - Scheme collections, without the root
- * @param {object} params.root - The gathering collection
+ * @param {Array<object>} params.collections - Scheme collections
+ * @param {Array<object>} params.attach - The member rows the view will hold
  * @returns {{pass: boolean, checks: Check[]}}
  */
-export function verifyMigration({ graph, terms, collections, root }) {
+export function verifyMigration({ graph, terms, collections, attach }) {
     const checks = [];
     const add = ((name, pass, detail) => checks.push({ name, pass, detail }));
 
@@ -106,7 +106,7 @@ export function verifyMigration({ graph, terms, collections, root }) {
     );
 
     const termIds = new Set(terms.map((term) => term._id));
-    const allCollections = [...collections, root];
+    const allCollections = collections;
 
     // A member naming a term that does not exist would render as a hole in every view.
     const orphanTerms = allCollections.flatMap((collection) => (collection.member ?? [])
@@ -180,9 +180,9 @@ export function verifyMigration({ graph, terms, collections, root }) {
     );
 
     add(
-        'the root gathers every collection',
-        root.member.length === collections.length,
-        `${root.member.length} members for ${collections.length} collections`,
+        'the view attaches every collection',
+        attach.length === collections.length,
+        `${attach.length} attached for ${collections.length} collections`,
     );
 
     return { pass: checks.every((check) => check.pass), checks };

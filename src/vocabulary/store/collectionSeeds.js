@@ -1,5 +1,14 @@
 /**
- * Collections that exist because a view needs somewhere to point, not because a migration built them.
+ * Collections that exist because a view needs somewhere to point — and there are none.
+ *
+ * **A view is the root.** It holds its own members, so it needs no collection to point at, and a
+ * collection that heads no term is not a thing in the vocabulary. `coll:all-vocab` was the last of
+ * them and is gone; a union view attaches the vocabularies it gathers directly.
+ *
+ * The seeding function stays because `migrate/seed.js` calls it and a future seed may want it.
+ *
+ * ---
+ *
  *
  * ## Why the union is a collection of roots and nothing more
  *
@@ -29,29 +38,7 @@
 /**
  * @type {Array<object>}
  */
-export const COLLECTION_SEEDS = [
-    {
-        _id: 'coll:all-vocab',
-        label: [{ value: 'All Vocabulary', language: 'en', labelType: 'pref' }],
-        definition: {
-            en: 'Every MovieLabs vocabulary, gathered for publication as one artifact. Holds the '
-                + 'root of each vocabulary rather than its schemes, so each stays independently '
-                + 'developed and independently published, and this is always the current union.',
-        },
-        // Emits no node of its own. The union is a publication, not a concept.
-        projections: { skos: 'transparent' },
-        member: [
-            { mid: 'm1', collection: 'coll:media-creation' },
-        ],
-        // **A controlled-value vocabulary does not belong here**, and the rule is worth stating
-        // before the next one is built. Such a view renders names from the `omcToken` label and
-        // joins them into dotted paths, because those strings *are* the values in a schema.
-        // Gathered into a plain-label artifact its terms would be renamed — `Audio` where the
-        // schema says `audio` — which is a wrong value rather than a cosmetic difference. It is a
-        // vocabulary with its own audience, not a member of this union.
-        seeded: true,
-    },
-];
+export const COLLECTION_SEEDS = [];
 
 /**
  * Write any seed collection that is not already present.

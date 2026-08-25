@@ -122,6 +122,58 @@ export function validateTerm(term, allowed) {
 }
 
 /**
+ * Check a member list — a collection's arrangement, or a view's own.
+ *
+ * The same rules either way, which is the point of a view holding members rather than pointing at a
+ * collection that holds them: there is one shape, and one thing that checks it.
+ *
+ * @param {Array<object>} members
+ * @param {ValidationResult} found - Accumulated into
+ * @param {string} where - Named in the messages, e.g. "this collection"
+ */
+function validateMembers(members, found, where) {
+    const mids = new Set();
+
+    members.forEach((member) => {
+        if (!member.mid) fail(found, 'Every member needs a member id');
+        if (mids.has(member.mid)) fail(found, `Duplicate member id "${member.mid}"`);
+        mids.add(member.mid);
+
+        if (!member.term && !member.collection) {
+            fail(found, `Member "${member.mid}" names neither a term nor a collection`);
+        }
+        if (member.term && member.collection) {
+            fail(found, `Member "${member.mid}" names both a term and a collection — it must be one`);
+        }
+    });
+
+    // A parent outside the list would break the walk that derives dotted labels and the
+    // broader/narrower projection, and it would do it at read time, far from the write that
+    // caused it.
+    members.forEach((member) => {
+        if (member.parent && !mids.has(member.parent)) {
+            fail(found, `Member "${member.mid}" has a parent "${member.parent}" that is not in ${where}`);
+        }
+    });
+
+    // A parent chain that loops makes the resolver hang rather than fail, which is the worst way
+    // for this to go wrong.
+    const parentOf = new Map(members.map((member) => [member.mid, member.parent]));
+    members.forEach((member) => {
+        const seen = new Set();
+        let at = member.mid;
+        while (at) {
+            if (seen.has(at)) {
+                fail(found, `Member "${member.mid}" is its own ancestor`);
+                return;
+            }
+            seen.add(at);
+            at = parentOf.get(at) ?? null;
+        }
+    });
+}
+
+/**
  * Check a collection.
  *
  * @param {object} collection
@@ -140,49 +192,11 @@ export function validateCollection(collection) {
         fail(found, `projections.skos must be one of ${SKOS_PROJECTIONS.join(', ')}`);
     }
 
-    const members = collection?.member ?? [];
-    const mids = new Set();
-
-    members.forEach((member) => {
-        if (!member.mid) fail(found, 'Every member needs a member id');
-        if (mids.has(member.mid)) fail(found, `Duplicate member id "${member.mid}"`);
-        mids.add(member.mid);
-
-        if (!member.term && !member.collection) {
-            fail(found, `Member "${member.mid}" names neither a term nor a collection`);
-        }
-        if (member.term && member.collection) {
-            fail(found, `Member "${member.mid}" names both a term and a collection — it must be one`);
-        }
-    });
-
-    // A parent outside the collection would break the walk that derives dotted labels and the
-    // broader/narrower projection, and it would do it at read time, far from the write that caused it.
-    members.forEach((member) => {
-        if (member.parent && !mids.has(member.parent)) {
-            fail(found, `Member "${member.mid}" has a parent "${member.parent}" that is not in this collection`);
-        }
-    });
-
-    // A parent chain that loops makes the resolver hang rather than fail, which is the worst way for
-    // this to go wrong.
-    const parentOf = new Map(members.map((member) => [member.mid, member.parent]));
-    members.forEach((member) => {
-        const seen = new Set();
-        let at = member.mid;
-        while (at) {
-            if (seen.has(at)) {
-                fail(found, `Member "${member.mid}" is its own ancestor`);
-                return;
-            }
-            seen.add(at);
-            at = parentOf.get(at) ?? null;
-        }
-    });
+    validateMembers(collection?.member ?? [], found, 'this collection');
 
     // A collection that includes itself, directly. Indirect cycles need every collection to check,
     // so they are caught at resolve time and reported there — this catches the common case cheaply.
-    members.forEach((member) => {
+    (collection?.member ?? []).forEach((member) => {
         if (member.collection === collection._id) {
             fail(found, 'A collection cannot include itself');
         }
@@ -242,7 +256,13 @@ export function validateView(view, allowed) {
     const found = result();
 
     if (!view?._id) fail(found, 'A view must have an identifier');
-    if (!view?.root) fail(found, 'A view must name the collection it publishes');
+    // A view **is** the root. What it publishes is what is attached to it, in the same member shape
+    // a collection uses — so a view can attach a plain term as readily as a collection.
+    if (view?.member !== undefined && !Array.isArray(view.member)) {
+        fail(found, 'A view’s member list must be a list');
+    } else {
+        validateMembers(view?.member ?? [], found, 'this view');
+    }
 
     if (view?.labelStyle && !['plain', 'dotted'].includes(view.labelStyle)) {
         fail(found, 'labelStyle must be plain or dotted');
@@ -303,11 +323,11 @@ export function checkTermDeletion(usage) {
 export function checkCollectionDeletion(usage) {
     const found = result();
 
-    // A view rooted on a collection that no longer exists resolves to nothing, and says so only
-    // when somebody next opens it. That is an error rather than a warning.
+    // A view attaching a collection that no longer exists resolves to a hole, and says so only when
+    // somebody next opens it. That is an error rather than a warning.
     if (usage?.views?.length) {
         fail(found, `${usage.views.length} view(s) publish this collection: `
-        + `${usage.views.map((view) => view._id).join(', ')}. Repoint or delete them first.`);
+        + `${usage.views.map((view) => view._id).join(', ')}. Detach or delete them first.`);
     }
     if (usage?.collections?.length) {
         found.warnings.push(

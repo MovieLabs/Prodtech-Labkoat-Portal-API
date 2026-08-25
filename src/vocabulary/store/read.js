@@ -205,7 +205,9 @@ export async function termUsage(termId) {
     // collection reaches. Answering that exactly means resolving every view, so this reports the
     // direct case and the caller can resolve if it needs certainty.
     const views = ids.length
-        ? await vocabCollection(VOCAB_VIEWS).find({ root: { $in: ids } }).toArray()
+        ? await vocabCollection(VOCAB_VIEWS).find({
+            $or: [{ 'member.collection': { $in: ids } }, { 'member.term': termId }],
+        }).toArray()
         : [];
     return { collections, views };
 }
@@ -219,7 +221,9 @@ export async function termUsage(termId) {
 export async function collectionUsage(collectionId) {
     const [collections, views] = await Promise.all([
         vocabCollection(VOCAB_COLLECTIONS).find({ 'member.collection': collectionId }).toArray(),
-        vocabCollection(VOCAB_VIEWS).find({ root: collectionId }).toArray(),
+        // A view attaches collections the same way a collection includes them, so the same query
+        // answers both.
+        vocabCollection(VOCAB_VIEWS).find({ 'member.collection': collectionId }).toArray(),
     ]);
     return { collections, views };
 }
