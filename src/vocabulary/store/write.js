@@ -381,7 +381,6 @@ export async function extractSubtree(id, { mid, name }, actor) {
         // Emits nothing of its own, so its terms come out exactly where they did before.
         projections: { skos: 'transparent' },
         member: taken,
-        extractedFrom: id,
     }, actor);
 
     const createdCheck = validateCollection(created);
@@ -432,11 +431,6 @@ async function repointArrange(fromId, toId, mids) {
     const rewritten = await Promise.all(views.map(async (view) => {
         const arrange = { ...view.arrange };
         if (view.arrange.hide) arrange.hide = view.arrange.hide.map(swap);
-        if (view.arrange.move) {
-            arrange.move = view.arrange.move.map((entry) => ({
-                ...entry, placement: swap(entry.placement), under: swap(entry.under),
-            }));
-        }
         if (JSON.stringify(arrange) === JSON.stringify(view.arrange)) return 0;
         await vocabCollection(VOCAB_VIEWS).updateOne({ _id: view._id }, { $set: { arrange } });
         return 1;
@@ -655,64 +649,4 @@ export async function forkTerm(termId, inCollection, actor) {
     );
 
     return { term: copy, repointed: placements.length };
-}
-
-/**
- * Copy a collection and repoint one including collection at the copy.
- *
- * The copy holds the same **terms**: forking an arrangement is not forking the meaning of what is
- * arranged. Its members keep pointing at the original terms, so a definition corrected later still
- * reaches both — which is almost always what is wanted, and the term-level fork above is there for
- * when it is not.
- *
- * @param {string} collectionId - The collection to copy
- * @param {string} name - The copy's preferred label; its id is a slug of this
- * @param {string|null} inCollection - The collection whose inclusion moves to the copy; null to
- *   create a detached copy that nothing yet includes
- * @param {string} [actor]
- * @returns {Promise<object>} The copy
- * @throws {ValidationError}
- */
-export async function forkCollection(collectionId, name, inCollection, actor) {
-    const source = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: collectionId });
-    if (!source) throw new ValidationError([`No such collection: ${collectionId}`]);
-    if (!name) throw new ValidationError(['A copy needs a name of its own']);
-
-    const newId = collectionId_(name);
-    const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: newId });
-    if (clash) throw new ValidationError([`A collection named "${name}" already exists (${newId})`]);
-
-    const {
-        _id: _sourceId, migrated: _migrated, modified: _modified, modifiedBy: _by, label, ...content
-    } = source;
-
-    const copy = stamped({
-        ...content,
-        _id: newId,
-        label: [
-            { value: name, language: 'en', labelType: 'pref' },
-            // Any other label the source carried is kept; only the preferred one is replaced.
-            ...(label ?? []).filter((entry) => entry.labelType !== 'pref'),
-        ],
-        forkedFrom: collectionId,
-    }, actor);
-
-    const check = validateCollection(copy);
-    if (!check.ok) throw new ValidationError(check.errors);
-
-    await vocabCollection(VOCAB_COLLECTIONS).insertOne(copy);
-
-    if (inCollection) {
-        const parent = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: inCollection });
-        if (!parent) throw new ValidationError([`No such collection: ${inCollection}`]);
-        const repointed = (parent.member ?? []).map((member) => (
-            member.collection === collectionId ? { ...member, collection: newId } : member
-        ));
-        await vocabCollection(VOCAB_COLLECTIONS).updateOne(
-            { _id: inCollection },
-            { $set: { member: repointed, modified: new Date().toISOString(), modifiedBy: actor ?? 'unknown' } },
-        );
-    }
-
-    return copy;
 }

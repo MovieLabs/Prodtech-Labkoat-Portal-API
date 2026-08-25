@@ -252,9 +252,6 @@ export function listCollections() {
                 label: 1,
                 definition: 1,
                 projections: 1,
-                // The pre-rename field, still sent so a client reading a store that has not been
-                // migrated yet has something to show. `projectionOf` prefers `projections`.
-                skosAs: 1,
                 memberCount: { $size: { $ifNull: ['$member', []] } },
                 includes: {
                     $setUnion: [{

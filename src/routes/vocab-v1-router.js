@@ -46,7 +46,6 @@ import {
     createTerms,
     extractSubtree,
     deleteCollection,
-    forkCollection,
     forkTerm,
     deleteTerm,
     replaceCollection,
@@ -450,16 +449,6 @@ router.post('/terms/:id/fork', authenticated, async (req, res, next) => {
             return;
         }
         res.status(201).json(await forkTerm(req.params.id, inCollection, actorOf(req)));
-    } catch (err) {
-        writeFailed(err, res, next);
-    }
-});
-
-/** Fork a collection. The copy holds the same terms — forking an arrangement is not forking meaning. */
-router.post('/collections/:id/fork', authenticated, async (req, res, next) => {
-    try {
-        const { name, inCollection = null } = req.body ?? {};
-        res.status(201).json(await forkCollection(req.params.id, name, inCollection, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }

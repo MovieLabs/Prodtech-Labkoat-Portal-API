@@ -135,9 +135,7 @@ export function validateCollection(collection) {
         fail(found, 'A collection must have a preferred label');
     }
 
-    // `projections.skos`, with the pre-rename `skosAs` still accepted so a store written before
-    // it keeps validating. Both are checked against the same set.
-    const declared = collection?.projections?.skos ?? collection?.skosAs;
+    const declared = collection?.projections?.skos;
     if (declared && !SKOS_PROJECTIONS.includes(declared)) {
         fail(found, `projections.skos must be one of ${SKOS_PROJECTIONS.join(', ')}`);
     }
@@ -197,10 +195,9 @@ export function validateCollection(collection) {
  * Check the shape of a view's `arrange` block.
  *
  * **Shape only, and that is the whole design.** Whether `coll:audio/m7` names a placement this view
- * actually reaches, and whether a move closes a loop, are both answers about a *resolution* — they
- * depend on the arrangement of every collection the view gathers, which is not in hand here and
- * changes without this view being written to. So they are reported at resolve time, in `problems`,
- * the same split `validateCollection` already makes for indirect collection cycles.
+ * actually reaches depends on the arrangement of every collection the view gathers, which is not in
+ * hand here and changes without this view being written to. So it is reported at resolve time, in
+ * `problems` — the same split `validateCollection` already makes for indirect collection cycles.
  *
  * What is worth refusing here is a key that could never name anything, because that is a typo rather
  * than a stale reference and it would otherwise fail silently — a view that hides nothing looks
@@ -231,22 +228,6 @@ function checkArrange(view, found) {
                 }
             });
         }
-    }
-
-    if (arrange.move !== undefined) {
-        if (!Array.isArray(arrange.move)) {
-            fail(found, 'arrange.move must be a list of moves');
-            return;
-        }
-        arrange.move.forEach((entry) => {
-            if (!wellFormed(entry?.placement)) {
-                fail(found, `"${entry?.placement}" is not a placement key — it must read collectionId/memberId`);
-            }
-            // `under: null` is meaningful: it lifts a term to the top of the view.
-            if (entry?.under !== null && !wellFormed(entry?.under)) {
-                fail(found, `"${entry?.under}" is not a placement key. Use null to move a term to the top level.`);
-            }
-        });
     }
 }
 

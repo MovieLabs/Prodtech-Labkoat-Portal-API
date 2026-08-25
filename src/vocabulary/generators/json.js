@@ -11,7 +11,7 @@
  * @module vocabulary/generators/json
  */
 
-import { overlayFor, schemesOf, tagsFor, topConceptOf } from '../resolve.js';
+import { schemesOf, tagsFor, topConceptOf } from '../resolve.js';
 import { projectionOf } from '../store/projections.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
@@ -61,9 +61,6 @@ function node(resolution, placement) {
 
     const tags = tagsFor(resolution, placement.termId);
     if (tags.length) entry.tags = tags;
-
-    const overlay = overlayFor(resolution, placement.termId);
-    if (Object.keys(overlay).length) entry.properties = overlay;
 
     const schemes = schemesOf(placement);
     if (schemes.length) entry.inCollections = schemes;

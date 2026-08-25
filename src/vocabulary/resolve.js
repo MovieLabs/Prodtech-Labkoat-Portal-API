@@ -477,11 +477,3 @@ export function placementsByTerm(resolution) {
  */
 export const tagsFor = ((resolution, termId) => resolution.view.tag?.[termId] ?? []);
 
-/**
- * The view's overlay properties for a term.
- *
- * @param {object} resolution
- * @param {string} termId
- * @returns {object}
- */
-export const overlayFor = ((resolution, termId) => resolution.view.overlay?.[termId] ?? {});

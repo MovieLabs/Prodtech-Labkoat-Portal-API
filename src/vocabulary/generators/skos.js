@@ -93,19 +93,16 @@ export function skosTriples(resolution, projections) {
     // ---- collections ----
 
     // A scheme nested inside another scheme cannot be expressed: SKOS has no scheme-within-a-scheme.
-    // Lifted to a sibling and reported. It must never be resolved silently, because the two readings
-    // — lift, or degrade to a Collection — produce materially different output.
-    const schemeDepth = new Map();
+    // Reported rather than resolved, because the two readings — lift it to a sibling, or degrade it
+    // to a Collection — produce materially different output and neither should happen silently.
+    const reported = new Set();
     resolution.placements.forEach((placement) => {
         const schemes = schemesOf(placement);
-        if (schemes.length > 1) {
-            schemes.slice(1).forEach((inner) => {
-                if (!schemeDepth.has(inner)) {
-                    schemeDepth.set(inner, schemes[0]);
-                    problems.nestedSchemes.push({ scheme: inner, insideOf: schemes[0] });
-                }
-            });
-        }
+        schemes.slice(1).forEach((inner) => {
+            if (reported.has(inner)) return;
+            reported.add(inner);
+            problems.nestedSchemes.push({ scheme: inner, insideOf: schemes[0] });
+        });
     });
 
     const usedCollections = new Set(

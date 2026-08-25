@@ -1,15 +1,11 @@
 /**
  * How a collection projects into each export target.
  *
- * ## Why this is not called `skosAs` any more
+ * ## Keyed by target, not a type
  *
- * The field used to be `skosAs`, and it read as a *type*: a collection was a scheme, or a
- * collection, or a grouping. It is not. Every one of these documents is a collection; the value says
- * what a **SKOS consumer** should see, and that is one target among several. The CSV and JSON
- * generators express the arrangement directly and need no such instruction; a future target may need
- * a different one.
- *
- * So it is `projections`, keyed by target:
+ * Every one of these documents is a collection; the value says what a **SKOS consumer** should see,
+ * and that is one target among several. The CSV and JSON generators express the arrangement
+ * directly and need no such instruction; a future target may need a different one. So:
  *
  * ```json
  * { "projections": { "skos": "conceptScheme" } }
@@ -46,27 +42,12 @@ export const DEFAULT_PROJECTION = 'collection';
 /**
  * How a collection projects into one target.
  *
- * Reads the legacy `skosAs` when `projections` is absent, so a store written before the rename keeps
- * working and a migration is a tidy-up rather than a prerequisite.
  *
  * @param {object} collection
  * @param {string} [target='skos']
  * @returns {string}
  */
 export function projectionOf(collection, target = 'skos') {
-    const declared = collection?.projections?.[target];
-    if (declared) return declared;
-    if (target === 'skos' && collection?.skosAs) return collection.skosAs;
-    return DEFAULT_PROJECTION;
+    return collection?.projections?.[target] ?? DEFAULT_PROJECTION;
 }
 
-/**
- * Whether this collection is a SKOS concept scheme.
- *
- * Its own function because it is asked in four places and a stray `=== 'conceptScheme'` against the
- * wrong field is silent: the collection simply stops being a scheme and its terms lose `inScheme`.
- *
- * @param {object} collection
- * @returns {boolean}
- */
-export const isScheme = ((collection) => projectionOf(collection, 'skos') === 'conceptScheme');
