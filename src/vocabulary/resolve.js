@@ -53,6 +53,11 @@
  * and not a value a schema should carry. `view.arrange.hide` names those placements, and they are
  * left out with their children promoted into their place, exactly as a filtered term is.
  *
+ * **A term carrying an arrangement is no exception**, and it is worth saying because the two ways a
+ * term can have children look nothing alike in the store: rows parented to it in this container, and
+ * its own `member[]`. Both are promoted. Hiding a heading is a statement about that heading, never
+ * about what it groups — to remove a branch, hide everything in it.
+ *
  * **It happens during the walk, which is what makes the names come out right.** `displayName` runs
  * afterwards over whatever path survived, so a term under a hidden heading is named
  * `assetFunction.witnessCamera` rather than `assetFunction.captureGrouping.witnessCamera` without
@@ -184,6 +189,33 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
             return;
         }
 
+        /**
+         * Walk the term's own arrangement, wherever the term appears. **This is the reuse the model
+         * is for**: one Audio, arranged once, coming out in full everywhere Audio is placed.
+         *
+         * `to` is what the arrangement's contents attach to, and it is the only thing that differs
+         * between a published placement and a hidden one — `below` for the first, the inherited path
+         * for the second, which is what promotes them into the hidden heading's place.
+         *
+         * @param {PathEntry[]} to
+         */
+        const descend = ((to) => {
+            if (!term.member?.length) return;
+            if (chain.has(member.term)) {
+                // An arrangement that reaches itself would recurse for ever. Stop, record it, and
+                // carry on with the rest — one bad reference must not take the whole view down.
+                ctx.problems.cycles.push({ collection: member.term, via: [...chain] });
+                return;
+            }
+            walkMembers({
+                containerId: member.term,
+                members: term.member,
+                path: to,
+                ctx,
+                chain: new Set(chain).add(member.term),
+            });
+        });
+
         // A heading this view does not publish. Asked before the status filter because it is a
         // decision about this view rather than a consequence of one, and an editor drawing what was
         // left out has to be able to say which of the two happened.
@@ -193,6 +225,12 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
                 termId: member.term, mid: member.mid, collectionId: containerId, path: inherited,
             });
             ctx.problems.hidden += 1;
+            // **The heading goes, its contents stay.** A heading is hidden so that what it groups
+            // reads one level up, and that has to hold however the grouping is stored: the rows
+            // parented to this one are promoted by `childPath` above, and the term's own
+            // arrangement by descending onto the same inherited path. Removing a branch outright is
+            // hiding everything in it, which is a different gesture and still available.
+            descend(inherited);
             return;
         }
 
@@ -224,23 +262,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
         const below = [...inherited, entry];
         childPath.set(member.mid, below);
 
-        // The term's own arrangement, wherever the term appears. **This is the reuse the model is
-        // for**: one Audio, arranged once, coming out in full everywhere Audio is placed. A view
-        // that wants less of it hides the headings it does not want.
-        if (!term.member?.length) return;
-        if (chain.has(member.term)) {
-            // An arrangement that reaches itself would recurse for ever. Stop, record it, and carry
-            // on with the rest — one bad reference must not take the whole view down.
-            ctx.problems.cycles.push({ collection: member.term, via: [...chain] });
-            return;
-        }
-        walkMembers({
-            containerId: member.term,
-            members: term.member,
-            path: below,
-            ctx,
-            chain: new Set(chain).add(member.term),
-        });
+        descend(below);
     });
 }
 
