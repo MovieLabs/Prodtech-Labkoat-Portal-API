@@ -21,6 +21,7 @@
  * @module vocabulary/store/validate
  */
 
+import { ARRANGEMENT_NONE } from './ids.js';
 import { listFacets } from './read.js';
 
 /**
@@ -141,6 +142,14 @@ function validateMembers(members, found, where) {
         mids.add(member.mid);
 
         if (!member.term) fail(found, `Member "${member.mid}" names no term`);
+
+        // Which arrangement this placement brings. Absent is the term's own, which is every row
+        // written before this field existed; `none` takes its children from the rows around it
+        // instead. Anything else is a typo, and catching it here is the difference between a write
+        // that fails and a view that quietly loses a branch.
+        if (member.arrangement !== undefined && member.arrangement !== ARRANGEMENT_NONE) {
+            fail(found, `Member "${member.mid}" names an arrangement "${member.arrangement}" that does not exist`);
+        }
     });
 
     // A parent outside the list would break the walk that derives dotted labels and the

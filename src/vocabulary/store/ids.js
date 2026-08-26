@@ -151,3 +151,16 @@ export function schemeIdFor(id) {
     if (typeof id !== 'string' || !id.startsWith(TERM_PREFIX)) return id;
     return `${SCHEME_PREFIX}${id.slice(TERM_PREFIX.length)}`;
 }
+
+/**
+ * What a member row's `arrangement` says when the placement declines the term's own arrangement and
+ * takes its children from the container it sits in instead.
+ *
+ * **A string rather than `null`, deliberately.** A row's `parent` is read as
+ * `member.parent ? … : here`, so for that field null and absent already mean the same thing. Giving
+ * `arrangement: null` the opposite meaning two keys away would be a trap: the first person to write
+ * it expecting no arrangement would silently get the default one.
+ *
+ * Absent means the term's own `member` list, which is every row written so far.
+ */
+export const ARRANGEMENT_NONE = 'none';

@@ -70,7 +70,7 @@
  * @module vocabulary/resolve
  */
 
-import { schemeIdFor } from './store/ids.js';
+import { ARRANGEMENT_NONE, schemeIdFor } from './store/ids.js';
 import {
     DEFAULT_LANGUAGE, getTerms, getView, hasLabelOfType, labelOfType, listViews,
 } from './store/read.js';
@@ -107,6 +107,49 @@ import {
  * @returns {string}
  */
 export const placementKey = ((collectionId, mid) => `${collectionId}/${mid}`);
+
+/**
+ * Terms this view publishes with more than one set of children.
+ *
+ * **This is the rule that lets a placement choose its arrangement at all.** A term is one concept:
+ * `skos:narrower` belongs to the concept, not to where it was placed, so a view in which Lens has
+ * two different sets of children cannot be expressed in SKOS. One of the two would have to win, and
+ * nothing says which.
+ *
+ * Asked of the **resolved children** rather than of what each row asked for, because the two are not
+ * the same question. A placement that declines the arrangement and is given local rows can diverge
+ * from an ordinary one without either naming anything unusual, and comparing what the rows *say*
+ * would see two rows that agree.
+ *
+ * Reported rather than thrown: this is a fact about a view somebody is editing, and the editor has
+ * to be able to draw the disagreement in order to resolve it. The generators are what refuse.
+ *
+ * @param {Array<object>} placements
+ * @returns {Array<{termId: string, sets: string[][]}>} One entry per term that disagrees with itself
+ */
+function divergentChildren(placements) {
+    // What hangs from each placement, by the row it hangs from.
+    const beneath = new Map();
+    placements.forEach((placement) => {
+        if (!placement.under) return;
+        if (!beneath.has(placement.under)) beneath.set(placement.under, new Set());
+        beneath.get(placement.under).add(placement.termId);
+    });
+
+    const setsFor = new Map();
+    placements.forEach((placement) => {
+        const mine = beneath.get(placementKey(placement.collectionId, placement.mid)) ?? new Set();
+        const signature = [...mine].sort().join(',');
+        if (!setsFor.has(placement.termId)) setsFor.set(placement.termId, new Map());
+        setsFor.get(placement.termId).set(signature, [...mine].sort());
+    });
+
+    const found = [];
+    setsFor.forEach((variants, termId) => {
+        if (variants.size > 1) found.push({ termId, sets: [...variants.values()] });
+    });
+    return found;
+}
 
 /**
  * Load every term a view reaches, one level of nesting at a time.
@@ -150,7 +193,9 @@ async function loadReachable(startIds) {
  * @param {object} params.ctx - Shared state: terms, keep predicate, output, problems
  * @param {Set<string>} params.chain - Term ids currently being expanded, for cycle detection
  */
-function walkMembers({ containerId, members, path, ctx, chain }) {
+function walkMembers({
+    containerId, members, path, ctx, chain, under = null,
+}) {
     const here = path;
 
     /**
@@ -160,6 +205,17 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
      * out passes its own inherited path straight through, which is what promotes its children.
      */
     const childPath = new Map();
+
+    /**
+     * The placement a member's children hang from, given where the member itself landed.
+     *
+     * **Runs beside `childPath` and is not the same thing.** A path names entities, so two
+     * placements of one term under one parent share a path and cannot be told apart by it; this
+     * names the row, which is unique. Promotion applies to both: a member that is filtered out or
+     * hidden passes its own inherited value through, so its children hang from whatever it hung
+     * from.
+     */
+    const childUnder = new Map();
 
     /** Members in an order where a parent is always seen before its children. */
     const ordered = [];
@@ -179,6 +235,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
 
     ordered.forEach((member) => {
         const inherited = member.parent ? childPath.get(member.parent) ?? here : here;
+        const inheritedUnder = member.parent ? childUnder.get(member.parent) ?? under : under;
 
         if (!member.term) return;
 
@@ -186,6 +243,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
         if (!term) {
             ctx.problems.missingTerms.push({ collection: containerId, mid: member.mid, term: member.term });
             childPath.set(member.mid, inherited);
+            childUnder.set(member.mid, inheritedUnder);
             return;
         }
 
@@ -199,7 +257,12 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
          *
          * @param {PathEntry[]} to
          */
-        const descend = ((to) => {
+        const descend = ((to, beneath) => {
+            // **This placement wants none of it.** The term keeps its arrangement and every other
+            // placement still brings it; this one takes its children from the container it sits in,
+            // through the `parent` rows the walk above already handles. Asked here rather than at
+            // the call sites so a hidden placement answers it the same way.
+            if (member.arrangement === ARRANGEMENT_NONE) return;
             if (!term.member?.length) return;
             if (chain.has(member.term)) {
                 // An arrangement that reaches itself would recurse for ever. Stop, record it, and
@@ -213,6 +276,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
                 path: to,
                 ctx,
                 chain: new Set(chain).add(member.term),
+                under: beneath,
             });
         });
 
@@ -221,6 +285,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
         // left out has to be able to say which of the two happened.
         if (ctx.hidden.has(placementKey(containerId, member.mid))) {
             childPath.set(member.mid, inherited);
+            childUnder.set(member.mid, inheritedUnder);
             ctx.suppressed.push({
                 termId: member.term, mid: member.mid, collectionId: containerId, path: inherited,
             });
@@ -230,7 +295,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
             // parented to this one are promoted by `childPath` above, and the term's own
             // arrangement by descending onto the same inherited path. Removing a branch outright is
             // hiding everything in it, which is a different gesture and still available.
-            descend(inherited);
+            descend(inherited, inheritedUnder);
             return;
         }
 
@@ -238,6 +303,7 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
             // Filtered out by status. Children inherit this member's *own* inherited path, so they
             // attach to the nearest surviving ancestor rather than vanishing.
             childPath.set(member.mid, inherited);
+            childUnder.set(member.mid, inheritedUnder);
             ctx.problems.filtered += 1;
             if ((byParent.get(member.mid) ?? []).length) ctx.problems.promoted += 1;
             return;
@@ -248,6 +314,10 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
             mid: member.mid,
             collectionId: containerId,
             path: inherited,
+            // The placement this one hangs from, by row rather than by path. What `divergentChildren`
+            // groups on, and the only thing that tells two placements of one term apart when they
+            // sit under the same parent.
+            under: inheritedUnder,
         });
 
         // A term the view attaches directly, which carries an arrangement, is what a SKOS consumer
@@ -261,8 +331,10 @@ function walkMembers({ containerId, members, path, ctx, chain }) {
 
         const below = [...inherited, entry];
         childPath.set(member.mid, below);
+        const own = placementKey(containerId, member.mid);
+        childUnder.set(member.mid, own);
 
-        descend(below);
+        descend(below, own);
     });
 }
 
@@ -363,12 +435,16 @@ export async function resolveView({ viewId, status = null, language = DEFAULT_LA
             // artifact — controlled values in a schema — a name that was worked out is a guess, and
             // it looks identical to one somebody decided.
             untyped: [],
+            // Terms this view publishes with more than one set of children. See `divergentChildren`.
+            divergent: [],
         },
     };
 
     walkMembers({
         containerId: view._id, members: view.member ?? [], path: [], ctx, chain: new Set(),
     });
+
+    ctx.problems.divergent = divergentChildren(ctx.placements);
 
     const labelStyle = view.labelStyle ?? 'plain';
     const labelType = view.labelType ?? 'pref';

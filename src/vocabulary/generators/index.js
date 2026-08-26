@@ -110,6 +110,19 @@ export async function generate({ viewId, format = 'json', status = null, languag
     ]);
     const projections = skosProjectionIndex(facets);
 
+    // **A view that publishes one term with two sets of children cannot be written down.**
+    // `skos:narrower` belongs to the concept rather than to where it was placed, so the document
+    // would have to pick one set and say nothing about having picked. Refused rather than resolved,
+    // and named so the editor can be opened at the term that disagrees with itself.
+    //
+    // `internal` is exempt: it is the resolution itself, and an editor cannot show somebody a
+    // problem it is refused a copy of.
+    const divergent = resolution.problems?.divergent ?? [];
+    if (divergent.length && format !== 'internal') {
+        const names = divergent.map((one) => one.termId).join(', ');
+        throw new Error(`Cannot generate ${format}: ${divergent.length} term(s) are published with more than one set of children in this view — ${names}. Give each one the same children everywhere it appears, or place it once.`);
+    }
+
     const generator = GENERATORS[format];
     const produced = generator.run(resolution, projections);
 
