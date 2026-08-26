@@ -11,9 +11,9 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 ## What this is
 
 **Labkoat-API** is the Express REST gateway (port 8080) that the Portal talks to. Everything the
-browser needs goes through here: it proxies OMC reads and writes to fMam, serves the SKOS vocabulary
-out of Neo4j, brokers directory and token-exchange calls to Okta and Auth0, and **runs the
-processing pipelines in worker threads**.
+browser needs goes through here: it proxies OMC reads and writes to fMam, serves the vocabulary out
+of MongoDB, brokers directory and token-exchange calls to Okta and Auth0, and **runs the processing
+pipelines in worker threads**.
 
 The directory was renamed from `Prodtech-Labkoat-Portal-API-2` on 2026-07-29, but nothing else was:
 the package is named `service`, the GitHub remote is still `Prodtech-Labkoat-Portal-API`, and the
@@ -73,8 +73,7 @@ npm run link:local
 |---|---|---|
 | `/api/admin` | `admin-router` | projects (GET/POST/PATCH/DELETE), `DELETE /reset`, mapping templates |
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
-| `/api/vocab` | `vocab-router` | SKOS and OMC vocabulary, backed by Neo4j (authoritative) |
-| `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo |
+| `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo. The only vocabulary route |
 | `/api/greenlight` | `greenlight-router` | approval / permitting workflow |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
@@ -92,7 +91,6 @@ entity. `DELETE /edge` is a separate route from `DELETE /update`.
 - `admin/` — `projects.js`, `templates.js`
 - `omc/omc-controller.js`, `fMamFetch.js` — the fMam proxy
 - `pipeline/` — `pipeline-controller.js`, `ingest-controller.js`
-- `vocabulary/` — `skosController.js`, `omcController.js` (Neo4j)
 - `directory/` — `directory.js`, `securityController.js`, `user.js`, plus `auth0/`, `okta/` and
   `query/` sub-trees mapping directory records onto OMC
 - `token-exchange/` — `exchangeTokenController.js`, `serviceTokenController.js`
@@ -159,20 +157,22 @@ Portal's mocks implement them exactly. Both routers carry a JSDoc pointer to the
 shape here and change it there**; ingest is a separate namespace over the same storage, job-store and
 worker modules purely so the built ingest UI stayed untouched.
 
-### The vocabulary — two stores, mid-migration
+### The vocabulary — one store, in Mongo
 
-**`/api/vocab` (Neo4j) still backs the three old tabs. `/api/vocab/v1` (Mongo) now reads *and
-writes*** — terms, views and facets, from the `OMC Testing` tab. **There is no collection store**: a
-collection is a `member` array on the term that carries it, so `vocab_collections` is gone and an
-arrangement has no identifier of its own. See the Portal's `src/Components/Vocabulary/CLAUDE.md`. Both are live and
-**they are not synchronised**: a term written to one does not appear in the other. That is the
-staging working as intended, and it is the first thing to check when something looks missing.
+**`/api/vocab/v1` is the vocabulary.** It reads and writes terms, views and facets. **There is no
+collection store**: a collection is a `member` array on the term that carries it, so
+`vocab_collections` is gone and an arrangement has no identifier of its own. See the Portal's
+`src/Components/Vocabulary/CLAUDE.md`.
 
-*Old, unchanged:* `neo4j-driver` is a dependency of **this repo only** — fMam does not touch Neo4j.
-`src/neo4J/` and `src/vocabulary/{ttl,jsonld}.js` back `/api/vocab`.
+**Neo4j is gone from this repo** (2026-08-25), and with it `/api/vocab`, `src/neo4J/`, the two
+vocabulary controllers, the hand-written `ttl.js`/`jsonld.js` serializers that
+`generators/skos.js` replaced, `src/vocabulary/migrate/` and the `neo4j-driver` dependency. Removing
+`/api/vocab` also closed the anomaly noted in `vocab-v1-router.js`: `/skos/ttl` and `/skos/json`
+were the only unauthenticated routes on this service.
 
-*New:* `src/vocabulary/{store,migrate,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
-`drift.js` and `src/routes/vocab-v1-router.js`. Four `vocab_`-prefixed collections in fMam's **`app_config`**
+*The store:* `src/vocabulary/{store,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
+`drift.js`, `skosCheck.js` and `src/routes/vocab-v1-router.js`. The four top-level `.js` files with
+a usage block at the top are command-line tools, not modules the router imports. Four `vocab_`-prefixed collections in fMam's **`app_config`**
 database — no new database, no new credential (the gateway already loads `SECRET_ARN.FMAM`, which
 holds the Mongo user). **Every collection this subsystem creates is `vocab_`-prefixed**; the cluster
 is shared and users name their own.
@@ -180,38 +180,34 @@ is shared and users name their own.
 ```bash
 node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --out vocab.ttl
 node src/vocabulary/drift.js --schema ../omcUtil/src/omc/validation/schema/OMC-JSON-v3.0.schema.json
-node src/vocabulary/migrate/seed.js env=local --write   # indexes, facet and view seeds. Safe to re-run.
+node src/vocabulary/skosCheck.js --view view:media-creation
 ```
 
-**`migrate/run.js` and `migrate/runOmc.js` no longer run — they refuse, and should.** Both rebuild
-`vocab_collections`, and restoring that would undo the collapse. A faithful port is not possible
-either: choosing which term heads each arrangement was a human decision, not a derivation —
-`vmc:s-Security` held the security model while the term "Security" was a crew department above
-Security Coordinator, Captain and Crew, and no rule tells those apart. `migrate/collapse.mjs` is
-where those decisions are written down, and it has run. Both files stay because they are the record
-of how the vocabulary came out of Neo4j.
+**The migration has run and its scripts are deleted.** Three of them mattered: `collapse.mjs`
+(collections onto terms), `omcNamespace.mjs` (`omc:` ids into `vmc:`) and `pruneTokens.mjs`. Nothing
+can re-run them and nothing should — choosing which term heads each arrangement was a human
+decision, not a derivation, so there is no faithful port. Git history holds them if the reasoning is
+ever needed.
 
-Every migration under `migrate/` is dry by default and takes `--write`. The ones that have run:
-`collapse.mjs` (collections onto terms), `omcNamespace.mjs` (`omc:` ids into `vmc:`), and
-`pruneTokens.mjs` (the authored `omcToken`s derivation already reproduces).
+**Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
+`seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
+without writing one. The data is kept for that reason; `skosProjectionIndex` in the same file is
+live and used by the generators.
 
 ### The OMC merge — two graphs became one term store
 
-Neo4j held two disjoint graphs joined by a `hasSkosDefinition` edge with **no integrity behind it**.
-`runOmc.js` dissolved that: a controlled value with such an edge became a *placement of a term the
-vocabulary already held*; one without became a term of its own. Measured on the live data at the
-time: 293 controlled values, 125 placements onto 107 existing terms, 183 terms minted.
+The old Neo4j store held two disjoint graphs joined by a `hasSkosDefinition` edge with **no
+integrity behind it**. The merge dissolved that: a controlled value with such an edge became a
+*placement of a term the vocabulary already held*; one without became a term of its own. Measured on
+the live data at the time: 293 controlled values, 125 placements onto 107 existing terms, 183 terms
+minted. That is why the store looks as it does.
 
 **Those 183 kept an `omc:` identifier, and no longer do.** Two namespaces for one kind of thing meant
 a term in the second was indistinguishable from a term in the first until it reached an export —
 where `omc:` was not even in the Turtle's prefix map, so it emitted an undeclared CURIE.
-`migrate/omcNamespace.mjs` moved them, keeping the number where it was free (`omc:002A0` →
-`vmc:c-0002a0`) and minting where it was not. Every term id is `vmc:` now.
+The move kept the number where it was free (`omc:002A0` → `vmc:c-0002a0`) and minted where it was
+not. Every term id is `vmc:` now.
 
-- **Run `runOmc.js` after `run.js`, never before.** The merge adds an `omcToken` label to shared
-  terms; `run.js` deletes and re-inserts everything it owns, so the reverse order discards them —
-  and the controlled-value view then falls back to preferred labels, turning `audio` into `Audio` in
-  a schema table. Re-running `runOmc.js` repairs it.
 - **A view can name which kind of label it publishes** (`view.labelType`, default `pref`).
   `view:omc-controlled-values` uses `omcToken` with `labelStyle: 'dotted'`, so `capture` +
   `witnessCamera` renders `capture.witnessCamera` — the string the schema actually holds. Every
@@ -221,11 +217,6 @@ where `omc:` was not even in the Turtle's prefix map, so it emitted an undeclare
   whole or not at all, so a new value in `FACET_SEEDS` never reaches a live store — it fails quietly
   and downstream, where the SKOS export drops labels using it and the validator refuses the next
   edit to any term carrying one. `reconcileFacetValues` exists for this and both CLIs call it.
-- `runOmc.js` loads existing terms with `{ omcMigrated: { $ne: true } }`. Without it a second run
-  reads its own first run as pre-existing and every minted term reports as a collision.
-- 8 `hasSubValue` edges start at a **Property**, not a ControlledValue — a miswritten
-  `hasControlledValue`. Read as top-level rather than dropped: they carry `script`, `proxy`,
-  `timeline` and `color`, four values the Asset function table needs.
 
 ### The drift report
 
@@ -244,13 +235,6 @@ why the drift was invisible without this.
 
 Things that will bite:
 
-- **Never migrate through `neo4JInterface.query()`.** `getHierarchy` caps `narrower` at `*1..2`;
-  three collections are four deep, so it silently loses a level. `getConcept` needs an outgoing
-  `broader|narrower`, `getScheme` needs a `prefLabel` Label node. `migrate/readGraph.js` runs its own
-  uncapped Cypher for exactly this reason — and finds **3 concepts no cache query returns**, which
-  are therefore invisible in the old editor and its export.
-- **The live graph has 139 duplicate `topConceptOf` relationships** over 199 distinct pairs. Count
-  instances *and* distinct pairs; either alone hides it.
 - **`broader`/`narrower` and `topConceptOf` are computed over terms only**, skipping grouping
   members — a scheme head is the vocabulary, not a concept broader than what is in it. `resolve.js`
   owns this, and `schemeHeads` decides which terms are schemes at all.
