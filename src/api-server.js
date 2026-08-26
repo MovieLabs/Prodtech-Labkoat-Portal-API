@@ -13,7 +13,6 @@ import ingestRouter from '../src/routes/ingest-router.js';
 import omcRouter from '../src/routes/omc-router.js';
 import pipelineRouter from '../src/routes/pipeline-router.js';
 import routeLog from '../src/routes/routeLog.js';
-import { vocabRouter, vocabSetup } from '../src/routes/vocab-router.js';
 import vocabV1Router from '../src/routes/vocab-v1-router.js';
 
 import config from './config.js';
@@ -80,10 +79,8 @@ export default async function apiServer() {
         arn: config.SECRET_ARN,
     });
     await oktaSetup(secrets);
-    await vocabSetup(secrets);
-    // The vocabulary's Mongo store, alongside Neo4j rather than instead of it. Nothing reads it
-    // except /api/vocab/v1, so a failure here must not stop the service booting -- the old routes
-    // still work and Neo4j is still authoritative.
+    // A failure here must not stop the service booting: every other route is unaffected, and the
+    // vocabulary reporting its own unavailability is more useful than the gateway refusing to start.
     try {
         await initializeVocabMongo({
             username: secrets.FMAM.FMAM_MONGO_USER,
@@ -131,8 +128,7 @@ export default async function apiServer() {
     // app.use('/api/okta', okta); // Add the route controllers for Okta
     app.use('/api/admin', adminRouter); // Add the route controllers for the Admin page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
-    app.use('/api/vocab', vocabRouter);
-    app.use('/api/vocab/v1', vocabV1Router); // The Mongo-backed vocabulary: views, generators, usage
+    app.use('/api/vocab/v1', vocabV1Router); // The vocabulary: views, generators, usage
     app.use('/api/greenlight', greenlightRouter);
     app.use('/api/pipeline/v1', pipelineRouter); // Select, feed and run an OMC processing pipeline
     app.use('/api/ingest/v1', ingestRouter); // Files as OMC assets; same modules, its own contract

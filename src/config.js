@@ -25,9 +25,6 @@ const configEnv = {
         // prefixed `vocab_`, because the cluster is shared and users name their own collections.
         VOCAB_MONGO_URL: 'mongodb+srv://${username}:${password}@ml-prodtech.inwvg0.mongodb.net/?appName=ML-Prodtech',
         VOCAB_DB: 'app_config',
-        AWS_NEO4J_URI: 'neo4j://35.85.154.154:7687',
-        AWS_NEO4J_USERNAME: 'neo4j',
-        AWS_NEO4J_DATABASE: 'neo4j',
         AWS_REGION: 'us-west-2',
         // Pipeline execution. Runs happen in worker threads in this process, so these bound what
         // one request can cost the gateway. The per-project S3 bucket is NOT here: it lives on the

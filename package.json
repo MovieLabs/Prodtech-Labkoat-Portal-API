@@ -35,7 +35,6 @@
     "jsonata": "^2.0.1",
     "mlHelpers": "file:./mlHelpers",
     "mongodb": "^6.21.0",
-    "neo4j-driver": "^5.19.0",
     "node-fetch": "^2.6.9",
     "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.4.0"
   }
