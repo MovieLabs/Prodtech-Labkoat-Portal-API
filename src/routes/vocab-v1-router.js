@@ -44,7 +44,6 @@ import {
     arrangeSubtree,
     createTerms,
     movePlacement,
-    forkTerm,
     deleteTerm,
     replaceTerm,
     unarrangeSubtree,
@@ -409,25 +408,6 @@ router.put('/facets/:id', authenticated, async (req, res, next) => {
             req.params.id, req.body, actorOf(req), req.query.force === 'true',
         );
         res.json({ facet, warnings });
-    } catch (err) {
-        writeFailed(err, res, next);
-    }
-});
-
-/**
- * Fork a term into one collection — the "use a separate copy here" half of the edit decision.
- *
- * A fork mints a new identifier, so for a consumer keying on the old one this is a breaking change
- * wearing an edit's clothes. The caller is expected to have said so before calling.
- */
-router.post('/terms/:id/fork', authenticated, async (req, res, next) => {
-    try {
-        const { inCollection } = req.body ?? {};
-        if (!inCollection) {
-            res.status(422).json({ message: 'inCollection is required', errors: ['Say which collection the copy belongs to'] });
-            return;
-        }
-        res.status(201).json(await forkTerm(req.params.id, inCollection, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
