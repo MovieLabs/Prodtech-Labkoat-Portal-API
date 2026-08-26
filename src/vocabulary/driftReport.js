@@ -138,7 +138,7 @@ export async function driftReport({ viewId, schema, status = null }) {
     const perTable = tables.map((table) => {
         const match = bestMatch(table.values, byCollection);
         const missing = table.values.filter((value) => !rendered.has(value));
-        const collection = match.collection ? resolution.collections.get(match.collection) : null;
+        const collection = match.collection ? resolution.terms.get(match.collection) : null;
         return {
             path: table.path,
             property: table.property,

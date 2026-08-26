@@ -6,20 +6,19 @@
  * at a glance — and what lets a future collision guard be one rule rather than a list somebody has
  * to keep up to date.
  *
- * A word of warning about the word: `VOCAB_COLLECTIONS` is the *Mongo* collection that stores our
- * *domain* collections. Everywhere else in this subsystem, "collection" means the domain construct —
- * a reusable arrangement of terms.
- *
  * @module vocabulary/store/collections
  */
 
 import { vocabDatabase } from './mongoConnection.js';
 
-/** Terms: meaning only. A term does not know which collection it is in. */
+/**
+ * Terms: meaning, and arrangement where a term has one.
+ *
+ * A term carrying a `member` array is what used to be a collection. There is no separate document
+ * and no separate identifier — an arrangement is a property of the term it belongs to, so making a
+ * term reusable no longer changes what it is called.
+ */
 export const VOCAB_TERMS = 'vocab_terms';
-
-/** Collections: arrangement. One `member` list holds the whole taxonomy. */
-export const VOCAB_COLLECTIONS = 'vocab_collections';
 
 /** Views: what is specific to publishing one collection for one audience. */
 export const VOCAB_VIEWS = 'vocab_views';
@@ -41,7 +40,6 @@ export const VOCAB_COUNTERS = 'vocab_counters';
 /** Every collection this subsystem owns, for setup and for teardown in tests. */
 export const ALL_VOCAB_COLLECTIONS = [
     VOCAB_TERMS,
-    VOCAB_COLLECTIONS,
     VOCAB_VIEWS,
     VOCAB_FACETS,
     VOCAB_COUNTERS,
@@ -58,9 +56,10 @@ export const vocabCollection = ((name) => vocabDatabase().collection(name));
  *
  * The two that matter for correctness rather than speed:
  *
- * - **`member.term` and `member.collection`** are what make "where is this used" a query instead of
- *   a scan of every collection document. That question is asked before every edit, to offer the
- *   change-everywhere / separate-copy choice, so it is on the interactive path.
+ * - **`member.term`** is what makes "where is this used" a query instead of a scan of every term.
+ *   That question is asked before every edit, to offer the change-everywhere / separate-copy choice,
+ *   so it is on the interactive path. It is needed on views as well as terms, because a view holds
+ *   its members the same way.
  * - **`label.value`** backs the duplicate check when a term is created or renamed. The old code
  *   walked every label in memory on each call.
  *
@@ -70,11 +69,9 @@ export async function createVocabIndexes() {
     await Promise.all([
         vocabCollection(VOCAB_TERMS).createIndex({ 'label.value': 1 }),
         vocabCollection(VOCAB_TERMS).createIndex({ status: 1 }),
+        vocabCollection(VOCAB_TERMS).createIndex({ 'member.term': 1 }),
 
-        vocabCollection(VOCAB_COLLECTIONS).createIndex({ 'member.term': 1 }),
-        vocabCollection(VOCAB_COLLECTIONS).createIndex({ 'member.collection': 1 }),
-
-        vocabCollection(VOCAB_VIEWS).createIndex({ root: 1 }),
+        vocabCollection(VOCAB_VIEWS).createIndex({ 'member.term': 1 }),
 
         vocabCollection(VOCAB_FACETS).createIndex({ appliesTo: 1 }),
     ]);

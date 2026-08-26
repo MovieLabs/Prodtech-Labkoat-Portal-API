@@ -23,7 +23,6 @@ import config from '../../config.js';
 import VocabNeo4j from '../../neo4J/neo4JInterface.js';
 import {
     ALL_VOCAB_COLLECTIONS,
-    VOCAB_COLLECTIONS,
     VOCAB_FACETS,
     VOCAB_TERMS,
     VOCAB_VIEWS,
@@ -35,9 +34,38 @@ import { raiseTermCounter, termIdNumber } from '../store/ids.js';
 import { closeVocabMongo, initializeVocabMongo, vocabDatabase } from '../store/mongoConnection.js';
 import { seedViews } from '../store/viewSeeds.js';
 
-import { buildModel, buildRootCollection, buildUnplacedCollection } from './buildModel.js';
+import { buildModel, buildUnplacedCollection, buildViewMembers } from './buildModel.js';
 import { auditGraph, readSkosGraph } from './readGraph.js';
 import { formatChecks, verifyMigration } from './verify.js';
+
+/**
+ * **This cannot run against the store as it now is, and must not be made to.**
+ *
+ * It rebuilds `vocab_collections`, which no longer exists: an arrangement is a property of the term
+ * that carries it, not a record of its own. Rebuilding would put the two-record model back and undo
+ * the collapse.
+ *
+ * **A faithful port is not possible**, which is worth saying plainly rather than leaving as a task
+ * somebody picks up. Choosing which term heads each arrangement was a human decision, not a
+ * derivation: `vmc:s-Security` held the security model while the term "Security" was a crew
+ * department above Security Coordinator, Captain and Crew, and no rule could tell those apart.
+ * `migrate/collapse.mjs` is where those decisions are written down, and it has run.
+ *
+ * Left in place because it is the record of how the vocabulary came out of Neo4j, and reading it is
+ * still the way to answer questions about what the import did.
+ */
+const REBUILDS_A_STORE_THAT_IS_GONE = true;
+if (REBUILDS_A_STORE_THAT_IS_GONE) {
+    console.error([
+        'This migration rebuilds vocab_collections, which no longer exists.',
+        'An arrangement now belongs to the term that carries it; see migrate/collapse.mjs.',
+        'Running this would restore the two-record model and undo that.',
+    ].join('\n'));
+    process.exit(1);
+}
+
+/** The Mongo collection this used to write. Named here because the store no longer exports it. */
+const VOCAB_COLLECTIONS = 'vocab_collections';
 
 const heading = ((text) => `\n${text}\n${'-'.repeat(text.length)}`);
 
@@ -48,10 +76,10 @@ const heading = ((text) => `\n${text}\n${'-'.repeat(text.length)}`);
  * Neo4j, so a second run must produce exactly what a first run would have, not the union of the
  * two. Re-runnable is the property that makes it safe to iterate on.
  *
- * @param {object} model - `{ terms, collections }` plus the root
+ * @param {object} model - `{ terms, collections, attach }`, where `attach` is what the view holds
  * @returns {Promise<void>}
  */
-async function writeModel({ terms, collections, root }) {
+async function writeModel({ terms, collections, attach }) {
     await createVocabIndexes();
     await seedFacets(vocabCollection(VOCAB_FACETS));
     // A value added to a seed after the facet was first written arrives only here --
@@ -66,8 +94,14 @@ async function writeModel({ terms, collections, root }) {
     await vocabCollection(VOCAB_COLLECTIONS).deleteMany({ migrated: true });
 
     if (terms.length) await vocabCollection(VOCAB_TERMS).insertMany(terms);
-    const allCollections = [...collections, root];
-    if (allCollections.length) await vocabCollection(VOCAB_COLLECTIONS).insertMany(allCollections);
+    if (collections.length) await vocabCollection(VOCAB_COLLECTIONS).insertMany(collections);
+
+    // What the old root held is what the view attaches. The view is the root, so there is no
+    // collection above these — `seedViews` above wrote the view, and this fills it.
+    await vocabCollection(VOCAB_VIEWS).updateOne(
+        { _id: 'view:media-creation' },
+        { $set: { member: attach } },
+    );
 
     // The migration keeps every existing id, so the counter has to start above the highest one it
     // imported — otherwise the first term anyone creates collides with one of these.
@@ -119,7 +153,7 @@ async function main() {
     // view publishes a collection, so without this they would silently stop appearing.
     const unplacedCollection = buildUnplacedCollection(unplaced);
     const allSchemes = unplacedCollection ? [...collections, unplacedCollection] : collections;
-    const root = buildRootCollection(allSchemes);
+    const attach = buildViewMembers(allSchemes);
 
     console.log(heading('Built model'));
     Object.entries(report).forEach(([key, value]) => {
@@ -129,7 +163,7 @@ async function main() {
     // ---- verify ----
 
     console.log(heading('Checks'));
-    const result = verifyMigration({ graph, terms, collections: allSchemes, root });
+    const result = verifyMigration({ graph, terms, collections: allSchemes, attach });
     console.log(formatChecks(result));
 
     if (!write) {
@@ -151,7 +185,7 @@ async function main() {
         mongoUrl: config.VOCAB_MONGO_URL,
     });
 
-    await writeModel({ terms, collections: allSchemes, root });
+    await writeModel({ terms, collections: allSchemes, attach });
 
     const stored = await Promise.all(
         ALL_VOCAB_COLLECTIONS.map(async (name) => `${name}: ${await vocabDatabase().collection(name).countDocuments()}`),

@@ -29,8 +29,7 @@ import { driftReport } from '../vocabulary/driftReport.js';
 import { generate, generatorNames } from '../vocabulary/generators/index.js';
 import {
     allTerms,
-    collectionUsage,
-    getCollection,
+    getTerm,
     getTerms,
     getView,
     listCollections,
@@ -42,14 +41,13 @@ import {
 } from '../vocabulary/store/read.js';
 import {
     ValidationError,
-    createCollection,
+    arrangeSubtree,
     createTerms,
-    deleteCollection,
-    forkCollection,
+    movePlacement,
     forkTerm,
     deleteTerm,
-    replaceCollection,
     replaceTerm,
+    unarrangeSubtree,
     saveFacet,
     createView,
     deleteView,
@@ -167,9 +165,9 @@ router.get('/views/:id/record', authenticated, async (req, res, next) => {
 });
 
 /**
- * Every collection, without its members.
+ * Every term that carries an arrangement, without its members.
  *
- * For the membership editor's picker: which collections exist, and how big each is. The members
+ * For the composition palette: which arrangements exist, and how big each is. The members
  * themselves are the bulk of these documents and a picker has no use for them.
  */
 router.get('/collections', authenticated, async (req, res, next) => {
@@ -180,15 +178,15 @@ router.get('/collections', authenticated, async (req, res, next) => {
     }
 });
 
-/** One collection, unresolved. */
+/** One arrangement, unresolved. It is a term, so this is the term with its members. */
 router.get('/collections/:id', authenticated, async (req, res, next) => {
     try {
-        const collection = await getCollection(req.params.id);
-        if (!collection) {
-            res.status(404).json({ message: `No such collection: ${req.params.id}` });
+        const term = await getTerm(req.params.id);
+        if (!term) {
+            res.status(404).json({ message: `No such term: ${req.params.id}` });
             return;
         }
-        res.json(collection);
+        res.json(term);
     } catch (err) {
         next(err);
     }
@@ -209,10 +207,16 @@ router.get('/terms/:id/usage', authenticated, async (req, res, next) => {
     }
 });
 
-/** Where a collection is used. Same purpose, for an inclusion rather than a term. */
+/**
+ * Where an arrangement is used.
+ *
+ * The same route as a term's usage, because it is the same question: including an arrangement is
+ * placing the term that carries it. Kept as its own path so a client asking about a collection does
+ * not have to know that.
+ */
 router.get('/collections/:id/usage', authenticated, async (req, res, next) => {
     try {
-        res.json(await collectionUsage(req.params.id));
+        res.json(await termUsage(req.params.id));
     } catch (err) {
         next(err);
     }
@@ -371,33 +375,6 @@ router.delete('/terms/:id', authenticated, async (req, res, next) => {
     }
 });
 
-/** Create a collection. */
-router.post('/collections', authenticated, async (req, res, next) => {
-    try {
-        res.status(201).json(await createCollection(req.body, actorOf(req)));
-    } catch (err) {
-        writeFailed(err, res, next);
-    }
-});
-
-/** Replace a collection, members and all -- re-parenting and reordering are edits to that array. */
-router.put('/collections/:id', authenticated, async (req, res, next) => {
-    try {
-        res.json(await replaceCollection(req.params.id, req.body, actorOf(req)));
-    } catch (err) {
-        writeFailed(err, res, next);
-    }
-});
-
-/** Delete a collection. The terms in it stay. */
-router.delete('/collections/:id', authenticated, async (req, res, next) => {
-    try {
-        res.json(await deleteCollection(req.params.id, req.query.force === 'true'));
-    } catch (err) {
-        writeFailed(err, res, next);
-    }
-});
-
 /** Create a view, its identifier minted from its name. */
 router.post('/views', authenticated, async (req, res, next) => {
     try {
@@ -428,7 +405,9 @@ router.delete('/views/:id', authenticated, async (req, res, next) => {
 /** Create or replace a facet -- the controlled set behind a kind of label, note, example or tag. */
 router.put('/facets/:id', authenticated, async (req, res, next) => {
     try {
-        const { facet, warnings } = await saveFacet(req.params.id, req.body, actorOf(req));
+        const { facet, warnings } = await saveFacet(
+            req.params.id, req.body, actorOf(req), req.query.force === 'true',
+        );
         res.json({ facet, warnings });
     } catch (err) {
         writeFailed(err, res, next);
@@ -454,11 +433,63 @@ router.post('/terms/:id/fork', authenticated, async (req, res, next) => {
     }
 });
 
-/** Fork a collection. The copy holds the same terms — forking an arrangement is not forking meaning. */
-router.post('/collections/:id/fork', authenticated, async (req, res, next) => {
+/**
+ * Move a term's subtree onto the term, so it can be reused wherever the term is placed.
+ *
+ * The term's row does not move, so what this container publishes does not change — see
+ * `arrangeSubtree` for why.
+ */
+router.post('/containers/:id/arrange', authenticated, async (req, res, next) => {
     try {
-        const { name, inCollection = null } = req.body ?? {};
-        res.status(201).json(await forkCollection(req.params.id, name, inCollection, actorOf(req)));
+        const { mid } = req.body ?? {};
+        if (!mid) {
+            res.status(422).json({ message: 'mid is required', errors: ['Say which member to arrange'] });
+            return;
+        }
+        res.status(201).json(await arrangeSubtree(req.params.id, mid, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Move a placement, and everything beneath it, to another parent.
+ *
+ * One request rather than a remove and an add, so a subtree is no harder to move than a leaf and the
+ * rows are never in neither place.
+ */
+router.post('/containers/:id/move', authenticated, async (req, res, next) => {
+    try {
+        const { mid, toId, toParent = null } = req.body ?? {};
+        if (!mid || !toId) {
+            res.status(422).json({
+                message: 'mid and toId are required',
+                errors: ['Say which member to move, and where it is going'],
+            });
+            return;
+        }
+        res.json(await movePlacement({
+            fromId: req.params.id, mid, toId, toParent,
+        }, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Give a term's arrangement back to this container, and stop sharing it.
+ *
+ * The inverse of arranging, and the reason making something reusable is not a one-way door. Every
+ * other placement of the term loses what was under it, so this warns unless `force` is set.
+ */
+router.post('/containers/:id/unarrange', authenticated, async (req, res, next) => {
+    try {
+        const { mid } = req.body ?? {};
+        if (!mid) {
+            res.status(422).json({ message: 'mid is required', errors: ['Say which member to revert'] });
+            return;
+        }
+        res.json(await unarrangeSubtree(req.params.id, mid, actorOf(req), req.query.force === 'true'));
     } catch (err) {
         writeFailed(err, res, next);
     }

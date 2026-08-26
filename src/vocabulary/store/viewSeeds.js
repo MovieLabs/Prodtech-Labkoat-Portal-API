@@ -1,10 +1,16 @@
 /**
  * The view the migrated vocabulary publishes through.
  *
- * Three seeds, not a set. Views are meant to be created for a purpose by whoever has that purpose,
+ * Two seeds, not a set. Views are meant to be created for a purpose by whoever has that purpose,
  * and inventing a dozen speculative ones would be inventing requirements. What has to exist is the
- * view that replaces today's single SKOS export, the one that regenerates the OMC controlled values,
- * and the union both of those are published under.
+ * view that replaces today's single SKOS export, and the union it is published under.
+ *
+ * **`view:omc-controlled-values` was one of these and is gone**, along with the 33 collections it
+ * read. That arrangement was a parallel copy of terms Media Creation already held, built from the
+ * OMC graph by `migrate/buildOmcModel.js`, and it is being replaced by one composed from the Media
+ * Creation hierarchy itself. The seed is removed rather than left pointing at a deleted collection,
+ * which is what running `migrate/seed.js` would otherwise restore. What it published on the day it
+ * went is kept under `snapshots/`.
  *
  * ## `ontology` is what makes a union expressible
  *
@@ -27,7 +33,9 @@ export const VIEW_SEEDS = [
             en: 'The whole vocabulary, published as SKOS. Replaces the single export the old '
                 + 'tool produced, and is what the Explore page reads.',
         },
-        root: 'coll:media-creation',
+        // What it attaches is filled in by the migration, which is what knows the schemes it made.
+        // A view is the root; there is no collection above these.
+        member: [],
         // The artifact's own identity. Named here so a view that gathers this one can declare the
         // composition with `owl:imports` rather than inventing a structure SKOS cannot express.
         ontology: 'https://mc.movielabs.com/vmc/media-creation',
@@ -41,28 +49,6 @@ export const VIEW_SEEDS = [
         seeded: true,
     },
     {
-        _id: 'view:omc-controlled-values',
-        label: [{ value: 'OMC Controlled Values', language: 'en', labelType: 'pref' }],
-        definition: {
-            en: 'Every controlled value OMC-JSON defines, named the way OMC-JSON names it, so a '
-                + 'build process can regenerate a schema table from it and be sure it is current.',
-        },
-        root: 'coll:omc-controlled-values',
-        ontology: 'https://mc.movielabs.com/vmc/omc-controlled-values',
-        // The dotted name **is** the controlled value: `capture` with `witnessCamera` beneath it
-        // renders as `capture.witnessCamera`, which is the string the schema holds.
-        labelStyle: 'dotted',
-        // Rendered from the OMC token, not the preferred label. The two differ, and the difference
-        // is exactly what would break a schema — the term reads `Audio` for a person and `audio` in
-        // OMC-JSON.
-        labelType: 'omcToken',
-        // Deliberately unfiltered by status. A drift report has to see a deprecated value in order
-        // to report it as deprecated; filtering it out here would make it look as though it had
-        // simply gone.
-        generators: ['json', 'csv'],
-        seeded: true,
-    },
-    {
         _id: 'view:all-vocab',
         label: [{ value: 'All Vocabulary', language: 'en', labelType: 'pref' }],
         definition: {
@@ -70,7 +56,7 @@ export const VIEW_SEEDS = [
                 + 'published independently; this gathers their roots, so it is always the current '
                 + 'union rather than a copy taken at some past moment.',
         },
-        root: 'coll:all-vocab',
+        member: [],
         // The name of the whole. Every vocabulary it gathers keeps its own ontology, and this one
         // declares what it is made of with `owl:imports` — which is where an aggregate belongs,
         // because SKOS has no aggregate of schemes and adding one would mean retyping a scheme as

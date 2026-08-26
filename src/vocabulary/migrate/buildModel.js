@@ -302,28 +302,16 @@ export function buildUnplacedCollection(termIds) {
 /**
  * The collection that gathers every migrated scheme, so "the whole vocabulary" is addressable.
  *
- * This is what the root and its `hasScheme` edges become. It is an ordinary collection whose
- * members are other collections — which is the composition the model is built on, not a special
- * case for the root.
+ * This is what the root and its `hasScheme` edges become. **Not a collection** — a view is the
+ * root, so what the old root held becomes what the view attaches, in the same member shape a
+ * collection uses.
  *
  * @param {Array<object>} collections - The migrated scheme collections
- * @returns {object} A `vocab_collections` document
+ * @returns {Array<object>} Member rows for a view
  */
-export function buildRootCollection(collections) {
-    return {
-        _id: 'coll:media-creation',
-        label: [{ value: 'Media Creation', language: DEFAULT_LANGUAGE, labelType: 'pref' }],
-        definition: {
-            en: 'Every scheme migrated from the original vocabulary, gathered so the whole '
-                + 'vocabulary can be published as one.',
-        },
-        // A grouping of schemes, not a scheme itself — schemes cannot nest in SKOS.
-        projections: { skos: 'transparent' },
-        member: collections.map((collection, index) => ({
-            mid: `m${index + 1}`,
-            collection: collection._id,
-            parent: null,
-        })),
-        migrated: true,
-    };
+export function buildViewMembers(collections) {
+    return collections.map((collection, index) => ({
+        mid: `m${index + 1}`,
+        collection: collection._id,
+    }));
 }

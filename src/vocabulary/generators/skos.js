@@ -18,8 +18,9 @@
  * @module vocabulary/generators/skos
  */
 
-import { broaderOf, placementsByTerm, schemesOf, topConceptOf } from '../resolve.js';
-import { projectionOf } from '../store/projections.js';
+import {
+    broaderOf, placementsByTerm, schemeHeads, schemesOf, topConceptOf,
+} from '../resolve.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
 const PREFIXES = {
@@ -69,7 +70,10 @@ function projection(index, target, type) {
 export function skosTriples(resolution, projections) {
     const { terms, language } = resolution;
     const triples = [];
-    const problems = { unknownTypes: [], nestedSchemes: [] };
+    const problems = { unknownTypes: [] };
+    // The terms this view publishes as schemes, and the identifier each takes. Read twice: once to
+    // emit the schemes, once so a head can say it belongs to its own.
+    const heads = schemeHeads(resolution);
 
     const add = ((subject, predicate, object) => triples.push({ subject, predicate, object }));
     const literal = ((value, lang = language) => ({ value, language: lang }));
@@ -90,60 +94,42 @@ export function skosTriples(resolution, projections) {
         add(`<${ontology}>`, 'owl:imports', ref(`<${imported}>`));
     });
 
-    // ---- collections ----
-
-    // A scheme nested inside another scheme cannot be expressed: SKOS has no scheme-within-a-scheme.
-    // Lifted to a sibling and reported. It must never be resolved silently, because the two readings
-    // — lift, or degrade to a Collection — produce materially different output.
-    const schemeDepth = new Map();
-    resolution.placements.forEach((placement) => {
-        const schemes = schemesOf(placement);
-        if (schemes.length > 1) {
-            schemes.slice(1).forEach((inner) => {
-                if (!schemeDepth.has(inner)) {
-                    schemeDepth.set(inner, schemes[0]);
-                    problems.nestedSchemes.push({ scheme: inner, insideOf: schemes[0] });
-                }
-            });
-        }
-    });
-
-    const usedCollections = new Set(
-        resolution.placements.flatMap((placement) => placement.path
-            .filter((entry) => entry.kind === 'collection')
-            .map((entry) => entry.id)),
-    );
-
-    usedCollections.forEach((id) => {
-        const collection = resolution.collections.get(id);
-        if (!collection) return;
-        const as = projectionOf(collection, 'skos');
-        if (as === 'transparent') return; // Contributes structure, emits no node — by declaration
-
-        add(id, 'rdf:type', ref(as === 'conceptScheme' ? 'skos:ConceptScheme' : 'skos:Collection'));
-        add(id, 'skos:prefLabel', literal(prefLabel(collection, language)));
-        const definition = localised(collection.definition, language);
-        if (definition) add(id, 'skos:definition', literal(definition));
-    });
-
-    // `skos:member` for the grouping collections, pointing at whatever sits directly inside them.
-    resolution.placements.forEach((placement) => {
-        const parent = [...placement.path].reverse()
-            .find((entry) => entry.kind === 'collection' || entry.kind === 'term');
-        if (parent?.kind !== 'collection') return;
-        const collection = resolution.collections.get(parent.id);
-        if (projectionOf(collection, 'skos') === 'collection') {
-            add(parent.id, 'skos:member', ref(placement.termId));
-        }
+    // ---- schemes ----
+    //
+    // A term the view attaches directly, carrying an arrangement, **is** the vocabulary: it comes
+    // out as a `skos:ConceptScheme` and not as a concept, and its children are that scheme's top
+    // concepts. Nothing on the term declares this — it is where the term sits, so the same term
+    // heads a vocabulary in the view that attaches it and is an ordinary concept in a view that
+    // reaches it three levels down.
+    //
+    // A term the view attaches that carries no arrangement is just a concept, and the tree below it
+    // works the usual way.
+    heads.forEach((schemeId, termId) => {
+        const term = terms.get(termId);
+        if (!term) return;
+        add(schemeId, 'rdf:type', ref('skos:ConceptScheme'));
+        add(schemeId, 'skos:prefLabel', literal(prefLabel(term, language)));
+        const definition = localised(term.definition, language);
+        if (definition) add(schemeId, 'skos:definition', literal(definition));
     });
 
     // ---- concepts ----
 
     const byTerm = placementsByTerm(resolution);
 
-    byTerm.forEach((placements, termId) => {
+    byTerm.forEach((all, termId) => {
         const term = terms.get(termId);
         if (!term) return;
+
+        // **A scheme head's own placement is the scheme, not a concept appearance.** It is the one
+        // placement the view attaches directly, so it is the one with an empty path; every other
+        // placement of the same term is a genuine appearance somewhere else and still counts.
+        //
+        // A term that is *only* a scheme head therefore emits no concept at all — which is the
+        // point. Emitting one made `Audio` a scheme whose single top concept was `Audio`, and every
+        // real top concept then carried a `broader` back to it.
+        const placements = heads.has(termId) ? all.filter((one) => one.path.length) : all;
+        if (!placements.length) return;
 
         add(termId, 'rdf:type', ref('skos:Concept'));
 

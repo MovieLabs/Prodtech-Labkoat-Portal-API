@@ -1,6 +1,6 @@
 /**
- * Reading terms, collections, views and facets, and the small accessors everything else asks
- * questions of a term through.
+ * Reading terms, views and facets, and the small accessors everything else asks questions of a term
+ * through.
  *
  * The accessors matter more than they look. A term's names live in one faceted `label` array where
  * the preferred name is just the entry whose `labelType` is `pref` — there is no `prefLabel` field
@@ -11,7 +11,6 @@
  */
 
 import {
-    VOCAB_COLLECTIONS,
     VOCAB_FACETS,
     VOCAB_TERMS,
     VOCAB_VIEWS,
@@ -47,16 +46,63 @@ export function prefLabel(term, language = DEFAULT_LANGUAGE) {
 export const otherLabels = ((term) => (term?.label ?? []).filter((entry) => entry.labelType !== 'pref'));
 
 /**
+ * Turn a name into the camelCase token a schema would use.
+ *
+ * `Set Dressing` becomes `setDressing`, `STEM` becomes `stem`, `VFX Shot` becomes `vfxShot`. A word
+ * in full capitals is lowered whole rather than character by character, because `sTEM` is what the
+ * naive rule produces and it is nobody's idea of a token.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function tokenFromName(name) {
+    const words = String(name ?? '').split(/[^A-Za-z0-9]+/).filter(Boolean);
+    return words.map((word, at) => {
+        // `VFX` -> `vfx`, not `vFX`. Any word that is already all capitals is an acronym.
+        const settled = /^[A-Z0-9]+$/.test(word) && /[A-Z]/.test(word) ? word.toLowerCase() : word;
+        if (at === 0) return settled.charAt(0).toLowerCase() + settled.slice(1);
+        return settled.charAt(0).toUpperCase() + settled.slice(1);
+    }).join('');
+}
+
+/**
+ * Label types that can be worked out from the preferred name when a term carries none.
+ *
+ * ## Why deriving is a fallback and never the value
+ *
+ * Of the 290 terms carrying an authored `omcToken`, **123 are not what deriving would produce** —
+ * and the differences are a rule, not noise: the token drops the part of the name the dotted path
+ * already supplies. `VFX Shot` is `vfx` because it sits under `shot`, so the value reads `shot.vfx`
+ * and saying "shot" twice would be wrong. That decision depends on *where the term sits*, and the
+ * same term in two arrangements would want two different tokens, so nothing can derive it. One
+ * authored token even corrects a misspelling in the label, which deriving would faithfully repeat.
+ *
+ * So an authored label always wins. What deriving replaces is the **other** fallback — naming the
+ * term by its preferred label, which put `Set Dressing` into a schema expecting `setDressing`. A
+ * derived token is a good guess where there was previously a certain mistake, and `problems.untyped`
+ * reports every one so a guess can be checked before it is published.
+ *
+ * @type {Object<string, function(object): string>}
+ */
+const DERIVABLE = {
+    omcToken: ((term) => tokenFromName(prefLabel(term))),
+};
+
+/**
  * The label of a given kind, falling back to the preferred one.
  *
  * A view may publish names of a kind other than the preferred one, which is what lets one audience
  * receive `capture.witnessCamera` where another receives `Witness Camera` — the same term, named the
  * way each consumer needs it.
  *
- * **The fallback is load-bearing.** A term with no label of the requested kind still has to be
- * named, and naming it by its identifier would put `vmc:c-0003C4` in an artifact where a word
- * belongs. So a missing label of that kind degrades to the preferred name, and the view's generator
- * reports how many terms it happened to — a count of zero is what says the view is complete.
+ * **The fallback is load-bearing, and it has two steps.** A term with no label of the requested
+ * kind still has to be named. Where the kind can be worked out from the preferred name it is
+ * derived — see `DERIVABLE` — which is how a schema view stops publishing `Set Dressing` where it
+ * needs `setDressing`. Where it cannot, the preferred name is used as it stands, because naming the
+ * term by its identifier would put `vmc:c-0003C4` in an artifact where a word belongs.
+ *
+ * Either way it is a substitution, and `problems.untyped` counts every one: a derived token is a
+ * good guess, and a guess in a schema is worth checking before it is published.
  *
  * @param {object} term
  * @param {string} [labelType] - `'pref'` or null means the preferred label
@@ -67,7 +113,11 @@ export function labelOfType(term, labelType = 'pref', language = DEFAULT_LANGUAG
     if (!labelType || labelType === 'pref') return prefLabel(term, language);
     const typed = (term?.label ?? []).filter((entry) => entry.labelType === labelType);
     const found = (typed.find((entry) => entry.language === language) ?? typed[0])?.value;
-    return found ?? prefLabel(term, language);
+    if (found) return found;
+    // Deliberately here and not in `otherLabels`: this answers "what does *this view* call the
+    // term", where that one lists the labels a term actually carries. Deriving there would give
+    // every term in the vocabulary a `skos:altLabel` it was never given.
+    return DERIVABLE[labelType]?.(term) ?? prefLabel(term, language);
 }
 
 /**
@@ -101,30 +151,18 @@ export const getView = ((id) => vocabCollection(VOCAB_VIEWS).findOne({ _id: id }
 /** Every view, for the list route. */
 export const listViews = (() => vocabCollection(VOCAB_VIEWS).find({}).toArray());
 
-/** One collection. */
-export const getCollection = ((id) => vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id }));
+/** One term. A term carrying a `member` array is what used to be a collection. */
+export const getTerm = ((id) => vocabCollection(VOCAB_TERMS).findOne({ _id: id }));
 
 /** Every facet, for projection lookup and for the editor. */
 export const listFacets = (() => vocabCollection(VOCAB_FACETS).find({}).toArray());
 
 /**
- * Collections by id, in one query.
- *
- * The resolver discovers what it needs as it walks, so it cannot name every collection up front —
- * it loads a level, sees which collections that level references, and loads those. One round trip
- * per level of nesting rather than one per collection.
- *
- * @param {string[]} ids
- * @returns {Promise<Map<string, object>>}
- */
-export async function getCollections(ids) {
-    if (!ids.length) return new Map();
-    const docs = await vocabCollection(VOCAB_COLLECTIONS).find({ _id: { $in: ids } }).toArray();
-    return new Map(docs.map((doc) => [doc._id, doc]));
-}
-
-/**
  * Terms by id, in one query.
+ *
+ * The resolver discovers what it needs as it walks, so it cannot name every term up front — it loads
+ * a level, sees which arrangements that level reaches, and loads those. One round trip per level of
+ * nesting rather than one per term.
  *
  * @param {string[]} ids
  * @returns {Promise<Map<string, object>>}
@@ -136,100 +174,65 @@ export async function getTerms(ids) {
 }
 
 /**
- * Where a term is used: the collections holding a member for it, and the views publishing those.
+ * Where a term is used: the terms holding a member for it, and the views doing the same.
  *
  * This is the query the change-everywhere / separate-copy prompt is built on, so it is on the
- * interactive path — hence the `member.term` index. It answers with collection and view documents
- * rather than ids because the caller is about to show them to somebody.
+ * interactive path — hence the `member.term` index. It answers with documents rather than ids
+ * because the caller is about to show them to somebody.
+ *
+ * **One query now answers "where is this term placed" and "where is this collection included".**
+ * They were two, against two Mongo collections, and they collapsed into one the moment a collection
+ * stopped being a document: including an arrangement *is* placing the term that carries it.
+ *
+ * A view reaching the term at depth is not reported — answering that exactly means resolving every
+ * view, so this gives the direct case and the caller can resolve if it needs certainty.
  *
  * @param {string} termId
  * @returns {Promise<{collections: Array<object>, views: Array<object>}>}
  */
 export async function termUsage(termId) {
-    const collections = await vocabCollection(VOCAB_COLLECTIONS)
-        .find({ 'member.term': termId })
-        .toArray();
-    const ids = collections.map((collection) => collection._id);
-    // A view uses a term if the term is in the view's root collection — or in anything that
-    // collection reaches. Answering that exactly means resolving every view, so this reports the
-    // direct case and the caller can resolve if it needs certainty.
-    const views = ids.length
-        ? await vocabCollection(VOCAB_VIEWS).find({ root: { $in: ids } }).toArray()
-        : [];
-    return { collections, views };
-}
-
-/**
- * Where a collection is used: the collections naming it as a member, and the views rooted on it.
- *
- * @param {string} collectionId
- * @returns {Promise<{collections: Array<object>, views: Array<object>}>}
- */
-export async function collectionUsage(collectionId) {
     const [collections, views] = await Promise.all([
-        vocabCollection(VOCAB_COLLECTIONS).find({ 'member.collection': collectionId }).toArray(),
-        vocabCollection(VOCAB_VIEWS).find({ root: collectionId }).toArray(),
+        vocabCollection(VOCAB_TERMS).find({ 'member.term': termId }).toArray(),
+        vocabCollection(VOCAB_VIEWS).find({ 'member.term': termId }).toArray(),
     ]);
     return { collections, views };
 }
 
 /**
- * Every collection, without its members.
+ * Every term that carries an arrangement, without its members.
  *
- * The membership editor needs a list to pick from, and the members are what make these documents
- * large — one collection holds 817 of them. A picker showing fourteen names has no use for the
- * arrangement inside each, so `memberCount` is computed server-side and the array is left behind.
+ * The composition palette needs a list to pick from, and the members are what make these documents
+ * large — one holds 312 of them. A picker showing sixteen names has no use for the arrangement
+ * inside each, so `memberCount` is computed server-side and the array is left behind.
  *
- * **`includes` is the exception, and it is not optional.** A collection that includes another can be
- * included by a third, and a client offering "drop this collection into that one" has to know which
- * choices would close a loop — a loop the resolver only discovers when someone next opens the view.
- * Answering that needs the inclusion edges, so those come back while the term members stay behind.
- * It stays small: only two collections here name any, 13 and 33.
+ * **`includes` is the exception, and it is not optional.** An arrangement that reaches another can
+ * be reached by a third, and a client offering "drop this into that" has to know which choices would
+ * close a loop — a loop the resolver only discovers when someone next opens the view. Answering that
+ * needs the edges between arrangements, so a member naming a term that is *itself* arranged comes
+ * back while the plain ones stay behind.
  *
- * **`terms` is the id list only, and it is what makes "which collections place this term?"
- * answerable.** A grid listing every term has to say where each one sits, and asking that per term is
- * a thousand requests. Every id across every collection is 1,045 strings — smaller than one expanded
- * collection — and the same list is what lets a client work out the unplaced set for itself.
+ * **`terms` is the id list only, and it is what makes "which arrangements place this term?"
+ * answerable.** A grid listing every term has to say where each one sits, and asking that per term
+ * is a thousand requests. Every id across every arrangement is around a thousand strings — smaller
+ * than one expanded document — and the same list is what lets a client work out the unplaced set for
+ * itself.
  *
- * @returns {Promise<Array<{_id: string, label: object[], definition: object, projections: object,
+ * @returns {Promise<Array<{_id: string, label: object[], definition: object, status: string,
  *   memberCount: number, includes: string[], terms: string[]}>>}
  */
-export function listCollections() {
-    return vocabCollection(VOCAB_COLLECTIONS).aggregate([
+export async function listCollections() {
+    const rows = await vocabCollection(VOCAB_TERMS).aggregate([
+        { $match: { member: { $exists: true, $ne: [] } } },
         {
             $project: {
                 label: 1,
                 definition: 1,
-                projections: 1,
-                // The pre-rename field, still sent so a client reading a store that has not been
-                // migrated yet has something to show. `projectionOf` prefers `projections`.
-                skosAs: 1,
+                status: 1,
                 memberCount: { $size: { $ifNull: ['$member', []] } },
-                includes: {
-                    $setUnion: [{
-                        $map: {
-                            input: {
-                                $filter: {
-                                    input: { $ifNull: ['$member', []] },
-                                    as: 'member',
-                                    cond: { $ne: [{ $ifNull: ['$$member.collection', null] }, null] },
-                                },
-                            },
-                            as: 'member',
-                            in: '$$member.collection',
-                        },
-                    }],
-                },
                 terms: {
                     $setUnion: [{
                         $map: {
-                            input: {
-                                $filter: {
-                                    input: { $ifNull: ['$member', []] },
-                                    as: 'member',
-                                    cond: { $ne: [{ $ifNull: ['$$member.term', null] }, null] },
-                                },
-                            },
+                            input: { $ifNull: ['$member', []] },
                             as: 'member',
                             in: '$$member.term',
                         },
@@ -239,6 +242,15 @@ export function listCollections() {
         },
         { $sort: { _id: 1 } },
     ]).toArray();
+
+    // Which of those members are arrangements in their own right. Derived here rather than in the
+    // pipeline: it is a lookup against the same result set, and `$lookup` on the collection being
+    // aggregated to answer a question its own output already contains is the slower way round.
+    const arranged = new Set(rows.map((row) => row._id));
+    return rows.map((row) => ({
+        ...row,
+        includes: row.terms.filter((id) => arranged.has(id)),
+    }));
 }
 
 /**
@@ -257,21 +269,28 @@ export function listCollections() {
 export const allTerms = (() => vocabCollection(VOCAB_TERMS).find({}).toArray());
 
 /**
- * Terms that no collection places.
+ * Terms that nothing places.
  *
  * **Computed, never stored.** The migration gathered the scheme-less terms into `coll:unplaced`, and
  * that was right for a one-way import — but it is a snapshot, not a fact. Place one of those terms
  * and it stays in `coll:unplaced` for ever, and the collection slowly becomes a list of what *used*
  * to be unplaced. Asking the question instead means the answer is true when it is asked.
  *
- * `distinct` does the work in the database: one pass over the member arrays for every term id any
- * collection names, and the terms are whatever is left.
+ * **Views count as placing.** A term attached straight to a view — which is how every published
+ * vocabulary begins — sits in no other term's arrangement, so looking only at terms would report
+ * the heads of the vocabulary as the things nobody had filed.
+ *
+ * `distinct` does the work in the database: one pass over the member arrays, and the terms are
+ * whatever is left.
  *
  * @returns {Promise<Array<object>>}
  */
 export async function unplacedTerms() {
-    const placed = (await vocabCollection(VOCAB_COLLECTIONS).distinct('member.term'))
-        .filter(Boolean);
+    const [inTerms, inViews] = await Promise.all([
+        vocabCollection(VOCAB_TERMS).distinct('member.term'),
+        vocabCollection(VOCAB_VIEWS).distinct('member.term'),
+    ]);
+    const placed = [...new Set([...inTerms, ...inViews])].filter(Boolean);
     return vocabCollection(VOCAB_TERMS).find({ _id: { $nin: placed } }).toArray();
 }
 

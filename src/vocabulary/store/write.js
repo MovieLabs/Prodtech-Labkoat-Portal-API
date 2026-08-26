@@ -18,19 +18,17 @@
  */
 
 import {
-    VOCAB_COLLECTIONS,
     VOCAB_FACETS,
     VOCAB_TERMS,
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
-import { collectionId as collectionId_, mintTermIds, viewId as viewId_ } from './ids.js';
-import { collectionUsage, termUsage } from './read.js';
+import { mintTermIds, viewId as viewId_ } from './ids.js';
+import { termUsage } from './read.js';
 import {
     allowedFacetValues,
-    checkCollectionDeletion,
+    checkArrangementRemoval,
     checkTermDeletion,
-    validateCollection,
     validateTerm,
     validateView,
 } from './validate.js';
@@ -101,6 +99,12 @@ export async function createTerms(terms, actor) {
 /**
  * Labels in these terms that already name something else.
  *
+ * **The message says "duplicate term" in those words.** It used to read `"X" already names
+ * vmc:c-000455`, which states the collision and leaves the reader to work out what it means and
+ * whether anything went wrong. Two terms sharing a name is usually a mistake and occasionally
+ * deliberate — `Costume` the garment and `Costume` the department are both wanted — so this names
+ * the thing, says the write went through, and leaves the judgement where it belongs.
+ *
  * @param {Array<object>} terms
  * @returns {Promise<string[]>}
  */
@@ -117,7 +121,9 @@ async function duplicateLabelWarnings(terms) {
         .filter((term) => !ours.has(term._id))
         .flatMap((term) => (term.label ?? [])
             .filter((label) => values.includes(label.value))
-            .map((label) => `"${label.value}" already names ${term._id}`));
+            .map((label) => `Duplicate term: "${label.value}" is already the name of ${term._id}. `
+                + 'Saved anyway, since two terms may share a name deliberately — delete this one if '
+                + 'that was not what you meant.'));
 }
 
 /**
@@ -173,17 +179,25 @@ export async function deleteTerm(id, force = false) {
         throw new ValidationError([...check.warnings, 'Pass force=true to delete it anyway.']);
     }
 
-    const removedFrom = usage.collections.map((collection) => collection._id);
-    if (removedFrom.length) {
-        await vocabCollection(VOCAB_COLLECTIONS).updateMany(
-            { _id: { $in: removedFrom } },
+    // Both kinds of container hold members the same way, so both are cleared the same way.
+    const fromTerms = usage.collections.map((one) => one._id);
+    const fromViews = usage.views.map((one) => one._id);
+    await Promise.all([
+        [VOCAB_TERMS, fromTerms],
+        [VOCAB_VIEWS, fromViews],
+    ].map(async ([store, ids]) => {
+        if (!ids.length) return;
+        await vocabCollection(store).updateMany(
+            { _id: { $in: ids } },
             { $pull: { member: { term: id } } },
         );
-        // A member whose parent was one of the removed members is now orphaned. Re-parenting them to
-        // the removed member's parent is the same promotion the resolver does for a filtered term,
-        // and keeps the collection valid rather than leaving it to fail validation later.
-        await Promise.all(removedFrom.map((id_) => repairParents(id_)));
-    }
+        // A member whose parent was one of the removed rows is now orphaned. Re-parenting them is
+        // the same promotion the resolver does for a filtered term, and keeps the document valid
+        // rather than leaving it to fail validation later.
+        await Promise.all(ids.map((one) => repairParents(store, one)));
+    }));
+
+    const removedFrom = [...fromTerms, ...fromViews];
 
     const outcome = await vocabCollection(VOCAB_TERMS).deleteOne({ _id: id });
     return { deleted: outcome.deletedCount > 0, warnings: check.warnings, removedFrom };
@@ -192,132 +206,413 @@ export async function deleteTerm(id, force = false) {
 /**
  * Re-attach members whose parent has gone.
  *
- * @param {string} id - The collection to repair
+ * @param {string} store - Which Mongo collection the container lives in
+ * @param {string} id - The container to repair
  * @returns {Promise<void>}
  */
-async function repairParents(id) {
-    const collection = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id });
-    if (!collection) return;
+async function repairParents(store, id) {
+    const container = await vocabCollection(store).findOne({ _id: id });
+    if (!container) return;
 
-    const mids = new Set((collection.member ?? []).map((member) => member.mid));
-    const orphaned = (collection.member ?? []).filter((member) => member.parent && !mids.has(member.parent));
+    const mids = new Set((container.member ?? []).map((member) => member.mid));
+    const orphaned = (container.member ?? []).filter((member) => member.parent && !mids.has(member.parent));
     if (!orphaned.length) return;
 
     // Promoted to the top rather than guessed at: the parent is gone, so the chain above it is no
     // longer knowable from this document alone.
-    const repaired = (collection.member ?? []).map((member) => (
+    const repaired = (container.member ?? []).map((member) => (
         member.parent && !mids.has(member.parent) ? { ...member, parent: null } : member
     ));
-    await vocabCollection(VOCAB_COLLECTIONS).updateOne({ _id: id }, { $set: { member: repaired } });
+    await vocabCollection(store).updateOne({ _id: id }, { $set: { member: repaired } });
 }
 
 // ---------------------------------------------------------------------------
-// Collections
+// Arrangements
 // ---------------------------------------------------------------------------
 
 /**
- * Create a collection.
+ * The document that declares a member list, and which store it lives in.
  *
- * The id is a slug of the name, continuing what schemes already do so an id stays recognisable in an
- * export and a URL. **A slug does not survive a rename** — renaming must change the label and keep
- * the id, or every view rooted on the collection breaks.
- *
- * @param {object} collection - Without `_id`
- * @param {string} [actor]
- * @returns {Promise<object>}
- * @throws {ValidationError}
- */
-export async function createCollection(collection, actor) {
-    const name = (collection.label ?? []).find((label) => label.labelType === 'pref')?.value;
-    if (!name) throw new ValidationError(['A collection must have a preferred label']);
-
-    const id = collectionId_(name);
-    const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id });
-    if (clash) throw new ValidationError([`A collection named "${name}" already exists (${id})`]);
-
-    const prepared = stamped({
-        // Not a scheme unless asked: a scheme is a claim about what a body of terms *is*, and
-        // `collection` is the modest reading — a named group with no claim over its members.
-        projections: { skos: 'collection' },
-        member: [],
-        definition: {},
-        ...collection,
-        _id: id,
-    }, actor);
-
-    const check = validateCollection(prepared);
-    if (!check.ok) throw new ValidationError(check.errors);
-
-    await vocabCollection(VOCAB_COLLECTIONS).insertOne(prepared);
-    return prepared;
-}
-
-/**
- * Replace a collection — its label, its projection, and its whole member list.
- *
- * The member list arrives entire because that is how the editor holds it: re-parenting, reordering
- * and removing are all edits to one array, and sending a diff of them would be reconstructing on the
- * server what the client already knows.
+ * A container is a term carrying an arrangement or a view holding its own members, and the two are
+ * written the same way. **Asked rather than read off the id**: `view:` is a slug convention, not a
+ * rule anything should depend on.
  *
  * @param {string} id
- * @param {object} collection
+ * @returns {Promise<{doc: object, store: string}|null>}
+ */
+async function containerOf(id) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (view) return { doc: view, store: VOCAB_VIEWS };
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: id });
+    if (term) return { doc: term, store: VOCAB_TERMS };
+    return null;
+}
+
+/**
+ * A member id no row in this list is using.
+ *
+ * Continues from the highest ever issued rather than filling gaps, because a placement key is
+ * `containerId/mid` and reusing a mid would silently point an old `arrange.hide` entry at a
+ * different row.
+ *
+ * @param {Array<object>} members
+ * @returns {string}
+ */
+function nextMid(members) {
+    const highest = members.reduce((top, member) => {
+        const number = Number(String(member.mid ?? '').replace(/^m/, ''));
+        return Number.isFinite(number) && number > top ? number : top;
+    }, 0);
+    return `m${highest + 1}`;
+}
+
+/**
+ * Every row below one, at any depth.
+ *
+ * A queue rather than recursion, on data somebody may be midway through editing.
+ *
+ * @param {Array<object>} members
+ * @param {string} mid
+ * @returns {Set<string>}
+ */
+function descendantsOf(members, mid) {
+    const found = new Set();
+    let frontier = [mid];
+    while (frontier.length) {
+        const next = [];
+        members.forEach((member) => {
+            if (frontier.includes(member.parent) && !found.has(member.mid)) {
+                found.add(member.mid);
+                next.push(member.mid);
+            }
+        });
+        frontier = next;
+    }
+    return found;
+}
+
+/**
+ * Splice rows in as the last children of a parent.
+ *
+ * **Array order is sibling order**, so where a row sits decides where it is drawn — and a row that
+ * lands anywhere other than the end of its new parent's children is drawn somewhere the reader did
+ * not put it. Placed after the parent's whole subtree rather than immediately after the parent, or
+ * it would arrive above its new siblings' descendants instead of below them.
+ *
+ * @param {Array<object>} members - Without the rows being placed
+ * @param {Array<object>} rows - In order, the first being the top of the branch
+ * @param {string|null} parentMid - Null for the top level, which is the end of the list
+ * @returns {Array<object>}
+ */
+function insertUnder(members, rows, parentMid) {
+    if (!parentMid) return [...members, ...rows];
+
+    const below = descendantsOf(members, parentMid);
+    let after = members.findIndex((member) => member.mid === parentMid);
+    if (after < 0) return [...members, ...rows];
+    members.forEach((member, index) => {
+        if (below.has(member.mid) && index > after) after = index;
+    });
+    return [...members.slice(0, after + 1), ...rows, ...members.slice(after + 1)];
+}
+
+/**
+ * Make a term's subtree its own arrangement, so it can be reused.
+ *
+ * ## What this is for
+ *
+ * A term sub-categorises the ones beneath it, and that grouping turns out to be worth having
+ * somewhere else. Without this, the only reusable unit is whatever a view already attaches — so an
+ * arrangement somebody built cannot be used elsewhere without being rebuilt by hand, and the rebuild
+ * is a copy that drifts.
+ *
+ * Afterwards the subtree belongs to the term, so placing the term anywhere brings it, live.
+ *
+ * ## Why the published output does not move
+ *
+ * The term's row **stays exactly where it is** — only its children move, from the container onto the
+ * term. The resolver walks a term's own arrangement wherever the term appears, so the same terms come
+ * out in the same places under the same parent. Nothing about this placement changed; what changed is
+ * where the rows are kept.
+ *
+ * ## The two things that have to be got exactly right
+ *
+ * - **Mids are preserved**, so the arrangement inside the subtree is untouched. But a placement key
+ *   is `containerId/mid`, so every `view.arrange` entry naming a moved row is repointed at the term —
+ *   otherwise a hidden heading quietly comes back.
+ * - **Two documents are written and no transaction is asked for.** The term goes first: if the second
+ *   write fails the rows exist in both places, which is visible and repairable, where the other order
+ *   would lose them.
+ *
+ * @param {string} containerId - The term or view holding the subtree
+ * @param {string} mid - The member row of the term to arrange
  * @param {string} [actor]
- * @returns {Promise<object>}
+ * @returns {Promise<{term: object, source: object, moved: number, repointed: number}>}
  * @throws {ValidationError}
  */
-export async function replaceCollection(id, collection, actor) {
-    const existing = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: id });
-    if (!existing) throw new ValidationError([`No such collection: ${id}`]);
+export async function arrangeSubtree(containerId, mid, actor) {
+    const container = await containerOf(containerId);
+    if (!container) throw new ValidationError([`No such container: ${containerId}`]);
 
-    const prepared = stamped({ ...collection, _id: id }, actor);
-    const check = validateCollection(prepared);
-    if (!check.ok) throw new ValidationError(check.errors);
+    const members = container.doc.member ?? [];
+    const row = members.find((member) => member.mid === mid);
+    if (!row) throw new ValidationError([`No member "${mid}" in ${containerId}`]);
+    if (!row.term) throw new ValidationError([`Member "${mid}" names no term`]);
 
-    // Every term a member names must exist, or the collection renders with holes.
-    const termIds = (prepared.member ?? []).map((member) => member.term).filter(Boolean);
-    if (termIds.length) {
-        const found = await vocabCollection(VOCAB_TERMS)
-            .find({ _id: { $in: termIds } }, { projection: { _id: 1 } })
-            .toArray();
-        const known = new Set(found.map((term) => term._id));
-        const missing = [...new Set(termIds.filter((termId) => !known.has(termId)))];
-        if (missing.length) throw new ValidationError([`These terms do not exist: ${missing.join(', ')}`]);
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: row.term });
+    if (!term) throw new ValidationError([`No such term: ${row.term}`]);
+    if (term.member?.length) {
+        throw new ValidationError([`"${row.term}" already carries an arrangement — it is reusable already`]);
     }
 
-    const { migrated: _migrated, ...keep } = existing;
-    await vocabCollection(VOCAB_COLLECTIONS).replaceOne({ _id: id }, { ...keep, ...prepared });
-    return prepared;
+    const moved = descendantsOf(members, mid);
+    if (!moved.size) throw new ValidationError(['A term with nothing under it has no arrangement to make']);
+
+    // The moved rows in the order they were in. Those directly under the term lose their parent —
+    // they are the top of its arrangement now — and the rest keep theirs, which point inside the set.
+    const taken = members
+        .filter((member) => moved.has(member.mid))
+        .map((member) => {
+            if (member.parent !== mid) return { ...member };
+            const { parent: _wasTheTerm, ...top } = member;
+            return top;
+        });
+
+    const arranged = stamped({ ...term, member: taken }, actor);
+    const arrangedCheck = validateTerm(arranged, await allowedFacetValues());
+    if (!arrangedCheck.ok) throw new ValidationError(arrangedCheck.errors);
+
+    const remaining = members.filter((member) => !moved.has(member.mid));
+    const source = stamped({ ...container.doc, member: remaining }, actor);
+
+    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, arranged);
+    await vocabCollection(container.store).replaceOne({ _id: containerId }, source);
+
+    const repointed = await repointArrange(containerId, term._id, moved);
+
+    return {
+        term: arranged, source, moved: taken.length, repointed,
+    };
 }
 
 /**
- * Delete a collection.
+ * Give a term's arrangement back to one container, and stop sharing it.
  *
- * The terms in it stay. They keep every other collection they belong to, and those left in none show
- * up in the unplaced collection — the same place a newly created term waits. Deleting the terms with
- * the collection would destroy meaning to remove an arrangement.
+ * The exact inverse of `arrangeSubtree`, and the reason a decision to make something reusable is not
+ * a one-way door. The rows come back as local structure under the term's row in this container —
+ * which means **every other placement of the term loses them**. That is what reverting is: the
+ * arrangement stops being the term's and becomes this container's again.
  *
- * @param {string} id
- * @param {boolean} [force=false]
- * @returns {Promise<{deleted: boolean, warnings: string[]}>}
+ * A mid that already names a row here is reminted, and the rows pointing at it are rewritten, because
+ * two rows with one mid would make a placement key ambiguous.
+ *
+ * @param {string} containerId - The term or view to give the rows back to
+ * @param {string} mid - The member row of the arranged term
+ * @param {string} [actor]
+ * @param {boolean} [force=false] - Proceed although other placements will lose the arrangement
+ * @returns {Promise<{term: object, source: object, moved: number, repointed: number,
+ *   warnings: string[]}>}
  * @throws {ValidationError}
  */
-export async function deleteCollection(id, force = false) {
-    const usage = await collectionUsage(id);
-    const check = checkCollectionDeletion(usage);
+export async function unarrangeSubtree(containerId, mid, actor, force = false) {
+    const container = await containerOf(containerId);
+    if (!container) throw new ValidationError([`No such container: ${containerId}`]);
 
-    if (!check.ok) throw new ValidationError(check.errors);
+    const members = container.doc.member ?? [];
+    const at = members.findIndex((member) => member.mid === mid);
+    if (at < 0) throw new ValidationError([`No member "${mid}" in ${containerId}`]);
+
+    const row = members[at];
+    const term = row.term ? await vocabCollection(VOCAB_TERMS).findOne({ _id: row.term }) : null;
+    if (!term) throw new ValidationError([`Member "${mid}" names no term that exists`]);
+    if (!term.member?.length) throw new ValidationError([`"${row.term}" carries no arrangement`]);
+
+    const check = checkArrangementRemoval(await termUsage(term._id), containerId);
     if (check.warnings.length && !force) {
-        throw new ValidationError([...check.warnings, 'Pass force=true to delete it anyway.']);
+        throw new ValidationError([...check.warnings, 'Pass force=true to revert it anyway.']);
     }
 
-    // Drop the inclusions pointing at it, so no collection is left naming something absent.
-    await vocabCollection(VOCAB_COLLECTIONS).updateMany(
-        { 'member.collection': id },
-        { $pull: { member: { collection: id } } },
-    );
+    // Remint anything that would collide. Built before the rows are rewritten so a parent and its
+    // children agree on the new id.
+    const taken = [];
+    const rename = new Map();
+    const used = members.map((member) => ({ mid: member.mid }));
+    term.member.forEach((member) => {
+        if (!members.some((existing) => existing.mid === member.mid)) return;
+        const fresh = nextMid(used);
+        rename.set(member.mid, fresh);
+        used.push({ mid: fresh });
+    });
 
-    const outcome = await vocabCollection(VOCAB_COLLECTIONS).deleteOne({ _id: id });
-    return { deleted: outcome.deletedCount > 0, warnings: check.warnings };
+    term.member.forEach((member) => {
+        const back = { ...member, mid: rename.get(member.mid) ?? member.mid };
+        // A row at the top of the arrangement hangs off the term's own row here; the rest keep the
+        // parent they had, under its new name where it was reminted.
+        back.parent = member.parent ? (rename.get(member.parent) ?? member.parent) : mid;
+        taken.push(back);
+    });
+
+    // Straight after the term's row, so the subtree stays adjacent to what it belongs to.
+    const remaining = [...members];
+    remaining.splice(at + 1, 0, ...taken);
+
+    const source = stamped({ ...container.doc, member: remaining }, actor);
+    const { member: _wasArranged, ...plain } = term;
+    const bare = stamped(plain, actor);
+
+    await vocabCollection(container.store).replaceOne({ _id: containerId }, source);
+    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, bare);
+
+    const repointed = await repointArrange(term._id, containerId, new Set(term.member.map((one) => one.mid)));
+
+    return {
+        term: bare, source, moved: taken.length, repointed, warnings: check.warnings,
+    };
+}
+
+/**
+ * Move a placement, and everything arranged beneath it, to another parent.
+ *
+ * ## Why this is one operation and not a detach followed by a drop
+ *
+ * The graph's move gesture used to remove the row, hand the reader a floating pill, and write it
+ * back where they dropped it. A pill carries one thing, so anything with children under it had to be
+ * refused — which is exactly the case somebody means by "move this branch". Doing both halves here
+ * means the rows never exist in neither place, and a subtree is no harder than a leaf.
+ *
+ * Within one container this is very nearly free: children are grouped by their parent's `mid`, so
+ * re-parenting the top row moves the whole branch and nothing below it is touched.
+ *
+ * ## The two things that have to be got right
+ *
+ * - **A mid is only unique inside its container.** Moving between containers can collide, so a
+ *   colliding row is reminted and the rows pointing at it are rewritten together — otherwise two
+ *   rows share a mid and a placement key stops naming one thing.
+ * - **A placement key is `containerId/mid`**, so every `view.arrange` entry naming a moved row is
+ *   repointed. Left alone, a hidden heading quietly comes back and a dotted name silently lengthens.
+ *
+ * @param {object} params
+ * @param {string} params.fromId - The container the rows are in
+ * @param {string} params.mid - The row at the top of what moves
+ * @param {string} params.toId - The container they are going to
+ * @param {string|null} [params.toParent] - The row they become children of, or null for the top
+ * @param {string} [actor]
+ * @returns {Promise<{moved: number, repointed: number, mid: string}>}
+ * @throws {ValidationError}
+ */
+export async function movePlacement({ fromId, mid, toId, toParent = null }, actor) {
+    const from = await containerOf(fromId);
+    if (!from) throw new ValidationError([`No such container: ${fromId}`]);
+    const to = fromId === toId ? from : await containerOf(toId);
+    if (!to) throw new ValidationError([`No such container: ${toId}`]);
+
+    const source = from.doc.member ?? [];
+    const row = source.find((member) => member.mid === mid);
+    if (!row) throw new ValidationError([`No member "${mid}" in ${fromId}`]);
+
+    const moving = new Set([mid, ...descendantsOf(source, mid)]);
+
+    // Into its own branch, which would detach it from the tree entirely.
+    if (fromId === toId && toParent && moving.has(toParent)) {
+        throw new ValidationError(['That would move it inside itself']);
+    }
+
+    // The common case: same container, so every mid stays exactly as it was and only the top row's
+    // parent changes.
+    //
+    // **The rows still move in the array.** Re-parenting alone would leave the branch wherever it
+    // happened to sit, which is sibling order saying one thing while the graph — which draws it as
+    // the newest child — says another. `Move Up` then refuses from the top of a list the reader can
+    // see it at the bottom of.
+    if (fromId === toId) {
+        if ((row.parent ?? null) === toParent) return { moved: 0, repointed: 0, mid };
+        const taken = source.filter((member) => moving.has(member.mid)).map((member) => {
+            if (member.mid !== mid) return { ...member };
+            const { parent: _wasParented, ...rest } = member;
+            return toParent ? { ...rest, parent: toParent } : rest;
+        });
+        const rest = source.filter((member) => !moving.has(member.mid));
+        const updated = stamped({ ...from.doc, member: insertUnder(rest, taken, toParent) }, actor);
+        await vocabCollection(from.store).replaceOne({ _id: fromId }, updated);
+        return { moved: taken.length, repointed: 0, mid };
+    }
+
+    // Across containers. Remint anything that would collide, before the rows are rewritten, so a
+    // parent and its children agree on the new id.
+    const target = to.doc.member ?? [];
+    const used = target.map((member) => ({ mid: member.mid }));
+    const rename = new Map();
+    source.filter((member) => moving.has(member.mid)).forEach((member) => {
+        if (!target.some((existing) => existing.mid === member.mid)) return;
+        const fresh = nextMid(used);
+        rename.set(member.mid, fresh);
+        used.push({ mid: fresh });
+    });
+
+    const taken = source.filter((member) => moving.has(member.mid)).map((member) => {
+        const moved = { ...member, mid: rename.get(member.mid) ?? member.mid };
+        if (member.mid === mid) {
+            // The top of the branch takes its new parent; everything else keeps the one it had,
+            // under its new name where it was reminted.
+            if (toParent) moved.parent = toParent;
+            else delete moved.parent;
+        } else if (member.parent) {
+            moved.parent = rename.get(member.parent) ?? member.parent;
+        }
+        return moved;
+    });
+
+    const remaining = source.filter((member) => !moving.has(member.mid));
+    const nextSource = stamped({ ...from.doc, member: remaining }, actor);
+    const nextTarget = stamped({ ...to.doc, member: insertUnder(target, taken, toParent) }, actor);
+
+    // The source first: if the second write fails the rows are gone rather than duplicated, and a
+    // duplicate placement is the harder of the two to find afterwards.
+    await vocabCollection(from.store).replaceOne({ _id: fromId }, nextSource);
+    await vocabCollection(to.store).replaceOne({ _id: toId }, nextTarget);
+
+    const repointed = await repointArrange(fromId, toId, moving, rename);
+
+    return { moved: taken.length, repointed, mid: rename.get(mid) ?? mid };
+}
+
+/**
+ * Move every `view.arrange` entry naming one of the moved rows onto its new container.
+ *
+ * A placement key is `containerId/mid`, so a subtree changing hands invalidates every key naming it.
+ * Left alone, a hidden heading silently reappears — a change to a published artifact that nobody
+ * asked for.
+ *
+ * @param {string} fromId
+ * @param {string} toId
+ * @param {Set<string>} mids - The rows that moved
+ * @param {Map<string, string>} [rename] - New mids, where moving forced a row to be reminted
+ * @returns {Promise<number>} How many views were rewritten
+ */
+async function repointArrange(fromId, toId, mids, rename = new Map()) {
+    const swap = ((key) => {
+        if (typeof key !== 'string') return key;
+        const cut = key.indexOf('/');
+        if (cut < 0) return key;
+        const container = key.slice(0, cut);
+        const mid = key.slice(cut + 1);
+        if (container !== fromId || !mids.has(mid)) return key;
+        return `${toId}/${rename.get(mid) ?? mid}`;
+    });
+
+    const views = await vocabCollection(VOCAB_VIEWS).find({ arrange: { $exists: true } }).toArray();
+    const rewritten = await Promise.all(views.map(async (view) => {
+        const arrange = { ...view.arrange };
+        // Every list that names a placement, or a subtree changing hands silently loses whichever
+        // one was not thought of here.
+        if (view.arrange.hide) arrange.hide = view.arrange.hide.map(swap);
+        if (view.arrange.dotFrom) arrange.dotFrom = view.arrange.dotFrom.map(swap);
+        if (JSON.stringify(arrange) === JSON.stringify(view.arrange)) return 0;
+        await vocabCollection(VOCAB_VIEWS).updateOne({ _id: view._id }, { $set: { arrange } });
+        return 1;
+    }));
+
+    return rewritten.reduce((total, one) => total + one, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -360,13 +655,22 @@ export async function createView(view, actor) {
 
 export async function saveView(id, view, actor) {
     const allowed = await allowedFacetValues();
-    const prepared = stamped({ labelStyle: 'plain', ...view, _id: id }, actor);
+    const prepared = stamped({ labelStyle: 'plain', member: [], ...view, _id: id }, actor);
 
     const check = validateView(prepared, allowed);
     if (!check.ok) throw new ValidationError(check.errors);
 
-    const root = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: prepared.root });
-    if (!root) throw new ValidationError([`No such collection: ${prepared.root}`]);
+    // Everything the view attaches has to exist: a view naming a term nobody has renders with a
+    // hole, and says so only when somebody opens it.
+    const ids = (prepared.member ?? []).map((member) => member.term).filter(Boolean);
+    if (ids.length) {
+        const found = await vocabCollection(VOCAB_TERMS)
+            .find({ _id: { $in: ids } }, { projection: { _id: 1 } })
+            .toArray();
+        const known = new Set(found.map((doc) => doc._id));
+        const missing = [...new Set(ids.filter((one) => !known.has(one)))];
+        if (missing.length) throw new ValidationError([`These terms do not exist: ${missing.join(', ')}`]);
+    }
 
     await vocabCollection(VOCAB_VIEWS).replaceOne({ _id: id }, prepared, { upsert: true });
     return prepared;
@@ -376,7 +680,7 @@ export async function saveView(id, view, actor) {
  * Delete a view.
  *
  * **Nothing else goes with it.** A view names a collection and says how to publish it; the
- * collection, everything it reaches and every term in it are untouched, and another view rooted on
+ * collection, everything it reaches and every term in it are untouched, and another view attaching
  * the same collection carries on unaffected. So there is nothing to refuse and nothing to warn
  * about — which is worth stating, because deleting a *collection* is a different matter and these
  * two sit next to each other in the interface.
@@ -391,7 +695,7 @@ export async function deleteView(id) {
     const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
     if (!view) return { deleted: false, root: null };
     const outcome = await vocabCollection(VOCAB_VIEWS).deleteOne({ _id: id });
-    return { deleted: outcome.deletedCount > 0, root: view.root };
+    return { deleted: outcome.deletedCount > 0, attached: (view.member ?? []).length };
 }
 
 /**
@@ -406,10 +710,11 @@ export async function deleteView(id) {
  * @param {string} id
  * @param {object} facet
  * @param {string} [actor]
+ * @param {boolean} [force=false] - Remove a value terms still carry
  * @returns {Promise<{facet: object, warnings: string[]}>}
- * @throws {ValidationError}
+ * @throws {ValidationError} When a removed value is still in use and `force` is not set
  */
-export async function saveFacet(id, facet, actor) {
+export async function saveFacet(id, facet, actor, force = false) {
     if (!facet?.appliesTo || !facet?.key) {
         throw new ValidationError(['A facet must say what it applies to and which key its values carry']);
     }
@@ -426,6 +731,25 @@ export async function saveFacet(id, facet, actor) {
         if (removed.length) {
             const inUse = await vocabCollection(VOCAB_TERMS)
                 .countDocuments({ [`${prepared.appliesTo}.${prepared.key}`]: { $in: removed } });
+            // **Refused, not warned.** A value removed while terms still carry it does not rewrite
+            // those terms — that would be a list edit silently changing hundreds of records — so
+            // they keep a value the controlled set no longer admits. The consequence lands nowhere
+            // near the action: the export reports the value as unknown rather than omitting it, and
+            // `validateTerm` refuses the next edit to every one of those terms. Removing `omcToken`
+            // blocked a sixth of the vocabulary this way.
+            //
+            // To stop a type reaching an export, give it `skos: null` instead. That is what the
+            // projection is for, and it costs nothing.
+            if (inUse && !force) {
+                throw new ValidationError([
+                    `${inUse} term(s) still use ${removed.join(', ')}, and would keep a value this `
+                    + 'set no longer admits — the export would report it as unknown, and editing any '
+                    + 'of those terms would be refused.',
+                    'To stop a type being exported while leaving the terms alone, set its SKOS '
+                    + 'projection to none rather than removing it.',
+                    'Pass force=true to remove it anyway.',
+                ]);
+            }
             if (inUse) {
                 warnings.push(
                     `${inUse} term(s) still use ${removed.join(', ')}. They keep the value, it is `
@@ -472,10 +796,10 @@ export async function forkTerm(termId, inCollection, actor) {
     const source = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
     if (!source) throw new ValidationError([`No such term: ${termId}`]);
 
-    const collection = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: inCollection });
-    if (!collection) throw new ValidationError([`No such collection: ${inCollection}`]);
+    const container = await containerOf(inCollection);
+    if (!container) throw new ValidationError([`No such container: ${inCollection}`]);
 
-    const placements = (collection.member ?? []).filter((member) => member.term === termId);
+    const placements = (container.doc.member ?? []).filter((member) => member.term === termId);
     if (!placements.length) {
         throw new ValidationError([`${termId} is not placed in ${inCollection}, so there is nothing to fork`]);
     }
@@ -488,75 +812,15 @@ export async function forkTerm(termId, inCollection, actor) {
     const copy = stamped({ ...content, _id: newId, forkedFrom: termId }, actor);
     await vocabCollection(VOCAB_TERMS).insertOne(copy);
 
-    // Only this collection's placements move. Every other collection keeps the original, which is
-    // the whole point — a fork is local by definition.
-    const repointed = (collection.member ?? []).map((member) => (
+    // Only this container's placements move. Every other one keeps the original, which is the whole
+    // point — a fork is local by definition.
+    const repointed = (container.doc.member ?? []).map((member) => (
         member.term === termId ? { ...member, term: newId } : member
     ));
-    await vocabCollection(VOCAB_COLLECTIONS).updateOne(
+    await vocabCollection(container.store).updateOne(
         { _id: inCollection },
         { $set: { member: repointed, modified: new Date().toISOString(), modifiedBy: actor ?? 'unknown' } },
     );
 
     return { term: copy, repointed: placements.length };
-}
-
-/**
- * Copy a collection and repoint one including collection at the copy.
- *
- * The copy holds the same **terms**: forking an arrangement is not forking the meaning of what is
- * arranged. Its members keep pointing at the original terms, so a definition corrected later still
- * reaches both — which is almost always what is wanted, and the term-level fork above is there for
- * when it is not.
- *
- * @param {string} collectionId - The collection to copy
- * @param {string} name - The copy's preferred label; its id is a slug of this
- * @param {string|null} inCollection - The collection whose inclusion moves to the copy; null to
- *   create a detached copy that nothing yet includes
- * @param {string} [actor]
- * @returns {Promise<object>} The copy
- * @throws {ValidationError}
- */
-export async function forkCollection(collectionId, name, inCollection, actor) {
-    const source = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: collectionId });
-    if (!source) throw new ValidationError([`No such collection: ${collectionId}`]);
-    if (!name) throw new ValidationError(['A copy needs a name of its own']);
-
-    const newId = collectionId_(name);
-    const clash = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: newId });
-    if (clash) throw new ValidationError([`A collection named "${name}" already exists (${newId})`]);
-
-    const {
-        _id: _sourceId, migrated: _migrated, modified: _modified, modifiedBy: _by, label, ...content
-    } = source;
-
-    const copy = stamped({
-        ...content,
-        _id: newId,
-        label: [
-            { value: name, language: 'en', labelType: 'pref' },
-            // Any other label the source carried is kept; only the preferred one is replaced.
-            ...(label ?? []).filter((entry) => entry.labelType !== 'pref'),
-        ],
-        forkedFrom: collectionId,
-    }, actor);
-
-    const check = validateCollection(copy);
-    if (!check.ok) throw new ValidationError(check.errors);
-
-    await vocabCollection(VOCAB_COLLECTIONS).insertOne(copy);
-
-    if (inCollection) {
-        const parent = await vocabCollection(VOCAB_COLLECTIONS).findOne({ _id: inCollection });
-        if (!parent) throw new ValidationError([`No such collection: ${inCollection}`]);
-        const repointed = (parent.member ?? []).map((member) => (
-            member.collection === collectionId ? { ...member, collection: newId } : member
-        ));
-        await vocabCollection(VOCAB_COLLECTIONS).updateOne(
-            { _id: inCollection },
-            { $set: { member: repointed, modified: new Date().toISOString(), modifiedBy: actor ?? 'unknown' } },
-        );
-    }
-
-    return copy;
 }

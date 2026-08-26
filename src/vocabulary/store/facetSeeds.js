@@ -52,9 +52,16 @@ export const FACET_SEEDS = [
             { labelType: 'abbreviation', label: { en: 'Abbreviation' }, skos: 'skos:altLabel' },
             { labelType: 'acronym', label: { en: 'Acronym' }, skos: 'skos:altLabel' },
             // The token OMC-JSON uses for this term — `audio` where the preferred name is `Audio`.
-            // A genuine alternative name, so `altLabel` is the honest projection, and a view that
-            // publishes controlled values renders from this kind instead of the preferred one.
-            { labelType: 'omcToken', label: { en: 'OMC Token' }, skos: 'skos:altLabel' },
+            // A view that publishes controlled values renders from this kind instead of the
+            // preferred one.
+            //
+            // **`skos: null`, so it is omitted from SKOS by declaration.** It was `altLabel`, which
+            // is defensible — it is a genuine alternative name — but it put a lowercase echo of the
+            // preferred label on nearly every concept, which reads as noise rather than as a name
+            // anyone would search for. Declaring the omission is the supported way to say that: the
+            // generator drops it silently, where a type missing from the facet altogether is dropped
+            // *and reported*, and blocks editing every term still carrying one.
+            { labelType: 'omcToken', label: { en: 'OMC Token' }, skos: null },
             // A known-wrong spelling, recorded so a search can find it. `hiddenLabel` is exactly
             // what SKOS provides for this and the old model had no way to say it.
             { labelType: 'misspelling', label: { en: 'Misspelling' }, skos: 'skos:hiddenLabel' },
