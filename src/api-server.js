@@ -166,8 +166,26 @@ export default async function apiServer() {
     });
 
     // Launch the API Server at localhost:8080
-    app.listen(8080, () => {
+    const PORT = 8080;
+    const server = app.listen(PORT, () => {
         console.log('Updated: 3/24/26');
-        console.log('Listening on port: 8080');
+        console.log(`Listening on port: ${PORT}`);
+    });
+
+    // **A failure to bind is not survivable, and must not reach the net above.** `listen` reports it
+    // as an `error` event, and an `error` event nobody is listening for becomes an uncaught
+    // exception — so without this the handler above catches it and keeps the process alive, leaving
+    // a gateway that is running, logs "state is now suspect", and can never serve a request. The
+    // common cause is an API already running on this port, and the message says so, because
+    // "EADDRINUSE" above a stack trace does not.
+    //
+    // Scoped to the listening socket rather than to every server error: these arrive at startup and
+    // mean this process has no socket at all, which is the case where exiting is the only honest
+    // answer.
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') console.error(`Port ${PORT} is already in use — is the API already running?`);
+        else if (err.code === 'EACCES') console.error(`Not permitted to bind port ${PORT}.`);
+        else console.error('The API server failed:', err);
+        process.exit(1);
     });
 }
