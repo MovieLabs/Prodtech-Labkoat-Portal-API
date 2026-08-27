@@ -26,6 +26,7 @@ import {
     vocabCollection,
 } from './collections.js';
 import { mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_ } from './ids.js';
+import { normaliseFacet, normaliseTerm, normaliseView } from './normalise.js';
 import { arrangementOf, listFacets, termUsage } from './read.js';
 import {
     allowedFacetValues,
@@ -76,7 +77,9 @@ export async function createTerms(terms, actor) {
     const ids = await mintTermIds(terms.length);
     const allowed = await allowedFacetValues();
 
-    const prepared = terms.map((term, index) => stamped({
+    // Tidied before anything looks at it, so the duplicate-label check compares what will be stored
+    // rather than what happened to be pasted.
+    const prepared = terms.map((term, index) => stamped(normaliseTerm({
         status: 'proposed', // The safe default: a new term is a proposal until somebody says otherwise
         label: [],
         note: [],
@@ -84,7 +87,7 @@ export async function createTerms(terms, actor) {
         definition: {},
         ...term,
         _id: ids[index],
-    }, actor));
+    }), actor));
 
     const errors = prepared.flatMap((term, index) => validateTerm(term, allowed)
         .errors.map((message) => `Row ${index + 1}: ${message}`));
@@ -151,7 +154,7 @@ export async function replaceTerm(id, term, actor) {
     // something to place, while `unarrangeSubtree` refuses it as carrying no arrangement — so a term
     // emptied row by row could not be reverted and could not be used. Dropped on write instead, so
     // taking the last row out of an arrangement is the same act as reverting it. The same for forks.
-    const tidied = { ...term };
+    const tidied = normaliseTerm({ ...term });
     if (Array.isArray(tidied.member) && !tidied.member.length) delete tidied.member;
     if (Array.isArray(tidied.fork) && !tidied.fork.length) delete tidied.fork;
 
@@ -890,7 +893,7 @@ export async function createView(view, actor) {
 
 export async function saveView(id, view, actor) {
     const allowed = await allowedFacetValues();
-    const prepared = stamped({ labelStyle: 'plain', member: [], ...view, _id: id }, actor);
+    const prepared = stamped(normaliseView({ labelStyle: 'plain', member: [], ...view, _id: id }), actor);
 
     const check = validateView(prepared, allowed);
     if (!check.ok) throw new ValidationError(check.errors);
@@ -954,7 +957,7 @@ export async function saveFacet(id, facet, actor, force = false) {
         throw new ValidationError(['A facet must say what it applies to and which key its values carry']);
     }
 
-    const prepared = stamped({ ...facet, _id: id }, actor);
+    const prepared = stamped(normaliseFacet({ ...facet, _id: id }), actor);
     const warnings = [];
 
     const previous = await vocabCollection(VOCAB_FACETS).findOne({ _id: id });

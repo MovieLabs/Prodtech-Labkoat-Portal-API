@@ -40,10 +40,16 @@ export function profileKindOf(format) {
 /**
  * How a tabular format writes more than one value into one cell.
  *
- * A pipe rather than a comma: it matches what the importer already splits `altLabel` on, and a comma
- * both needs the cell quoted and is far likelier to appear inside a label.
+ * A comma, because that is what a reader expects between three synonyms and every cell in the CSV
+ * is quoted anyway — so a comma inside one cannot end it early.
+ *
+ * It was a pipe, chosen to match what the importer splits `altLabel` on. That column no longer
+ * exists: every label type now has its own, so there is nothing left for the pipe to line up with.
+ *
+ * The cost is real and is why this is a setting: a comma **inside** a value is indistinguishable
+ * from the separator, so a vocabulary whose labels contain commas should choose something else.
  */
-export const DEFAULT_MULTI = ' | ';
+export const DEFAULT_MULTI = ', ';
 
 /** A tag source names its set without repeating the `facet:` its identifier already carries. */
 const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));

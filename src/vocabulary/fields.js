@@ -38,7 +38,7 @@
  */
 
 import { broaderOf, schemeHeads, schemesOf, tagsFor } from './resolve.js';
-import { derivedLabel, hasLabelOfType, labelOfType, localised, prefLabel } from './store/read.js';
+import { derivedLabel, labelOfType, localised, prefLabel } from './store/read.js';
 
 /**
  * Scheme identifier to the preferred label of the term heading it.
@@ -184,8 +184,21 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
     // Derivation is kept, because a derived `omcToken` is genuinely that term's token; only the
     // fallback to the preferred label is dropped.
     if (prefix === 'label') {
+        // Exactly one preferred label per language is an invariant the whole label array rests on,
+        // so that one is asked for by name.
         if (!type || type === 'pref') return [labelOfType(term, 'pref', language)];
-        if (hasLabelOfType(term, type)) return [labelOfType(term, type, language)];
+
+        // **Every label of the type, not the first.** A term with three synonyms has three, and
+        // `labelOfType` answers "what does this view call it" — one value — which is the wrong
+        // question for a column that states what the term carries. Notes and examples already did
+        // this; labels were the one that quietly published the first and dropped the rest.
+        const carried = (term?.label ?? [])
+            .filter((entry) => entry.labelType === type)
+            .filter((entry) => !entry.language || entry.language === language)
+            .map((entry) => entry.value)
+            .filter(Boolean);
+        if (carried.length) return carried;
+
         const derived = derivedLabel(term, type);
         return derived ? [derived] : [];
     }
