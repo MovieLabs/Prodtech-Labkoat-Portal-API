@@ -62,18 +62,18 @@ export const DEFAULT_MULTI = ' | ';
 const TABLE_COLUMNS = [
     { source: 'id', header: 'id' },
     { source: 'label:pref', header: 'prefLabel' },
-    { source: 'display', header: 'displayLabel' },
+    { source: 'displayLabel', header: 'displayLabel' },
     { source: 'definition', header: 'definition' },
     { source: 'status', header: 'status' },
-    { source: 'labels', header: 'altLabel' },
-    { source: 'labelTypes', header: 'labelTypes' },
-    { source: 'notes', header: 'notes' },
-    { source: 'noteTypes', header: 'noteTypes' },
-    { source: 'examples', header: 'examples' },
-    { source: 'container', header: 'collections' },
+    { source: 'label:*', header: 'altLabel' },
+    { source: 'labelType:*', header: 'labelTypes' },
+    { source: 'note:*', header: 'notes' },
+    { source: 'noteType:*', header: 'noteTypes' },
+    { source: 'example:*', header: 'examples' },
+    { source: 'collections', header: 'collections' },
     { source: 'scheme', header: 'schemes' },
-    { source: 'display', header: 'paths' },
-    { source: 'tags', header: 'tags' },
+    { source: 'displayLabel', header: 'paths' },
+    { source: 'tag:*', header: 'tags' },
 ];
 
 /**
@@ -104,7 +104,7 @@ export const DEFAULT_PROFILES = {
         // A markdown table is read rather than parsed, and fourteen columns is unreadable. The
         // default is what somebody scanning a vocabulary actually wants to see.
         columns: [
-            { source: 'display', header: 'Term' },
+            { source: 'displayLabel', header: 'Term' },
             { source: 'definition', header: 'Definition' },
             { source: 'status', header: 'Status' },
         ],

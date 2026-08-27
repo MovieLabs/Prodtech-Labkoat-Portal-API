@@ -4,6 +4,16 @@
  * A tabular profile names its columns by a **source** — `id`, `definition`, `label:acronym`. This
  * module owns both halves of that: which sources exist, and what each one produces for a term.
  *
+ * ## A source is written the way the model is
+ *
+ * `label:acronym`, `note:editorial`, `example:url`, `tag:departmentOrRole`. The prefix is the array
+ * on the term and the suffix is the type within it, so a source says where its value comes from
+ * without anybody having to learn a second vocabulary for it. `label:*` is every label of that kind
+ * — the aggregate the spreadsheet round trip has always carried — and `labelType:*` is their kinds,
+ * in the same order.
+ *
+ * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`.
+ *
  * ## Why the catalogue is computed and served
  *
  * Half the sources are not knowable in advance. `label:acronym` exists because somebody added
@@ -24,38 +34,59 @@
 import { broaderOf, schemesOf, tagsFor } from './resolve.js';
 import { derivedLabel, hasLabelOfType, labelOfType, localised, otherLabels } from './store/read.js';
 
+/** A tag source names its set without repeating the `facet:` its identifier already carries. */
+const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
+
 /**
  * The sources that exist whatever the controlled sets say.
  *
- * `display` is the name this view publishes the term under — dotted or plain, per the view — which
- * is what a consumer of a controlled value actually uses. It is not the same as the preferred label
- * and the difference is the whole point of a dotted view.
+ * `describes` is what the source means, for a reader choosing between thirty of them. It is not a
+ * second name for the source — the source names itself.
  *
- * @type {Array<{source: string, label: string, group: string, multi: boolean}>}
+ * @type {Array<{source: string, describes: string, group: string, multi: boolean}>}
  */
 const STRUCTURAL = [
-    { source: 'id', label: 'Identifier', group: 'Identity', multi: false },
-    { source: 'display', label: 'Published name', group: 'Identity', multi: true },
-    { source: 'definition', label: 'Definition', group: 'Content', multi: false },
-    { source: 'status', label: 'Status', group: 'Content', multi: false },
-    { source: 'labels', label: 'Other names', group: 'Names', multi: true },
-    { source: 'labelTypes', label: 'Other name kinds', group: 'Names', multi: true },
-    { source: 'notes', label: 'All notes', group: 'Content', multi: true },
-    { source: 'noteTypes', label: 'Note kinds', group: 'Content', multi: true },
-    { source: 'examples', label: 'All examples', group: 'Content', multi: true },
-    { source: 'exampleTypes', label: 'Example kinds', group: 'Content', multi: true },
-    { source: 'scheme', label: 'Scheme', group: 'Structure', multi: true },
-    { source: 'container', label: 'Arrangements placing it', group: 'Structure', multi: true },
-    { source: 'broader', label: 'Sits under', group: 'Structure', multi: true },
-    { source: 'placements', label: 'Times placed', group: 'Structure', multi: false },
-    { source: 'tags', label: 'All tags', group: 'Tags', multi: true },
+    { source: 'id', describes: 'The term identifier', group: 'Term', multi: false },
+    {
+        source: 'displayLabel',
+        // Not a stored field and not a label type: it is whichever label type the *view* publishes,
+        // joined to its ancestors where the view is dotted. That join is why it cannot simply be
+        // `label:<something>` — the value depends on where the term sits, not only on the term.
+        describes: 'The label this view publishes, dotted if the view is',
+        group: 'Term',
+        multi: true,
+    },
+    { source: 'definition', describes: 'The definition', group: 'Term', multi: false },
+    { source: 'status', describes: 'The term status', group: 'Term', multi: false },
+    { source: 'scheme', describes: 'The schemes it is published under', group: 'Structure', multi: true },
+    { source: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
+    { source: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
+    { source: 'placements', describes: 'How many times it is placed', group: 'Structure', multi: false },
+];
+
+/**
+ * The aggregates, one per typed array.
+ *
+ * These are what the spreadsheet round trip has always carried: every non-preferred label in one
+ * cell and their kinds in another. They are a spreadsheet convenience rather than anything the model
+ * holds, which is why they are written `label:*` — plainly an aggregate over the same array a
+ * `label:acronym` picks one from.
+ */
+const AGGREGATES = [
+    { source: 'label:*', describes: 'Every label except the preferred one', group: 'Labels', multi: true },
+    { source: 'labelType:*', describes: 'Their label types, in the same order', group: 'Labels', multi: true },
+    { source: 'note:*', describes: 'Every note', group: 'Notes', multi: true },
+    { source: 'noteType:*', describes: 'Their note types, in the same order', group: 'Notes', multi: true },
+    { source: 'example:*', describes: 'Every example', group: 'Examples', multi: true },
+    { source: 'exampleType:*', describes: 'Their example types, in the same order', group: 'Examples', multi: true },
+    { source: 'tag:*', describes: 'Every tag this view gives it', group: 'Tags', multi: true },
 ];
 
 /**
  * Every source a column may name, this vocabulary's own types included.
  *
  * @param {Array<object>} facetDocs - Facet documents, as stored
- * @returns {Array<{source: string, label: string, group: string, multi: boolean}>}
+ * @returns {Array<{source: string, describes: string, group: string, multi: boolean}>}
  */
 export function fieldCatalogue(facetDocs = []) {
     const typed = facetDocs.flatMap((facet) => {
@@ -63,8 +94,8 @@ export function fieldCatalogue(facetDocs = []) {
         // value are two different designations and one column cannot say which was meant.
         if (facet.appliesTo === 'tag') {
             return [{
-                source: `tag:${facet._id}`,
-                label: `Tag — ${facet.label?.en ?? facet._id}`,
+                source: `tag:${tagSlug(facet._id)}`,
+                describes: facet.label?.en ?? facet._id,
                 group: 'Tags',
                 multi: true,
             }];
@@ -77,14 +108,16 @@ export function fieldCatalogue(facetDocs = []) {
             const type = value[facet.key];
             return {
                 source: `${prefix}:${type}`,
-                label: `${value.label?.en ?? type}`,
-                group: { label: 'Names', note: 'Notes', example: 'Examples' }[facet.appliesTo],
+                describes: value.label?.en ?? type,
+                group: { label: 'Labels', note: 'Notes', example: 'Examples' }[facet.appliesTo],
                 multi: true,
             };
         });
     });
 
-    return [...STRUCTURAL, ...typed];
+    // Typed before aggregate within each group, so a picker reads `label:acronym` … `label:*` —
+    // the specific things first and the catch-all last, which is the order somebody looks in.
+    return [...STRUCTURAL, ...typed, ...AGGREGATES];
 }
 
 /** Whether a source is one this vocabulary offers. */
@@ -100,7 +133,7 @@ export const isField = ((source, facetDocs) => fieldCatalogue(facetDocs)
  * @param {Array<object>} context.placements - The placements this row covers. One for a placement
  *   row; every placement of the term for a term row
  * @param {object} context.resolution
- * @param {Array<object>} context.facets - Needed by `tag:<facetId>`, to know which values are that
+ * @param {Array<object>} context.facets - Needed by `tag:<set>`, to know which values are that
  *   set's. The resolution does not carry them
  * @param {string} context.language
  * @returns {Array<string>}
@@ -110,20 +143,21 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
 
     switch (source) {
         case 'id': return [term._id];
-        case 'display': return unique(placements.map((placement) => placement.display));
+        case 'displayLabel': return unique(placements.map((placement) => placement.display));
         case 'definition': return [localised(term.definition, language) ?? ''];
         case 'status': return [term.status ?? ''];
-        case 'labels': return otherLabels(term).map((entry) => entry.value);
-        case 'labelTypes': return otherLabels(term).map((entry) => entry.labelType);
-        case 'notes': return (term.note ?? []).map((entry) => entry.value);
-        case 'noteTypes': return (term.note ?? []).map((entry) => entry.noteType);
-        case 'examples': return (term.example ?? []).map((entry) => entry.value);
-        case 'exampleTypes': return (term.example ?? []).map((entry) => entry.exampleType);
         case 'scheme': return unique(placements.flatMap((placement) => schemesOf(placement)));
-        case 'container': return unique(placements.map((placement) => placement.collectionId));
+        case 'collections': return unique(placements.map((placement) => placement.collectionId));
         case 'broader': return unique(placements.map((placement) => broaderOf(placement)));
         case 'placements': return [String(placements.length)];
-        case 'tags': return tagsFor(resolution, term._id);
+
+        case 'label:*': return otherLabels(term).map((entry) => entry.value);
+        case 'labelType:*': return otherLabels(term).map((entry) => entry.labelType);
+        case 'note:*': return (term.note ?? []).map((entry) => entry.value);
+        case 'noteType:*': return (term.note ?? []).map((entry) => entry.noteType);
+        case 'example:*': return (term.example ?? []).map((entry) => entry.value);
+        case 'exampleType:*': return (term.example ?? []).map((entry) => entry.exampleType);
+        case 'tag:*': return tagsFor(resolution, term._id);
         default: break;
     }
 
@@ -132,11 +166,11 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
     // **A column is a stated property, not a name, and the difference matters here.**
     // `labelOfType` falls back to the preferred label, because everywhere it is normally used a
     // term *must* end up called something. A column headed `Acronym` is a claim about the term, so
-    // that same fallback would fill it with full names for every term carrying no acronym — which
-    // is not a gap in the data but a false statement about it.
+    // that same fallback would fill it with preferred labels for every term carrying no acronym —
+    // which is not a gap in the data but a false statement about it.
     //
     // Derivation is kept, because a derived `omcToken` is genuinely that term's token; only the
-    // fallback to the preferred name is dropped.
+    // fallback to the preferred label is dropped.
     if (prefix === 'label') {
         if (!type || type === 'pref') return [labelOfType(term, 'pref', language)];
         if (hasLabelOfType(term, type)) return [labelOfType(term, type, language)];
@@ -150,7 +184,7 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
         return (term.example ?? []).filter((entry) => entry.exampleType === type).map((entry) => entry.value);
     }
     if (prefix === 'tag') {
-        const facet = facets.find((entry) => entry._id === type);
+        const facet = facets.find((entry) => tagSlug(entry._id) === type);
         if (!facet) return [];
         const allowed = new Set((facet.values ?? []).map((value) => value[facet.key]));
         return tagsFor(resolution, term._id).filter((tag) => allowed.has(tag));
