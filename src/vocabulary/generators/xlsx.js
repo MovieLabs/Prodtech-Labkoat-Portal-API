@@ -5,6 +5,10 @@
  * rather than only to tabulate. Each scheme gets its own sheet, headed by what that scheme is: its
  * label, its definition, the other labels it goes by, and its notes.
  *
+ * That heading block is why there is no Ungrouped sheet here, where the other tabular formats have
+ * one: the terms that fall outside every scheme are the scheme heads themselves, and each is already
+ * the heading of its own sheet.
+ *
  * ## A sheet per scheme, always
  *
  * The shared spreadsheet profile has a `split` setting, and the workbook ignores it. A workbook's
@@ -139,9 +143,18 @@ function describe(head, profile, facets, language) {
  */
 export async function toXlsx(resolution, profile, facets) {
     // Always per scheme, whatever the shared profile says — see the note at the top.
-    const { groups, columns, problems } = buildRows(
+    const { groups: built, columns, problems } = buildRows(
         resolution, { ...profile, split: 'per-scheme' }, facets,
     );
+
+    // **No Ungrouped sheet.** What lands there is the scheme heads: a head is attached to the view
+    // directly, so it sits under no scheme and falls out of every group. In a workbook each one is
+    // already the heading block of its own sheet — its label, definition, other labels and notes —
+    // so the sheet repeats what the reader has just looked at.
+    //
+    // Kept when it is the only group, because a view with no scheme heads has nothing else, and a
+    // workbook with no sheets is a file Excel refuses to open.
+    const groups = built.length > 1 ? built.filter((group) => group.key !== 'unscoped') : built;
     const multi = profile.multi ?? ' | ';
     const { language } = resolution;
 
