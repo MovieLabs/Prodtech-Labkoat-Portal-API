@@ -70,8 +70,9 @@
  * @module vocabulary/resolve
  */
 
-import { ARRANGEMENT_NONE, schemeIdFor } from './store/ids.js';
+import { ARRANGEMENT_NONE, arrangementContainer, schemeIdFor } from './store/ids.js';
 import {
+    arrangementOf,
     DEFAULT_LANGUAGE, getTerms, getView, hasLabelOfType, labelOfType, listViews,
 } from './store/read.js';
 
@@ -258,24 +259,49 @@ function walkMembers({
          * @param {PathEntry[]} to
          */
         const descend = ((to, beneath) => {
-            // **This placement wants none of it.** The term keeps its arrangement and every other
-            // placement still brings it; this one takes its children from the container it sits in,
+            // **This placement wants none of it.** The term keeps its arrangements and every other
+            // placement still brings one; this one takes its children from the container it sits in,
             // through the `parent` rows the walk above already handles. Asked here rather than at
             // the call sites so a hidden placement answers it the same way.
             if (member.arrangement === ARRANGEMENT_NONE) return;
-            if (!term.member?.length) return;
-            if (chain.has(member.term)) {
+
+            // Which of the term's arrangements this row asks for: the default, or a named fork.
+            const forkId = member.arrangement ?? null;
+            const intoId = arrangementContainer(member.term, forkId);
+            const rows = arrangementOf(term, forkId);
+            if (rows === null) {
+                // **Absent means two different things, and only one of them is wrong.** For the
+                // default it means a plain term, which is most terms and has nothing to descend
+                // into. For a named fork it means the row points at one the term does not have —
+                // deleted, or a typo that reached the store — and that is reported rather than
+                // quietly resolved as the default, because publishing the wrong hierarchy is worse
+                // than publishing none.
+                if (forkId) {
+                    ctx.problems.missingArrangements.push({
+                        collection: containerId,
+                        mid: member.mid,
+                        term: member.term,
+                        arrangement: forkId,
+                    });
+                }
+                return;
+            }
+            if (!rows.length) return;
+
+            // **Cycle detection is per arrangement, not per term.** Two forks of one term are two
+            // different hierarchies, and one reaching the other is not a loop.
+            if (chain.has(intoId)) {
                 // An arrangement that reaches itself would recurse for ever. Stop, record it, and
                 // carry on with the rest — one bad reference must not take the whole view down.
-                ctx.problems.cycles.push({ collection: member.term, via: [...chain] });
+                ctx.problems.cycles.push({ collection: intoId, via: [...chain] });
                 return;
             }
             walkMembers({
-                containerId: member.term,
-                members: term.member,
+                containerId: intoId,
+                members: rows,
                 path: to,
                 ctx,
-                chain: new Set(chain).add(member.term),
+                chain: new Set(chain).add(intoId),
                 under: beneath,
             });
         });
@@ -323,7 +349,10 @@ function walkMembers({
         // A term the view attaches directly, which carries an arrangement, is what a SKOS consumer
         // receives as a `skos:ConceptScheme`. Nothing declares that — it is where the term sits.
         const entry = { id: member.term };
-        if (containerId === ctx.viewId && term.member?.length) entry.scheme = true;
+        const brings = member.arrangement === ARRANGEMENT_NONE
+            ? null
+            : arrangementOf(term, member.arrangement ?? null);
+        if (containerId === ctx.viewId && brings?.length) entry.scheme = true;
         // Where this view starts counting a dotted name from. Marked on the entry rather than
         // handled here, because the name is built afterwards over whatever path survived — the same
         // reason hiding a heading shortens the names below it without anything shortening them.
@@ -437,6 +466,8 @@ export async function resolveView({ viewId, status = null, language = DEFAULT_LA
             untyped: [],
             // Terms this view publishes with more than one set of children. See `divergentChildren`.
             divergent: [],
+            // Rows naming an arrangement their term does not have.
+            missingArrangements: [],
         },
     };
 

@@ -23,8 +23,8 @@ import {
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
-import { mintTermIds, viewId as viewId_ } from './ids.js';
-import { termUsage } from './read.js';
+import { mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_ } from './ids.js';
+import { arrangementOf, termUsage } from './read.js';
 import {
     allowedFacetValues,
     checkArrangementRemoval,
@@ -142,7 +142,17 @@ async function duplicateLabelWarnings(terms) {
  */
 export async function replaceTerm(id, term, actor) {
     const allowed = await allowedFacetValues();
-    const prepared = stamped({ ...term, _id: id }, actor);
+
+    // **An empty arrangement is not an arrangement.** Carrying `member: []` puts a term in a state
+    // that is neither: the palette leaves it out, because a collection with nothing in it is not
+    // something to place, while `unarrangeSubtree` refuses it as carrying no arrangement — so a term
+    // emptied row by row could not be reverted and could not be used. Dropped on write instead, so
+    // taking the last row out of an arrangement is the same act as reverting it. The same for forks.
+    const tidied = { ...term };
+    if (Array.isArray(tidied.member) && !tidied.member.length) delete tidied.member;
+    if (Array.isArray(tidied.fork) && !tidied.fork.length) delete tidied.fork;
+
+    const prepared = stamped({ ...tidied, _id: id }, actor);
 
     const check = validateTerm(prepared, allowed);
     if (!check.ok) throw new ValidationError(check.errors);
@@ -189,7 +199,12 @@ export async function deleteTerm(id, force = false) {
         if (!ids.length) return;
         await vocabCollection(store).updateMany(
             { _id: { $in: ids } },
-            { $pull: { member: { term: id } } },
+            // **Both places a row can sit.** A term's forks hold members too, and a row left inside
+            // one names a term that no longer exists — the same hole this whole step exists to
+            // prevent, in the one container a `member` pull does not reach.
+            store === VOCAB_TERMS
+                ? { $pull: { 'member': { term: id }, 'fork.$[].member': { term: id } } }
+                : { $pull: { member: { term: id } } },
         );
         // A member whose parent was one of the removed rows is now orphaned. Re-parenting them is
         // the same promotion the resolver does for a filtered term, and keeps the document valid
@@ -214,16 +229,30 @@ async function repairParents(store, id) {
     const container = await vocabCollection(store).findOne({ _id: id });
     if (!container) return;
 
-    const mids = new Set((container.member ?? []).map((member) => member.mid));
-    const orphaned = (container.member ?? []).filter((member) => member.parent && !mids.has(member.parent));
-    if (!orphaned.length) return;
-
     // Promoted to the top rather than guessed at: the parent is gone, so the chain above it is no
-    // longer knowable from this document alone.
-    const repaired = (container.member ?? []).map((member) => (
-        member.parent && !mids.has(member.parent) ? { ...member, parent: null } : member
-    ));
-    await vocabCollection(store).updateOne({ _id: id }, { $set: { member: repaired } });
+    // longer knowable from this document alone. Every arrangement in the document is checked, since
+    // a term's forks each hold their own rows and their own mids.
+    const repair = ((rows) => {
+        const mids = new Set((rows ?? []).map((member) => member.mid));
+        const orphaned = (rows ?? []).some((member) => member.parent && !mids.has(member.parent));
+        if (!orphaned) return null;
+        return rows.map((member) => (
+            member.parent && !mids.has(member.parent) ? { ...member, parent: null } : member
+        ));
+    });
+
+    const member = repair(container.member);
+    const forks = (container.fork ?? []).map((fork) => {
+        const fixed = repair(fork.member);
+        return fixed ? { ...fork, member: fixed } : fork;
+    });
+    const forkChanged = forks.some((fork, i) => fork !== (container.fork ?? [])[i]);
+    if (!member && !forkChanged) return;
+
+    const set = {};
+    if (member) set.member = member;
+    if (forkChanged) set.fork = forks;
+    await vocabCollection(store).updateOne({ _id: id }, { $set: set });
 }
 
 // ---------------------------------------------------------------------------
@@ -231,21 +260,59 @@ async function repairParents(store, id) {
 // ---------------------------------------------------------------------------
 
 /**
- * The document that declares a member list, and which store it lives in.
+ * The document that declares a member list, which store it lives in, and where in it the rows sit.
  *
- * A container is a term carrying an arrangement or a view holding its own members, and the two are
- * written the same way. **Asked rather than read off the id**: `view:` is a slug convention, not a
- * rule anything should depend on.
+ * A container is a view holding its own members, a term's default arrangement, or one of that
+ * term's forks. **Asked rather than read off the id** — `view:` is a slug convention, not a rule
+ * anything should depend on — except for the fork suffix, which *is* a rule and is the one thing an
+ * id has to carry, because a term's forks are all inside the one document.
+ *
+ * `members` and `withMembers` are what let a caller edit rows without knowing which of the three it
+ * has. Reaching for `doc.member` directly works for two of them and silently edits the wrong list
+ * for the third.
  *
  * @param {string} id
- * @returns {Promise<{doc: object, store: string}|null>}
+ * @returns {Promise<{doc: object, store: string, members: Array<object>,
+ *   withMembers: function(Array<object>): object}|null>}
  */
 async function containerOf(id) {
-    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
-    if (view) return { doc: view, store: VOCAB_VIEWS };
-    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: id });
-    if (term) return { doc: term, store: VOCAB_TERMS };
-    return null;
+    const { termId, forkId } = readArrangementContainer(id);
+
+    if (!forkId) {
+        const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+        if (view) {
+            return {
+                doc: view,
+                store: VOCAB_VIEWS,
+                members: view.member ?? [],
+                withMembers: ((next) => ({ ...view, member: next })),
+            };
+        }
+    }
+
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
+    if (!term) return null;
+
+    if (!forkId) {
+        return {
+            doc: term,
+            store: VOCAB_TERMS,
+            members: term.member ?? [],
+            withMembers: ((next) => ({ ...term, member: next })),
+        };
+    }
+
+    const at = (term.fork ?? []).findIndex((fork) => fork.id === forkId);
+    if (at < 0) return null;
+    return {
+        doc: term,
+        store: VOCAB_TERMS,
+        members: term.fork[at].member ?? [],
+        withMembers: ((next) => ({
+            ...term,
+            fork: term.fork.map((fork, i) => (i === at ? { ...fork, member: next } : fork)),
+        })),
+    };
 }
 
 /**
@@ -354,7 +421,7 @@ export async function arrangeSubtree(containerId, mid, actor) {
     const container = await containerOf(containerId);
     if (!container) throw new ValidationError([`No such container: ${containerId}`]);
 
-    const members = container.doc.member ?? [];
+    const { members } = container;
     const row = members.find((member) => member.mid === mid);
     if (!row) throw new ValidationError([`No member "${mid}" in ${containerId}`]);
     if (!row.term) throw new ValidationError([`Member "${mid}" names no term`]);
@@ -383,10 +450,10 @@ export async function arrangeSubtree(containerId, mid, actor) {
     if (!arrangedCheck.ok) throw new ValidationError(arrangedCheck.errors);
 
     const remaining = members.filter((member) => !moved.has(member.mid));
-    const source = stamped({ ...container.doc, member: remaining }, actor);
+    const source = stamped(container.withMembers(remaining), actor);
 
     await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, arranged);
-    await vocabCollection(container.store).replaceOne({ _id: containerId }, source);
+    await vocabCollection(container.store).replaceOne({ _id: container.doc._id }, source);
 
     const repointed = await repointArrange(containerId, term._id, moved);
 
@@ -418,7 +485,7 @@ export async function unarrangeSubtree(containerId, mid, actor, force = false) {
     const container = await containerOf(containerId);
     if (!container) throw new ValidationError([`No such container: ${containerId}`]);
 
-    const members = container.doc.member ?? [];
+    const { members } = container;
     const at = members.findIndex((member) => member.mid === mid);
     if (at < 0) throw new ValidationError([`No member "${mid}" in ${containerId}`]);
 
@@ -456,11 +523,11 @@ export async function unarrangeSubtree(containerId, mid, actor, force = false) {
     const remaining = [...members];
     remaining.splice(at + 1, 0, ...taken);
 
-    const source = stamped({ ...container.doc, member: remaining }, actor);
+    const source = stamped(container.withMembers(remaining), actor);
     const { member: _wasArranged, ...plain } = term;
     const bare = stamped(plain, actor);
 
-    await vocabCollection(container.store).replaceOne({ _id: containerId }, source);
+    await vocabCollection(container.store).replaceOne({ _id: container.doc._id }, source);
     await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, bare);
 
     const repointed = await repointArrange(term._id, containerId, new Set(term.member.map((one) => one.mid)));
@@ -506,7 +573,7 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
     const to = fromId === toId ? from : await containerOf(toId);
     if (!to) throw new ValidationError([`No such container: ${toId}`]);
 
-    const source = from.doc.member ?? [];
+    const source = from.members;
     const row = source.find((member) => member.mid === mid);
     if (!row) throw new ValidationError([`No member "${mid}" in ${fromId}`]);
 
@@ -532,14 +599,14 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
             return toParent ? { ...rest, parent: toParent } : rest;
         });
         const rest = source.filter((member) => !moving.has(member.mid));
-        const updated = stamped({ ...from.doc, member: insertUnder(rest, taken, toParent) }, actor);
-        await vocabCollection(from.store).replaceOne({ _id: fromId }, updated);
+        const updated = stamped(from.withMembers(insertUnder(rest, taken, toParent)), actor);
+        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, updated);
         return { moved: taken.length, repointed: 0, mid };
     }
 
     // Across containers. Remint anything that would collide, before the rows are rewritten, so a
     // parent and its children agree on the new id.
-    const target = to.doc.member ?? [];
+    const target = to.members;
     const used = target.map((member) => ({ mid: member.mid }));
     const rename = new Map();
     source.filter((member) => moving.has(member.mid)).forEach((member) => {
@@ -563,13 +630,27 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
     });
 
     const remaining = source.filter((member) => !moving.has(member.mid));
-    const nextSource = stamped({ ...from.doc, member: remaining }, actor);
-    const nextTarget = stamped({ ...to.doc, member: insertUnder(target, taken, toParent) }, actor);
+    const landed = insertUnder(target, taken, toParent);
 
-    // The source first: if the second write fails the rows are gone rather than duplicated, and a
-    // duplicate placement is the harder of the two to find afterwards.
-    await vocabCollection(from.store).replaceOne({ _id: fromId }, nextSource);
-    await vocabCollection(to.store).replaceOne({ _id: toId }, nextTarget);
+    if (from.doc._id === to.doc._id) {
+        // **Two containers, one document.** Moving between a term's default arrangement and one of
+        // its forks reaches the same record twice, and writing the two halves in turn would have the
+        // second overwrite the first — the rows would arrive and the ones they left would come back.
+        // Composed instead, and written once.
+        const both = stamped(
+            { ...from.withMembers(remaining), ...to.withMembers(landed) },
+            actor,
+        );
+        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, both);
+    } else {
+        const nextSource = stamped(from.withMembers(remaining), actor);
+        const nextTarget = stamped(to.withMembers(landed), actor);
+
+        // The source first: if the second write fails the rows are gone rather than duplicated, and
+        // a duplicate placement is the harder of the two to find afterwards.
+        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, nextSource);
+        await vocabCollection(to.store).replaceOne({ _id: to.doc._id }, nextTarget);
+    }
 
     const repointed = await repointArrange(fromId, toId, moving, rename);
 
@@ -613,6 +694,157 @@ async function repointArrange(fromId, toId, mids, rename = new Map()) {
     }));
 
     return rewritten.reduce((total, one) => total + one, 0);
+}
+
+/**
+ * Give a term another arrangement of its own.
+ *
+ * ## What a fork is, and what it deliberately is not
+ *
+ * **One term, one identifier, one definition — several hierarchies.** Lens means the same thing
+ * wherever it appears; what a fork varies is how Lens is *arranged* beneath. This is the opposite of
+ * copying the term, which is why copying was taken out: two records for one meaning is what this
+ * model exists to prevent.
+ *
+ * A placement chooses which arrangement it brings by naming the fork on its row. Naming none brings
+ * the default, which is every row written before forks existed.
+ *
+ * ## Empty or a copy, because a big tree and a small one want different answers
+ *
+ * Copying a fourteen-child arrangement to change two of them is pruning work; starting an empty one
+ * for a two-child hierarchy is retyping. Both are offered rather than guessed at.
+ *
+ * **A copy takes the rows as they are, mids and all.** Mids are scoped to their container and a fork
+ * is a new container, so nothing collides and nothing has to be reminted — and a `view.arrange.hide`
+ * key naming the default's `m3` still names the default's, never the copy's.
+ *
+ * @param {string} termId
+ * @param {object} params
+ * @param {string} params.name - What the palette will call it
+ * @param {string|null} [params.copyOf] - A fork id, or `null` for the default arrangement. Omit
+ *   entirely for an empty fork
+ * @param {boolean} [params.empty] - True for a fork with no members
+ * @param {string} [actor]
+ * @returns {Promise<{term: object, fork: object}>}
+ * @throws {ValidationError}
+ */
+export async function createFork(termId, { name, copyOf = null, empty = false }, actor) {
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
+    if (!term) throw new ValidationError([`No such term: ${termId}`]);
+    if (!name || !String(name).trim()) throw new ValidationError(['A fork needs a name']);
+
+    const wanted = String(name).trim();
+    const taken = term.arrangementName === wanted
+        || (term.fork ?? []).some((fork) => fork.name === wanted);
+    if (taken) throw new ValidationError([`"${termId}" already has an arrangement called "${wanted}"`]);
+
+    let member = [];
+    if (!empty) {
+        const source = arrangementOf(term, copyOf);
+        if (source === null) {
+            throw new ValidationError([`No such arrangement to copy: ${copyOf ?? 'the default'}`]);
+        }
+        member = source.map((row) => ({ ...row }));
+    }
+
+    const fork = { id: nextForkId(term.fork ?? []), name: wanted, member };
+    const next = stamped({ ...term, fork: [...(term.fork ?? []), fork] }, actor);
+    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    return { term: next, fork };
+}
+
+/**
+ * Rename a fork.
+ *
+ * **Nothing published moves.** Rows point at the fork's id, which is minted once and never reused,
+ * for the same reason a scheme URI is derived from a term id rather than from its label.
+ *
+ * @param {string} termId
+ * @param {string} forkId
+ * @param {string} name
+ * @param {string} [actor]
+ * @returns {Promise<{term: object}>}
+ * @throws {ValidationError}
+ */
+export async function renameArrangement(termId, forkId, name, actor) {
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
+    if (!term) throw new ValidationError([`No such term: ${termId}`]);
+    if (!name || !String(name).trim()) throw new ValidationError(['An arrangement needs a name']);
+
+    const wanted = String(name).trim();
+    const named = [
+        ...(term.arrangementName ? [{ id: null, name: term.arrangementName }] : []),
+        ...(term.fork ?? []),
+    ];
+    if (named.some((one) => one.id !== forkId && one.name === wanted)) {
+        throw new ValidationError([`"${termId}" already has an arrangement called "${wanted}"`]);
+    }
+
+    // **The default is renamed on the term, a fork inside its own entry.** Two places because they
+    // are two shapes, and one call because to the person doing it they are the same act: naming the
+    // hierarchy they are looking at.
+    let next;
+    if (!forkId) {
+        if (!term.member?.length) throw new ValidationError([`"${termId}" carries no arrangement to name`]);
+        next = stamped({ ...term, arrangementName: wanted }, actor);
+    } else {
+        if (!(term.fork ?? []).some((fork) => fork.id === forkId)) {
+            throw new ValidationError([`"${termId}" has no fork "${forkId}"`]);
+        }
+        next = stamped({
+            ...term,
+            fork: term.fork.map((fork) => (fork.id === forkId ? { ...fork, name: wanted } : fork)),
+        }, actor);
+    }
+    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    return { term: next };
+}
+
+/**
+ * Delete a fork.
+ *
+ * **Refused while anything still places it**, unless forced. A row naming a fork that has gone
+ * publishes nothing beneath it and the resolver reports it — recoverable, but silent until somebody
+ * opens that view, so the write says so instead. The usage is returned with the refusal so a caller
+ * can name where.
+ *
+ * The rows *inside* the fork are placements, not terms: deleting it removes the arrangement, never
+ * the terms it arranged.
+ *
+ * @param {string} termId
+ * @param {string} forkId
+ * @param {boolean} [force]
+ * @param {string} [actor]
+ * @returns {Promise<{term: object, placements: number}>}
+ * @throws {ValidationError}
+ */
+export async function deleteFork(termId, forkId, force = false, actor) {
+    const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: termId });
+    if (!term) throw new ValidationError([`No such term: ${termId}`]);
+    if (!(term.fork ?? []).some((fork) => fork.id === forkId)) {
+        throw new ValidationError([`"${termId}" has no fork "${forkId}"`]);
+    }
+
+    // A row that brings this fork, wherever such a row can sit: a view's own list, a term's default
+    // arrangement, or inside another fork.
+    const brings = { $elemMatch: { term: termId, arrangement: forkId } };
+    const [terms, views] = await Promise.all([
+        vocabCollection(VOCAB_TERMS)
+            .find({ $or: [{ member: brings }, { fork: { $elemMatch: { member: brings } } }] })
+            .toArray(),
+        vocabCollection(VOCAB_VIEWS).find({ member: brings }).toArray(),
+    ]);
+    const placements = terms.length + views.length;
+    if (placements && !force) {
+        throw new ValidationError([
+            `${placements} placement(s) still bring this fork. Point them at another arrangement `
+            + 'first, or delete it anyway and they will publish nothing beneath them.',
+        ]);
+    }
+
+    const next = stamped({ ...term, fork: term.fork.filter((fork) => fork.id !== forkId) }, actor);
+    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    return { term: next, placements };
 }
 
 // ---------------------------------------------------------------------------

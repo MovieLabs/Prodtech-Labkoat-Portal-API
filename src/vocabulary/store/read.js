@@ -16,6 +16,7 @@ import {
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
+import { ARRANGEMENT_NONE, arrangementContainer } from './ids.js';
 
 export const DEFAULT_LANGUAGE = 'en';
 
@@ -192,65 +193,132 @@ export async function getTerms(ids) {
  */
 export async function termUsage(termId) {
     const [collections, views] = await Promise.all([
-        vocabCollection(VOCAB_TERMS).find({ 'member.term': termId }).toArray(),
+        // A term can be placed in a term's default arrangement or in any of its forks, and both are
+        // "used here" to anybody asking whether this term can be deleted.
+        vocabCollection(VOCAB_TERMS)
+            .find({ $or: [{ 'member.term': termId }, { 'fork.member.term': termId }] })
+            .toArray(),
         vocabCollection(VOCAB_VIEWS).find({ 'member.term': termId }).toArray(),
     ]);
     return { collections, views };
 }
 
 /**
- * Every term that carries an arrangement, without its members.
+ * The rows one arrangement of a term holds.
  *
- * The composition palette needs a list to pick from, and the members are what make these documents
- * large — one holds 312 of them. A picker showing sixteen names has no use for the arrangement
- * inside each, so `memberCount` is computed server-side and the array is left behind.
+ * @param {object|null} term
+ * @param {string|null} [forkId] - Nothing for the term's default arrangement
+ * @returns {Array<object>|null} The member array, or null when no such fork exists
+ */
+export function arrangementOf(term, forkId = null) {
+    if (!term) return null;
+    if (!forkId) return term.member ?? null;
+    const fork = (term.fork ?? []).find((one) => one.id === forkId);
+    return fork ? fork.member ?? [] : null;
+}
+
+/**
+ * Every arrangement a term carries: the default first, then its forks.
+ *
+ * **The default has a name too.** It is held on the term as `arrangementName` rather than inside a
+ * list, because the default is not a fork — it is the arrangement every row gets by naming nothing,
+ * and giving it an entry in `fork` would make every existing collection need a migration to say so.
+ * Unnamed is the ordinary case and stays legal: a term with one arrangement needs no word for it.
+ */
+export function arrangementsOf(term) {
+    const found = [];
+    if (term?.member?.length) {
+        found.push({ forkId: null, name: term.arrangementName ?? null, member: term.member });
+    }
+    (term?.fork ?? []).forEach((fork) => found.push({
+        forkId: fork.id, name: fork.name ?? null, member: fork.member ?? [],
+    }));
+    return found;
+}
+
+/**
+ * Every arrangement, without its members — **one entry per arrangement, not per term.**
+ *
+ * A term carries a default arrangement and any number of named forks, and each is a separate thing
+ * to place, so each is a row here. `_id` is the **container** id, which is what makes them distinct:
+ * the default keeps the bare term id and a fork is qualified. `termId` says which term they are all
+ * arrangements *of*, and it is the same for every one of them — that is the whole point.
+ *
+ * The members are what make these documents large — one holds 312 of them — and a picker showing
+ * sixteen names has no use for them, so `memberCount` is computed here and the arrays are left.
  *
  * **`includes` is the exception, and it is not optional.** An arrangement that reaches another can
  * be reached by a third, and a client offering "drop this into that" has to know which choices would
  * close a loop — a loop the resolver only discovers when someone next opens the view. Answering that
  * needs the edges between arrangements, so a member naming a term that is *itself* arranged comes
- * back while the plain ones stay behind.
+ * back while the plain ones stay behind. The edge points at a **container**, because a row naming a
+ * fork reaches that fork and not the term's default.
  *
  * **`terms` is the id list only, and it is what makes "which arrangements place this term?"
  * answerable.** A grid listing every term has to say where each one sits, and asking that per term
- * is a thousand requests. Every id across every arrangement is around a thousand strings — smaller
- * than one expanded document — and the same list is what lets a client work out the unplaced set for
- * itself.
+ * is a thousand requests.
  *
- * @returns {Promise<Array<{_id: string, label: object[], definition: object, status: string,
- *   memberCount: number, includes: string[], terms: string[]}>>}
+ * @returns {Promise<Array<object>>}
  */
 export async function listCollections() {
-    const rows = await vocabCollection(VOCAB_TERMS).aggregate([
-        { $match: { member: { $exists: true, $ne: [] } } },
-        {
-            $project: {
-                label: 1,
-                definition: 1,
-                status: 1,
-                memberCount: { $size: { $ifNull: ['$member', []] } },
-                terms: {
-                    $setUnion: [{
-                        $map: {
-                            input: { $ifNull: ['$member', []] },
-                            as: 'member',
-                            in: '$$member.term',
-                        },
-                    }],
-                },
-            },
-        },
-        { $sort: { _id: 1 } },
-    ]).toArray();
+    const carriers = await vocabCollection(VOCAB_TERMS)
+        .find({ $or: [{ member: { $exists: true, $ne: [] } }, { fork: { $exists: true, $ne: [] } }] })
+        .toArray();
 
-    // Which of those members are arrangements in their own right. Derived here rather than in the
-    // pipeline: it is a lookup against the same result set, and `$lookup` on the collection being
-    // aggregated to answer a question its own output already contains is the slower way round.
+    const rows = carriers.flatMap((term) => arrangementsOf(term).map((arrangement) => ({
+        _id: arrangementContainer(term._id, arrangement.forkId),
+        termId: term._id,
+        forkId: arrangement.forkId,
+        // What this arrangement is called, default or fork alike. Null for one nobody has named.
+        arrangementName: arrangement.name,
+        label: term.label,
+        definition: term.definition,
+        status: term.status,
+        memberCount: arrangement.member.length,
+        terms: [...new Set(arrangement.member.map((member) => member.term).filter(Boolean))],
+        // The container each row reaches, which is a fork when the row names one.
+        reaches: [...new Set(arrangement.member
+            .filter((member) => member.term && member.arrangement !== ARRANGEMENT_NONE)
+            .map((member) => arrangementContainer(member.term, member.arrangement ?? null)))],
+    })));
+
+    // Which of those edges land on something that is itself an arrangement. Derived against the
+    // result set rather than in the query: it is a lookup into what has already been read.
     const arranged = new Set(rows.map((row) => row._id));
-    return rows.map((row) => ({
-        ...row,
-        includes: row.terms.filter((id) => arranged.has(id)),
-    }));
+    const withIncludes = rows.map((row) => {
+        const { reaches, ...rest } = row;
+        return { ...rest, includes: reaches.filter((id) => arranged.has(id)) };
+    });
+
+    // **Which views each arrangement actually reaches**, which is the only reliable way to tell two
+    // forks of one term apart: they share a label by design, and a fork's name is somebody's
+    // shorthand where this is where it is being used.
+    //
+    // Walked rather than resolved. A resolution applies the status filter and the hidden headings,
+    // and neither changes whether a view *reaches* an arrangement — so this reads the containment
+    // edges already in hand and costs one more query instead of one resolution per view.
+    const edges = new Map(withIncludes.map((row) => [row._id, row.includes]));
+    const views = await vocabCollection(VOCAB_VIEWS).find({}).toArray();
+    const inViews = new Map();
+    views.forEach((view) => {
+        const name = labelOfType(view, 'pref') || view._id;
+        const seen = new Set();
+        const queue = (view.member ?? [])
+            .filter((member) => member.term && member.arrangement !== ARRANGEMENT_NONE)
+            .map((member) => arrangementContainer(member.term, member.arrangement ?? null));
+        while (queue.length) {
+            const at = queue.pop();
+            if (seen.has(at) || !edges.has(at)) continue;
+            seen.add(at);
+            if (!inViews.has(at)) inViews.set(at, new Set());
+            inViews.get(at).add(name);
+            edges.get(at).forEach((next) => queue.push(next));
+        }
+    });
+
+    return withIncludes
+        .map((row) => ({ ...row, inViews: [...(inViews.get(row._id) ?? [])].sort() }))
+        .sort((a, b) => a._id.localeCompare(b._id));
 }
 
 /**
@@ -286,11 +354,14 @@ export const allTerms = (() => vocabCollection(VOCAB_TERMS).find({}).toArray());
  * @returns {Promise<Array<object>>}
  */
 export async function unplacedTerms() {
-    const [inTerms, inViews] = await Promise.all([
+    const [inTerms, inForks, inViews] = await Promise.all([
         vocabCollection(VOCAB_TERMS).distinct('member.term'),
+        // A term's forks hold placements too, and a term sitting only inside one is placed. Missing
+        // this reports it as unplaced, which is an invitation to delete something that is in use.
+        vocabCollection(VOCAB_TERMS).distinct('fork.member.term'),
         vocabCollection(VOCAB_VIEWS).distinct('member.term'),
     ]);
-    const placed = [...new Set([...inTerms, ...inViews])].filter(Boolean);
+    const placed = [...new Set([...inTerms, ...inForks, ...inViews])].filter(Boolean);
     return vocabCollection(VOCAB_TERMS).find({ _id: { $nin: placed } }).toArray();
 }
 

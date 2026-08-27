@@ -164,3 +164,52 @@ export function schemeIdFor(id) {
  * Absent means the term's own `member` list, which is every row written so far.
  */
 export const ARRANGEMENT_NONE = 'none';
+
+/** Separates a term id from the fork of it a container id names. */
+const FORK_SEPARATOR = '#';
+
+/**
+ * The container id for one of a term's forks.
+ *
+ * **The default arrangement keeps the bare term id**, and only a fork is qualified. That is what
+ * makes forking cost no migration: `view.arrange.hide` and `dotFrom` are keyed `containerId/mid`,
+ * so every key written before forks existed still names the same row afterwards.
+ *
+ * @param {string} termId - `vmc:c-000081`
+ * @param {string|null} [forkId] - `f2`, or nothing for the default arrangement
+ * @returns {string} `vmc:c-000081#f2`, or `vmc:c-000081`
+ */
+export function arrangementContainer(termId, forkId = null) {
+    if (!forkId || forkId === ARRANGEMENT_NONE) return termId;
+    return `${termId}${FORK_SEPARATOR}${forkId}`;
+}
+
+/**
+ * Read a container id back into the term and the fork it names.
+ *
+ * @param {string} id
+ * @returns {{termId: string, forkId: string|null}}
+ */
+export function readArrangementContainer(id) {
+    const at = typeof id === 'string' ? id.indexOf(FORK_SEPARATOR) : -1;
+    if (at < 0) return { termId: id, forkId: null };
+    return { termId: id.slice(0, at), forkId: id.slice(at + FORK_SEPARATOR.length) };
+}
+
+/**
+ * A fork id no fork on this term is using.
+ *
+ * Continues from the highest ever issued rather than filling gaps, for the reason `nextMid` does:
+ * a container id is built from it, so reusing one would point an old `arrange.hide` entry at a
+ * different arrangement.
+ *
+ * @param {Array<object>} forks - The term's `fork` array
+ * @returns {string}
+ */
+export function nextForkId(forks = []) {
+    const highest = forks.reduce((top, fork) => {
+        const number = Number(String(fork.id ?? '').replace(/^f/, ''));
+        return Number.isFinite(number) && number > top ? number : top;
+    }, 0);
+    return `f${highest + 1}`;
+}

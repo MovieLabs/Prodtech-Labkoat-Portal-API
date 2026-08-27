@@ -42,10 +42,13 @@ import {
 import {
     ValidationError,
     arrangeSubtree,
+    createFork,
+    deleteFork,
     createTerms,
     movePlacement,
     deleteTerm,
     replaceTerm,
+    renameArrangement,
     unarrangeSubtree,
     saveFacet,
     createView,
@@ -408,6 +411,64 @@ router.put('/facets/:id', authenticated, async (req, res, next) => {
             req.params.id, req.body, actorOf(req), req.query.force === 'true',
         );
         res.json({ facet, warnings });
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Give a term another arrangement of its own.
+ *
+ * **One term, one identifier — several hierarchies.** A fork varies how the term is arranged
+ * beneath, never what the term is, which is the difference between this and copying it.
+ *
+ * `empty` for a fork with no members; otherwise it copies an existing arrangement — `copyOf` names
+ * a fork id, or is omitted for the term's default.
+ */
+router.post('/terms/:id/forks', authenticated, async (req, res, next) => {
+    try {
+        const { name, copyOf = null, empty = false } = req.body ?? {};
+        if (!name) {
+            res.status(422).json({ message: 'name is required', errors: ['A fork needs a name'] });
+            return;
+        }
+        res.status(201).json(await createFork(req.params.id, { name, copyOf, empty }, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Name an arrangement. Nothing published moves — rows point at a fork's id, which never changes,
+ * and the default is never pointed at by name at all.
+ *
+ * `:forkId` is `default` for the term's own arrangement, which has no id of its own.
+ */
+router.put('/terms/:id/forks/:forkId', authenticated, async (req, res, next) => {
+    try {
+        const { name } = req.body ?? {};
+        if (!name) {
+            res.status(422).json({ message: 'name is required', errors: ['An arrangement needs a name'] });
+            return;
+        }
+        const forkId = req.params.forkId === 'default' ? null : req.params.forkId;
+        res.json(await renameArrangement(req.params.id, forkId, name, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Delete a fork.
+ *
+ * Refused while anything still brings it, unless `?force=true`. The rows inside it are placements,
+ * so the terms they arranged are untouched either way.
+ */
+router.delete('/terms/:id/forks/:forkId', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteFork(
+            req.params.id, req.params.forkId, req.query.force === 'true', actorOf(req),
+        ));
     } catch (err) {
         writeFailed(err, res, next);
     }

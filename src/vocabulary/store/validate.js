@@ -21,7 +21,6 @@
  * @module vocabulary/store/validate
  */
 
-import { ARRANGEMENT_NONE } from './ids.js';
 import { listFacets } from './read.js';
 
 /**
@@ -143,12 +142,15 @@ function validateMembers(members, found, where) {
 
         if (!member.term) fail(found, `Member "${member.mid}" names no term`);
 
-        // Which arrangement this placement brings. Absent is the term's own, which is every row
-        // written before this field existed; `none` takes its children from the rows around it
-        // instead. Anything else is a typo, and catching it here is the difference between a write
-        // that fails and a view that quietly loses a branch.
-        if (member.arrangement !== undefined && member.arrangement !== ARRANGEMENT_NONE) {
-            fail(found, `Member "${member.mid}" names an arrangement "${member.arrangement}" that does not exist`);
+        // Which arrangement this placement brings. Absent is the term's default; `none` takes its
+        // children from the rows around it instead; anything else names one of the term's forks.
+        //
+        // **Whether that fork exists is not checked here**, and deliberately: it is a fact about
+        // another document, so a write would have to read the term to answer it and would still race
+        // anyone deleting the fork. The resolver reports it instead, in `missingArrangements`, where
+        // every arrangement is already in hand. What is checked is the shape.
+        if (member.arrangement !== undefined && typeof member.arrangement !== 'string') {
+            fail(found, `Member "${member.mid}" names an arrangement that is not a string`);
         }
     });
 
@@ -188,19 +190,58 @@ function validateMembers(members, found, where) {
  * @param {ValidationResult} found - Accumulated into
  */
 function checkArrangement(term, found) {
-    if (term?.member === undefined) return; // A plain term, which is most of them
-    if (!Array.isArray(term.member)) {
-        fail(found, 'An arrangement must be a list of members');
-        return;
-    }
-
-    validateMembers(term.member, found, 'this arrangement');
-
     // A term whose arrangement reaches itself, directly. Indirect cycles need every arrangement in
     // hand to check, so those are caught at resolve time and reported there — this catches the
     // common case cheaply, at the write that caused it.
-    term.member.forEach((member) => {
-        if (member.term === term._id) fail(found, 'A term cannot be placed inside its own arrangement');
+    const checkRows = ((rows, where) => {
+        validateMembers(rows, found, where);
+        rows.forEach((member) => {
+            if (member.term === term._id) fail(found, `A term cannot be placed inside ${where}`);
+        });
+    });
+
+    if (term?.member !== undefined) {
+        if (!Array.isArray(term.member)) {
+            fail(found, 'An arrangement must be a list of members');
+        } else {
+            checkRows(term.member, 'its own arrangement');
+        }
+    }
+
+    if (term?.arrangementName !== undefined
+        && (typeof term.arrangementName !== 'string' || !term.arrangementName.trim())) {
+        fail(found, 'An arrangement name must be a non-empty string');
+    }
+
+    if (term?.fork === undefined) return; // No forks, which is most terms
+    if (!Array.isArray(term.fork)) {
+        fail(found, 'The forks of a term must be a list');
+        return;
+    }
+
+    // **A fork id is what a placement points at**, so it has to exist and be unique within the term
+    // — the container id is built from it, and two forks answering to one id would put a row's
+    // children in whichever was found first.
+    const ids = new Set();
+    term.fork.forEach((fork) => {
+        if (!fork?.id) {
+            fail(found, 'Every fork needs an id');
+            return;
+        }
+        if (ids.has(fork.id)) fail(found, `Duplicate fork id "${fork.id}"`);
+        ids.add(fork.id);
+
+        // Named, because the palette lists a term's forks together and they are otherwise
+        // indistinguishable — which is the whole reason a fork carries a name at all.
+        if (!fork.name || !String(fork.name).trim()) {
+            fail(found, `Fork "${fork.id}" needs a name`);
+        }
+
+        if (fork.member !== undefined && !Array.isArray(fork.member)) {
+            fail(found, `Fork "${fork.id}" must hold a list of members`);
+            return;
+        }
+        checkRows(fork.member ?? [], `fork "${fork.name ?? fork.id}"`);
     });
 }
 

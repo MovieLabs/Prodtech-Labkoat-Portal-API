@@ -110,17 +110,21 @@ export async function generate({ viewId, format = 'json', status = null, languag
     ]);
     const projections = skosProjectionIndex(facets);
 
-    // **A view that publishes one term with two sets of children cannot be written down.**
-    // `skos:narrower` belongs to the concept rather than to where it was placed, so the document
-    // would have to pick one set and say nothing about having picked. Refused rather than resolved,
-    // and named so the editor can be opened at the term that disagrees with itself.
+    // **A SKOS document cannot say that one term has two sets of children.** `skos:narrower` belongs
+    // to the concept, not to where it was placed, so the file would have to pick one set and say
+    // nothing about having picked. Refused rather than resolved, and named so the editor can be
+    // opened at the term that disagrees with itself.
     //
-    // `internal` is exempt: it is the resolution itself, and an editor cannot show somebody a
-    // problem it is refused a copy of.
+    // **Only the SKOS formats refuse**, and the boundary is what the format can express rather than
+    // whether the state is wanted. `internal` and `json` are what the editor itself reads — the
+    // header's counts come from `json` — so refusing them takes the view away from the person who is
+    // midway through composing it and is the only one who can resolve it. `csv` is a row per
+    // placement, which represents two child sets without contradicting itself. All of them carry
+    // `problems.divergent` out to the caller regardless, so nothing is hidden by not throwing.
     const divergent = resolution.problems?.divergent ?? [];
-    if (divergent.length && format !== 'internal') {
+    if (divergent.length && format.startsWith('skos-')) {
         const names = divergent.map((one) => one.termId).join(', ');
-        throw new Error(`Cannot generate ${format}: ${divergent.length} term(s) are published with more than one set of children in this view — ${names}. Give each one the same children everywhere it appears, or place it once.`);
+        throw new Error(`Cannot publish ${format}: ${divergent.length} term(s) have more than one set of children in this view — ${names}. SKOS gives a concept one set of narrower concepts, so give each of them the same children everywhere it appears, or place it once. The view itself still opens.`);
     }
 
     const generator = GENERATORS[format];
