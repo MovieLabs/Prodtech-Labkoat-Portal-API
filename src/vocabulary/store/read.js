@@ -71,12 +71,16 @@ export function tokenFromName(name) {
  *
  * ## Why deriving is a fallback and never the value
  *
- * Of the 290 terms carrying an authored `omcToken`, **123 are not what deriving would produce** —
- * and the differences are a rule, not noise: the token drops the part of the name the dotted path
+ * **Every authored `omcToken` differs from what deriving would produce.** Not most of them — all,
+ * which is the point: an authored token exists precisely because the derived one would be wrong, so
+ * nobody types one that agrees.
+ *
+ * The differences are a rule rather than noise: the token drops the part of the name the dotted path
  * already supplies. `VFX Shot` is `vfx` because it sits under `shot`, so the value reads `shot.vfx`
- * and saying "shot" twice would be wrong. That decision depends on *where the term sits*, and the
- * same term in two arrangements would want two different tokens, so nothing can derive it. One
- * authored token even corrects a misspelling in the label, which deriving would faithfully repeat.
+ * and saying "shot" twice would be wrong; `Camera Roll` is `roll`, `Digital Asset` is `digital`.
+ * That decision depends on *where the term sits*, and the same term in two arrangements would want
+ * two different tokens, so nothing can derive it. One authored token even corrects a misspelling in
+ * the preferred label, which deriving would faithfully repeat.
  *
  * So an authored label always wins. What deriving replaces is the **other** fallback — naming the
  * term by its preferred label, which put `Set Dressing` into a schema expecting `setDressing`. A
