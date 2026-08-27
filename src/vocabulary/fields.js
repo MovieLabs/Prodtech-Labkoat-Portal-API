@@ -75,15 +75,17 @@ const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
 /**
  * The sources that exist whatever the controlled sets say.
  *
- * `describes` is what the source means, for a reader choosing between thirty of them. It is not a
- * second name for the source — the source names itself.
+ * `heading` is what a column of this becomes in an export unless somebody renames it, and `describes`
+ * is what the source means, for a reader choosing between thirty of them. Neither is a second name
+ * for the source — the source names itself.
  *
  * @type {Array<{source: string, describes: string, group: string, multi: boolean}>}
  */
 const STRUCTURAL = [
-    { source: 'id', describes: 'The term identifier', group: 'Term', multi: false },
+    { source: 'id', heading: 'id', describes: 'The term identifier', group: 'Term', multi: false },
     {
         source: 'displayLabel',
+        heading: 'displayLabel',
         // Not a stored field and not a label type: it is whichever label type the *view* publishes,
         // joined to its ancestors where the view is dotted. That join is why it cannot simply be
         // `label:<something>` — the value depends on where the term sits, not only on the term.
@@ -91,12 +93,12 @@ const STRUCTURAL = [
         group: 'Term',
         multi: true,
     },
-    { source: 'definition', describes: 'The definition', group: 'Term', multi: false },
-    { source: 'status', describes: 'The term status', group: 'Term', multi: false },
-    { source: 'scheme', describes: 'The schemes it is published under, by label', group: 'Structure', multi: true },
-    { source: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
-    { source: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
-    { source: 'placements', describes: 'How many times it is placed', group: 'Structure', multi: false },
+    { source: 'definition', heading: 'definition', describes: 'The definition', group: 'Term', multi: false },
+    { source: 'status', heading: 'status', describes: 'The term status', group: 'Term', multi: false },
+    { source: 'scheme', heading: 'scheme', describes: 'The schemes it is published under, by label', group: 'Structure', multi: true },
+    { source: 'collections', heading: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
+    { source: 'broader', heading: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
+    { source: 'placements', heading: 'placements', describes: 'How many times it is placed', group: 'Structure', multi: false },
 ];
 
 /**
@@ -112,7 +114,9 @@ export function fieldCatalogue(facetDocs = []) {
         if (facet.appliesTo === 'tag') {
             return [{
                 source: `tag:${tagSlug(facet._id)}`,
-                describes: facet.label?.en ?? facet._id,
+                // The set's own heading, which is the one the sets editor shows beside each value.
+                heading: facet.label?.en ?? tagSlug(facet._id),
+                describes: facet.definition?.en ?? facet.label?.en ?? facet._id,
                 group: 'Tags',
                 multi: true,
             }];
@@ -125,7 +129,11 @@ export function fieldCatalogue(facetDocs = []) {
             const type = value[facet.key];
             return {
                 source: `${prefix}:${type}`,
-                describes: value.label?.en ?? type,
+                // **The set decides.** A value's heading in the controlled set is what a column of
+                // it is called by default, so renaming one there renames it in every export that
+                // has not overridden it — which is what makes that column worth its name.
+                heading: value.label?.en ?? type,
+                describes: `${facet.label?.en ?? facet.appliesTo}: ${value.label?.en ?? type}`,
                 group: { label: 'Labels', note: 'Notes', example: 'Examples' }[facet.appliesTo],
                 multi: true,
             };

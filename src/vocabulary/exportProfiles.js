@@ -67,11 +67,16 @@ const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
  * @returns {Array<{source: string, header: string}>}
  */
 function defaultTableColumns(facetDocs = []) {
+    // The heading a value carries in its set, which is what the sets editor shows beside it. A
+    // column is called what the vocabulary calls the thing it holds, unless a view says otherwise.
     const typed = ((appliesTo, prefix, skip = []) => facetDocs
         .filter((facet) => facet.appliesTo === appliesTo)
-        .flatMap((facet) => (facet.values ?? []).map((value) => value[facet.key]))
-        .filter((type) => type && !skip.includes(type))
-        .map((type) => ({ source: `${prefix}:${type}`, header: type })));
+        .flatMap((facet) => (facet.values ?? []).map((value) => ({
+            type: value[facet.key],
+            heading: value.label?.en ?? value[facet.key],
+        })))
+        .filter((entry) => entry.type && !skip.includes(entry.type))
+        .map((entry) => ({ source: `${prefix}:${entry.type}`, header: entry.heading })));
 
     return [
         { source: 'id', header: 'id' },
@@ -88,7 +93,10 @@ function defaultTableColumns(facetDocs = []) {
         { source: 'scheme', header: 'schemes' },
         ...facetDocs
             .filter((facet) => facet.appliesTo === 'tag')
-            .map((facet) => ({ source: `tag:${tagSlug(facet._id)}`, header: tagSlug(facet._id) })),
+            .map((facet) => ({
+                source: `tag:${tagSlug(facet._id)}`,
+                header: facet.label?.en ?? tagSlug(facet._id),
+            })),
     ];
 }
 

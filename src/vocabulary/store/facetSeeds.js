@@ -40,8 +40,8 @@ export const FACET_SEEDS = [
         _id: 'facet:labelType',
         appliesTo: 'label',
         key: 'labelType',
-        label: { en: 'Label Type' },
-        definition: { en: 'What kind of name this is.' },
+        label: { en: 'Label' },
+        definition: { en: 'The set of allowed labels.' },
         values: [
             // Exactly one `pref` per language per term — enforced on write, not here. This is the
             // one cost of collapsing prefLabel into the label array, and it is worth paying: a
@@ -71,8 +71,8 @@ export const FACET_SEEDS = [
         _id: 'facet:noteType',
         appliesTo: 'note',
         key: 'noteType',
-        label: { en: 'Note Type' },
-        definition: { en: 'What kind of note this is, and who it is for.' },
+        label: { en: 'Note' },
+        definition: { en: 'The set of allowed notes.' },
         values: [
             { noteType: 'editorial', label: { en: 'Editorial' }, skos: 'skos:editorialNote' },
             // No SKOS predicate means this; `skos:note` is the general case and the honest choice.
@@ -86,8 +86,8 @@ export const FACET_SEEDS = [
         _id: 'facet:exampleType',
         appliesTo: 'example',
         key: 'exampleType',
-        label: { en: 'Example Type' },
-        definition: { en: 'Whether this is an example of use, or a link to one.' },
+        label: { en: 'Example' },
+        definition: { en: 'The set of allowed examples.' },
         values: [
             { exampleType: 'example', label: { en: 'Example' }, skos: 'skos:example' },
             { exampleType: 'url', label: { en: 'URL' }, skos: 'skos:example' },
@@ -99,8 +99,8 @@ export const FACET_SEEDS = [
         key: 'tag',
         label: { en: 'Department or Role' },
         definition: {
-            en: 'Whether a term in the Departments and Roles collection names a department or a '
-                + 'role. The distinction was previously only inferable from context.',
+            en: 'The set of allowed tags. A view uses these to say whether a term designates a '
+                + 'department or a role, which nothing on the term itself says.',
         },
         // Tag facets carry no `skos`: a tag is a view's own designation, and it projects only where
         // a generator asks for it.
@@ -115,8 +115,8 @@ export const FACET_SEEDS = [
         key: 'status',
         label: { en: 'Status' },
         definition: {
-            en: 'How settled a term is. A view publishes some of these and not others, and a '
-                + 'collection can narrow an inclusion by them.',
+            en: 'The set of allowed statuses. How settled a term is; a view publishes some of '
+                + 'these and not others.',
         },
         // Held as data for the same reason the rest are: the old serializers each carried their own
         // copy of this list (`const status = ['published','review']`, twice) and an editor could not
