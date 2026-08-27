@@ -26,6 +26,7 @@ import { awsJwtValidator, jwtValidator } from 'mlHelpers';
 
 import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
+import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
 import {
     allTerms,
@@ -39,6 +40,7 @@ import {
     termUsage,
     unplacedTerms,
 } from '../vocabulary/store/read.js';
+import { SKOS_PREDICATES } from '../vocabulary/store/validate.js';
 import {
     ValidationError,
     arrangeSubtree,
@@ -52,7 +54,9 @@ import {
     unarrangeSubtree,
     saveFacet,
     createView,
+    deleteExportProfile,
     deleteView,
+    saveExportProfile,
     saveView,
 } from '../vocabulary/store/write.js';
 
@@ -111,6 +115,23 @@ const statusFrom = ((query) => (typeof query.status === 'string' && query.status
  */
 router.get('/formats', authenticated, (req, res) => {
     res.json({ formats: generatorDescriptors() });
+});
+
+/**
+ * What a tabular export column may hold, and what a SKOS type may project to.
+ *
+ * Half of this is not knowable in advance: `label:acronym` exists because somebody added *acronym*
+ * to the label set, and adding *trade name* tomorrow has to make `label:tradeName` selectable with
+ * no deploy of anything. So it is derived from the controlled sets and served, rather than restated
+ * in every client that offers a column picker.
+ */
+router.get('/export/fields', authenticated, async (req, res, next) => {
+    try {
+        const facets = await listFacets();
+        res.json({ fields: fieldCatalogue(facets), predicates: SKOS_PREDICATES });
+    } catch (err) {
+        next(err);
+    }
 });
 
 /** Every view. */
@@ -405,6 +426,32 @@ router.post('/views', authenticated, async (req, res, next) => {
 router.put('/views/:id', authenticated, async (req, res, next) => {
     try {
         res.json(await saveView(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/**
+ * Write one format's export profile onto a view.
+ *
+ * Its own route rather than a field on `PUT /views/:id`, which replaces the whole document. Every
+ * caller of that has to load the record and spread it first, and the tag map and the `arrange` lists
+ * have each had to be rescued from a body built from a form's fields alone. This sets one key.
+ */
+router.put('/views/:id/export/:format', authenticated, async (req, res, next) => {
+    try {
+        res.json(await saveExportProfile(
+            req.params.id, req.params.format, req.body, actorOf(req),
+        ));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Take a format's profile off a view, so it publishes the default again. */
+router.delete('/views/:id/export/:format', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteExportProfile(req.params.id, req.params.format, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }

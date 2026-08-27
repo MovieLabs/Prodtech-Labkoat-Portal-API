@@ -17,6 +17,8 @@
  * @module vocabulary/store/write
  */
 
+import { PROFILE_KINDS, profileKindOf } from '../exportProfiles.js';
+
 import {
     VOCAB_FACETS,
     VOCAB_TERMS,
@@ -24,11 +26,12 @@ import {
     vocabCollection,
 } from './collections.js';
 import { mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_ } from './ids.js';
-import { arrangementOf, termUsage } from './read.js';
+import { arrangementOf, listFacets, termUsage } from './read.js';
 import {
     allowedFacetValues,
     checkArrangementRemoval,
     checkTermDeletion,
+    validateExportProfile,
     validateTerm,
     validateView,
 } from './validate.js';
@@ -995,3 +998,77 @@ export async function saveFacet(id, facet, actor, force = false) {
     return { facet: prepared, warnings };
 }
 
+/**
+ * Write one format's export profile onto a view.
+ *
+ * **A `$set` on one key, not a replace.** `saveView` writes the whole document, which is why every
+ * caller of it has to load the record and spread it first — and why the tag map and the `arrange`
+ * lists have each had to be rescued from a body built from a form's fields alone. A profile written
+ * through that door would be the third time. This touches `export.<kind>` and nothing else, the same
+ * reasoning that makes `writeArrange` the only place `arrange` is written.
+ *
+ * @param {string} id - The view
+ * @param {string} format
+ * @param {object} profile
+ * @param {string} [actor]
+ * @returns {Promise<object>} The view as stored
+ * @throws {ValidationError} On an unknown view, format, or an unpublishable column
+ */
+export async function saveExportProfile(id, format, profile, actor) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (!view) throw new ValidationError([`No such view: ${id}`]);
+
+    const facets = await listFacets();
+    const check = validateExportProfile(profile, format, facets);
+    if (!check.ok) throw new ValidationError(check.errors);
+
+    const kind = profileKindOf(format);
+    await vocabCollection(VOCAB_VIEWS).updateOne(
+        { _id: id },
+        {
+            $set: {
+                [`export.${kind}`]: profile,
+                modified: new Date().toISOString(),
+                modifiedBy: actor ?? 'unknown',
+            },
+        },
+    );
+
+    return vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+}
+
+/**
+ * Take a format's profile off a view, so it publishes the default again.
+ *
+ * A way back matters more here than it usually does: a profile can leave a property out of the
+ * output by declaration, so somebody looking at a file missing half its columns needs one action
+ * that undoes the configuring rather than a column list to reconstruct by hand.
+ *
+ * @param {string} id
+ * @param {string} format
+ * @param {string} [actor]
+ * @returns {Promise<object>} The view as stored
+ * @throws {ValidationError} On an unknown view or format
+ */
+export async function deleteExportProfile(id, format, actor) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (!view) throw new ValidationError([`No such view: ${id}`]);
+
+    const kind = profileKindOf(format);
+    if (!PROFILE_KINDS.includes(kind)) {
+        throw new ValidationError([`"${format}" is not a format a profile can be written for`]);
+    }
+
+    await vocabCollection(VOCAB_VIEWS).updateOne(
+        { _id: id },
+        {
+            $unset: { [`export.${kind}`]: '' },
+            $set: {
+                modified: new Date().toISOString(),
+                modifiedBy: actor ?? 'unknown',
+            },
+        },
+    );
+
+    return vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+}

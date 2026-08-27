@@ -21,6 +21,9 @@
  * @module vocabulary/store/validate
  */
 
+import { PROFILE_KINDS, profileKindOf } from '../exportProfiles.js';
+import { fieldCatalogue } from '../fields.js';
+
 import { listFacets } from './read.js';
 
 /**
@@ -29,6 +32,31 @@ import { listFacets } from './read.js';
  * @property {string[]} errors
  * @property {string[]} warnings
  */
+
+/**
+ * The predicates a label, note or example type may project to.
+ *
+ * Fixed, because these are the ones SKOS defines for labelling and documentation — the standard's
+ * vocabulary, not this project's. A triple naming an invented predicate is a document a validator
+ * rejects and nobody reads twice.
+ *
+ * Served to clients over `/export/fields` rather than restated in each of them; the Portal's facet
+ * editor carried its own copy of this list.
+ *
+ * @type {string[]}
+ */
+export const SKOS_PREDICATES = [
+    'skos:prefLabel',
+    'skos:altLabel',
+    'skos:hiddenLabel',
+    'skos:definition',
+    'skos:note',
+    'skos:editorialNote',
+    'skos:scopeNote',
+    'skos:historyNote',
+    'skos:changeNote',
+    'skos:example',
+];
 
 /** An empty result to accumulate into. */
 const result = (() => ({ ok: true, errors: [], warnings: [] }));
@@ -393,4 +421,130 @@ export function checkArrangementRemoval(usage, keepingIn) {
         );
     }
     return found;
+}
+
+/**
+ * What a view may publish a format under.
+ *
+ * A profile decides what reaches the output, so a mistake here is not a broken export — it is a
+ * quiet one. A column naming a source that does not exist produces a blank column under a heading
+ * that promises content, which reads as the vocabulary being empty rather than the profile being
+ * wrong. So an unknown source is named and refused.
+ *
+ * Two things are deliberately *not* refused. A profile may drop a label type from SKOS, because
+ * that is the decision it exists to record. And it may leave every scalar unset, because the
+ * defaults are what an unconfigured view already publishes.
+ *
+ * @param {object} profile
+ * @param {string} format
+ * @param {Array<object>} facetDocs - Facet documents, for the field catalogue and the type names
+ * @returns {ValidationResult}
+ */
+export function validateExportProfile(profile, format, facetDocs) {
+    const found = result();
+    const kind = profileKindOf(format);
+
+    if (!PROFILE_KINDS.includes(kind)) {
+        fail(found, `"${format}" is not a format a profile can be written for. Use one of: ${PROFILE_KINDS.join(', ')}`);
+        return found;
+    }
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+        fail(found, 'A profile must be an object');
+        return found;
+    }
+
+    if (kind === 'skos') {
+        validateSkosProfile(profile, facetDocs, found);
+        return found;
+    }
+    if (kind === 'json') {
+        if (profile.include !== undefined && !Array.isArray(profile.include)) {
+            fail(found, 'include must be a list');
+        }
+        return found;
+    }
+
+    validateTabularProfile(profile, facetDocs, found);
+    return found;
+}
+
+/**
+ * A SKOS profile remaps or drops a type. It cannot invent one.
+ *
+ * @param {object} profile
+ * @param {Array<object>} facetDocs
+ * @param {ValidationResult} found
+ * @returns {void}
+ */
+function validateSkosProfile(profile, facetDocs, found) {
+    const targets = { labels: 'label', notes: 'note', examples: 'example' };
+
+    Object.entries(targets).forEach(([key, appliesTo]) => {
+        const overrides = profile[key];
+        if (overrides === undefined) return;
+        if (typeof overrides !== 'object' || overrides === null || Array.isArray(overrides)) {
+            fail(found, `${key} must be a map of type to predicate`);
+            return;
+        }
+
+        const known = new Set(facetDocs
+            .filter((facet) => facet.appliesTo === appliesTo)
+            .flatMap((facet) => (facet.values ?? []).map((value) => value[facet.key])));
+
+        Object.entries(overrides).forEach(([type, predicate]) => {
+            if (known.size && !known.has(type)) {
+                fail(found, `"${type}" is not a known ${appliesTo} type, so this view cannot say where it projects. Add it to the controlled set first.`);
+            }
+            // `null` is the whole point: it says this view does not publish that type. Anything else
+            // has to be a predicate SKOS actually defines, because a triple naming an invented one
+            // is a document a validator rejects and nobody reads twice.
+            if (predicate !== null && !SKOS_PREDICATES.includes(predicate)) {
+                fail(found, `"${predicate}" is not a SKOS predicate. Use one of: ${SKOS_PREDICATES.join(', ')}, or null to leave ${type} out of this view.`);
+            }
+        });
+    });
+}
+
+/**
+ * A tabular profile is a list of columns and how to write them out.
+ *
+ * @param {object} profile
+ * @param {Array<object>} facetDocs
+ * @param {ValidationResult} found
+ * @returns {void}
+ */
+function validateTabularProfile(profile, facetDocs, found) {
+    if (profile.rows !== undefined && !['term', 'placement'].includes(profile.rows)) {
+        fail(found, 'rows must be term or placement');
+    }
+    if (profile.split !== undefined && !['none', 'per-scheme'].includes(profile.split)) {
+        fail(found, 'split must be none or per-scheme');
+    }
+
+    if (profile.columns === undefined) return;
+    if (!Array.isArray(profile.columns) || !profile.columns.length) {
+        // A profile with no columns publishes a file of nothing, which is never what was meant and
+        // is indistinguishable from an empty vocabulary once it has been downloaded.
+        fail(found, 'A profile must keep at least one column');
+        return;
+    }
+
+    const sources = new Set(fieldCatalogue(facetDocs).map((entry) => entry.source));
+    const headers = new Set();
+
+    profile.columns.forEach((column, index) => {
+        const where = `Column ${index + 1}`;
+        if (!column?.source) {
+            fail(found, `${where} names no source`);
+        } else if (!sources.has(column.source)) {
+            fail(found, `${where}: "${column.source}" is not something this vocabulary can publish. It may name a type that has since been removed from its controlled set.`);
+        }
+
+        const header = String(column?.header ?? '').trim();
+        if (!header) fail(found, `${where} has no heading`);
+        // Two columns under one heading is a spreadsheet nobody can read and a CSV whose second
+        // column is silently the one that survives a re-import.
+        else if (headers.has(header)) fail(found, `Two columns are both headed "${header}"`);
+        else headers.add(header);
+    });
 }
