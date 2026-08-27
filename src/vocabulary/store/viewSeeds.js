@@ -43,7 +43,6 @@ export const VIEW_SEEDS = [
         // in practice this currently excludes nothing — which is worth knowing before anyone reads
         // a difference in counts as a bug. A caller can override it per request.
         publish: { status: ['published', 'review'] },
-        generators: ['json', 'skos-ttl', 'skos-jsonld', 'csv'],
         seeded: true,
     },
     {
@@ -65,7 +64,6 @@ export const VIEW_SEEDS = [
         // than its own view does. An inclusion can narrow this per vocabulary with `filter.status`
         // where two of them are ready at different points.
         publish: { status: ['published', 'review'] },
-        generators: ['json', 'skos-ttl', 'skos-jsonld', 'csv'],
         seeded: true,
     },
 ];
