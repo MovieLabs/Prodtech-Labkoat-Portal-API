@@ -21,11 +21,25 @@ import { skosTriples, toJsonLd, toTurtle } from './skos.js';
 
 /**
  * @typedef {object} Artifact
- * @property {string|object} body
+ * @property {string|object|Buffer} body
  * @property {string} contentType
  * @property {string} extension
+ * @property {string} filename - What the artifact should be saved as, extension included
  * @property {object} [problems] - Anything the generator could not express, stated rather than hidden
  */
+
+/**
+ * What an artifact should be called.
+ *
+ * Named here rather than by the caller because the extension is the generator's to decide and a
+ * caller cannot know it — a format that splits its output ships a zip, whatever format was asked
+ * for. The browser reads this off `Content-Disposition`.
+ *
+ * @param {string} viewId
+ * @param {string} extension
+ * @returns {string}
+ */
+const filenameFor = ((viewId, extension) => `${viewId.replace(/^view:/, '')}.${extension}`);
 
 /**
  * Every format, by name.
@@ -34,10 +48,14 @@ import { skosTriples, toJsonLd, toTurtle } from './skos.js';
  * occasionally what you want when debugging, and named `internal` rather than `json` precisely so
  * that no consumer mistakes it for a contract. `json` is the shaped document consumers should read.
  *
- * @type {Object<string, {contentType: string, extension: string, run: Function}>}
+ * `label` lives here rather than in a client because it is a fact about the format, and a format
+ * added to this registry should reach every consumer with no change anywhere else.
+ *
+ * @type {Object<string, {label: string, contentType: string, extension: string, run: Function}>}
  */
 const GENERATORS = {
     'internal': {
+        label: 'Internal (resolution)',
         contentType: 'application/json',
         extension: 'json',
         run: (resolution) => ({
@@ -55,16 +73,19 @@ const GENERATORS = {
         }),
     },
     'json': {
+        label: 'JSON',
         contentType: 'application/json',
         extension: 'json',
         run: (resolution) => toViewJson(resolution),
     },
     'csv': {
+        label: 'CSV',
         contentType: 'text/csv',
         extension: 'csv',
         run: (resolution) => toCsv(resolution),
     },
     'skos-ttl': {
+        label: 'SKOS (Turtle)',
         contentType: 'text/turtle',
         extension: 'ttl',
         run: (resolution, projections) => {
@@ -73,6 +94,7 @@ const GENERATORS = {
         },
     },
     'skos-jsonld': {
+        label: 'SKOS (JSON-LD)',
         contentType: 'application/ld+json',
         extension: 'jsonld',
         run: (resolution, projections) => {
@@ -84,6 +106,20 @@ const GENERATORS = {
 
 /** The formats this service can produce. */
 export const generatorNames = (() => Object.keys(GENERATORS));
+
+/**
+ * The formats this service can produce, described.
+ *
+ * What a client needs to offer a download it has never heard of: what to call it, and what it
+ * arrives as. Adding a generator therefore reaches every consumer without a change in any of them,
+ * which is the same rule the controlled sets follow.
+ *
+ * @returns {Array<{format: string, label: string, contentType: string, extension: string}>}
+ */
+export const generatorDescriptors = (() => Object.entries(GENERATORS)
+    .map(([format, { label, contentType, extension }]) => ({
+        format, label, contentType, extension,
+    })));
 
 /** Whether a name is a format. */
 export const isGenerator = ((name) => Object.hasOwn(GENERATORS, name));
@@ -136,10 +172,17 @@ export async function generate({ viewId, format = 'json', status = null, languag
     const body = produced?.body !== undefined ? produced.body : produced;
     const problems = { ...resolution.problems, ...(produced?.problems ?? {}) };
 
+    // A generator may also override what it is calling itself, because a format that splits its
+    // output ships a zip rather than the thing that was asked for. The registry entry is the
+    // default and stays right for every format that produces one document.
+    const contentType = produced?.contentType ?? generator.contentType;
+    const extension = produced?.extension ?? generator.extension;
+
     return {
         body,
-        contentType: generator.contentType,
-        extension: generator.extension,
+        contentType,
+        extension,
+        filename: filenameFor(viewId, extension),
         problems,
     };
 }

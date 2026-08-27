@@ -60,8 +60,16 @@ const ALLOWED_ORIGINS = [
  *
  * No `credentials: true`: the Portal authenticates with a bearer token, not cookies, and enabling
  * credentialled requests would also forbid the `*` fallback these routes do not rely on.
+ *
+ * **`exposedHeaders` is what lets a browser read a custom response header at all.** Without it a
+ * cross-origin caller sees only the CORS-safelisted set, whatever the server sent. `X-Vocab-Problems`
+ * carries what a vocabulary export could not express — a Turtle document has nowhere to put it — and
+ * was unreadable from the Portal, so the warning it exists to deliver never arrived.
+ * `Content-Disposition` is here for the same reason: it is how a download learns its own filename,
+ * which matters as soon as a format decides its own extension.
  */
 const corsOptions = {
+    exposedHeaders: ['Content-Disposition', 'X-Vocab-Problems'],
     origin(origin, callback) {
         // No Origin header at all: curl, a server-to-server call, or a same-origin request.
         if (!origin || ALLOWED_ORIGINS.includes(origin)) {

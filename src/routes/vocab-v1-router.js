@@ -26,7 +26,7 @@ import { awsJwtValidator, jwtValidator } from 'mlHelpers';
 
 import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
-import { generate, generatorNames } from '../vocabulary/generators/index.js';
+import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
 import {
     allTerms,
     getTerm,
@@ -102,9 +102,15 @@ const statusFrom = ((query) => (typeof query.status === 'string' && query.status
     ? query.status.split(',').map((value) => value.trim()).filter(Boolean)
     : null));
 
-/** What this service can produce, and what it holds. Useful enough to be discoverable. */
+/**
+ * What this service can produce, and what it holds. Useful enough to be discoverable.
+ *
+ * Each entry carries what a client needs to offer a download for a format it has never heard of —
+ * its name, what to call it, and what it arrives as — so a generator added here reaches every
+ * consumer without a change in any of them.
+ */
 router.get('/formats', authenticated, (req, res) => {
-    res.json({ formats: generatorNames() });
+    res.json({ formats: generatorDescriptors() });
 });
 
 /** Every view. */
@@ -141,8 +147,17 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
             res.set('X-Vocab-Problems', JSON.stringify(Object.fromEntries(problems)).slice(0, 900));
         }
 
+        // The generator names the file, because the extension is its decision and not the caller's:
+        // a format that splits its output ships a zip whatever was asked for. A browser download
+        // reads this, so the client needs to know nothing about splitting.
+        res.set('Content-Disposition', `attachment; filename="${artifact.filename}"`);
         res.type(artifact.contentType);
-        res.send(typeof artifact.body === 'string' ? artifact.body : JSON.stringify(artifact.body));
+
+        // **A Buffer goes out untouched.** `JSON.stringify` on one produces `{"type":"Buffer",…}`,
+        // which is a valid JSON document and a corrupt spreadsheet — the failure then arrives when
+        // somebody opens the file rather than when the request is served.
+        if (Buffer.isBuffer(artifact.body)) res.send(artifact.body);
+        else res.send(typeof artifact.body === 'string' ? artifact.body : JSON.stringify(artifact.body));
     } catch (err) {
         if (err.message?.startsWith('No such')) {
             res.status(404).json({ message: err.message });

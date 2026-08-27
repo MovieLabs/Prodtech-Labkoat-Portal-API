@@ -17,3 +17,6 @@ node_modules/
 
 # Local pipeline uploads, used instead of S3 when PIPELINE_LOCAL_ROOT is set
 .pipeline-local/
+
+# Captured generator output, for diffing a refactor against. Local only.
+.golden/
