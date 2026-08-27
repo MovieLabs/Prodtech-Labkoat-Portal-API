@@ -37,7 +37,7 @@
  * @module vocabulary/fields
  */
 
-import { broaderOf, schemeHeads, schemesOf, tagsFor } from './resolve.js';
+import { broaderOf, displayName, schemeHeads, schemesOf, tagsFor } from './resolve.js';
 import { derivedLabel, labelOfType, localised, prefLabel } from './store/read.js';
 
 /**
@@ -184,6 +184,26 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
     // Derivation is kept, because a derived `omcToken` is genuinely that term's token; only the
     // fallback to the preferred label is dropped.
     if (prefix === 'label') {
+        const view = resolution?.view ?? {};
+        const names = view.labelType ?? 'pref';
+
+        // **The column holding the label this view names terms by is rendered the way the view
+        // renders it** — joined to its ancestors' where the view is dotted, giving
+        // `assetFunction.capture` rather than `capture`.
+        //
+        // The same call the graph draws from, so the two cannot disagree: `labelStyle` says once
+        // whether this view's names are compound, and both the canvas and the export read it. A
+        // per-column setting would be a second place to say it, and the place that goes stale.
+        //
+        // One value per placement, because a term placed twice sits under two paths. Any other
+        // label type is the term's own and has no compound form — a synonym is a synonym wherever
+        // the term appears.
+        if ((type || 'pref') === names) {
+            return unique(placements.map((placement) => displayName(
+                placement, resolution.terms, view.labelStyle ?? 'plain', names, language,
+            )));
+        }
+
         // Exactly one preferred label per language is an invariant the whole label array rests on,
         // so that one is asked for by name.
         if (!type || type === 'pref') return [labelOfType(term, 'pref', language)];

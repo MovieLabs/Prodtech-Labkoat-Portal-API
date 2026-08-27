@@ -402,7 +402,7 @@ function walkMembers({
  * @param {string} language
  * @returns {string}
  */
-function displayName(placement, terms, labelStyle, labelType, language) {
+export function displayName(placement, terms, labelStyle, labelType, language) {
     const own = labelOfType(terms.get(placement.termId), labelType, language);
     if (labelStyle !== 'dotted') return own;
     // Everything below the deepest origin, or the whole path when this view names none.
