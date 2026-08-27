@@ -11,6 +11,7 @@
  * @module vocabulary/generators
  */
 
+import { profileFor, projectionsWithOverrides } from '../exportProfiles.js';
 import { resolveView } from '../resolve.js';
 import { skosProjectionIndex } from '../store/facetSeeds.js';
 import { listFacets } from '../store/read.js';
@@ -51,6 +52,10 @@ const filenameFor = ((viewId, extension) => `${viewId.replace(/^view:/, '')}.${e
  * `label` lives here rather than in a client because it is a fact about the format, and a format
  * added to this registry should reach every consumer with no change anywhere else.
  *
+ * `run` takes one context — `{ resolution, projections, profile, facets }` — and may be
+ * asynchronous. It returns a body, or `{ body, problems }`, and may override `contentType` and
+ * `extension` where what it produces is not what the registry entry says (a split export is a zip).
+ *
  * @type {Object<string, {label: string, contentType: string, extension: string, run: Function}>}
  */
 const GENERATORS = {
@@ -58,7 +63,7 @@ const GENERATORS = {
         label: 'Internal (resolution)',
         contentType: 'application/json',
         extension: 'json',
-        run: (resolution) => ({
+        run: ({ resolution }) => ({
             view: resolution.view,
             status: resolution.status,
             placements: resolution.placements,
@@ -76,19 +81,19 @@ const GENERATORS = {
         label: 'JSON',
         contentType: 'application/json',
         extension: 'json',
-        run: (resolution) => toViewJson(resolution),
+        run: ({ resolution, profile }) => toViewJson(resolution, profile),
     },
     'csv': {
         label: 'CSV',
         contentType: 'text/csv',
         extension: 'csv',
-        run: (resolution) => toCsv(resolution),
+        run: ({ resolution, profile, facets }) => toCsv(resolution, profile, facets),
     },
     'skos-ttl': {
         label: 'SKOS (Turtle)',
         contentType: 'text/turtle',
         extension: 'ttl',
-        run: (resolution, projections) => {
+        run: ({ resolution, projections }) => {
             const { triples, problems } = skosTriples(resolution, projections);
             return { body: toTurtle(triples), problems };
         },
@@ -97,7 +102,7 @@ const GENERATORS = {
         label: 'SKOS (JSON-LD)',
         contentType: 'application/ld+json',
         extension: 'jsonld',
-        run: (resolution, projections) => {
+        run: ({ resolution, projections }) => {
             const { triples, problems } = skosTriples(resolution, projections);
             return { body: toJsonLd(triples), problems };
         },
@@ -154,9 +159,10 @@ export async function generate({ viewId, format = 'json', status = null, languag
     // **Only the SKOS formats refuse**, and the boundary is what the format can express rather than
     // whether the state is wanted. `internal` and `json` are what the editor itself reads — the
     // header's counts come from `json` — so refusing them takes the view away from the person who is
-    // midway through composing it and is the only one who can resolve it. `csv` is a row per
-    // placement, which represents two child sets without contradicting itself. All of them carry
-    // `problems.divergent` out to the caller regardless, so nothing is hidden by not throwing.
+    // midway through composing it and is the only one who can resolve it. A table carries structure
+    // as data rather than as shape, so it can name both child sets without contradicting itself. All
+    // of them carry `problems.divergent` out to the caller regardless, so nothing is hidden by not
+    // throwing.
     const divergent = resolution.problems?.divergent ?? [];
     if (divergent.length && format.startsWith('skos-')) {
         const names = divergent.map((one) => one.termId).join(', ');
@@ -164,7 +170,20 @@ export async function generate({ viewId, format = 'json', status = null, languag
     }
 
     const generator = GENERATORS[format];
-    const produced = generator.run(resolution, projections);
+
+    // What this view publishes this format as, its own decisions over the built-in defaults. A view
+    // that has never been configured gets the defaults, which reproduce what each generator did when
+    // its choices were hardcoded.
+    const profile = profileFor(resolution.view, format);
+
+    // A generator may be asynchronous — anything that splits its output has to pack a zip — so this
+    // is awaited whether or not the one that ran needed it.
+    const produced = await generator.run({
+        resolution,
+        projections: projectionsWithOverrides(projections, profile),
+        profile,
+        facets,
+    });
 
     // A generator may return a bare body or `{ body, problems }`. Both the resolver's problems and
     // the generator's are carried out to the caller: a view that silently dropped a hundred terms

@@ -90,6 +90,21 @@ const DERIVABLE = {
 };
 
 /**
+ * The label of a kind that can be worked out from the term's name, or null.
+ *
+ * `labelOfType` cannot answer this, because its last fallback is the preferred label — so a caller
+ * gets a name back and cannot tell whether it is the one it asked for. That is right wherever a name
+ * is *required*: every term in an artifact has to be called something. It is wrong wherever the
+ * answer is a stated property rather than a name, such as a spreadsheet column headed `Acronym`,
+ * which would otherwise fill with full names for every term carrying no acronym.
+ *
+ * @param {object} term
+ * @param {string} labelType
+ * @returns {string|null}
+ */
+export const derivedLabel = ((term, labelType) => DERIVABLE[labelType]?.(term) ?? null);
+
+/**
  * The label of a given kind, falling back to the preferred one.
  *
  * A view may publish names of a kind other than the preferred one, which is what lets one audience

@@ -22,7 +22,7 @@
  */
 
 import { broaderOf, schemesOf, tagsFor } from './resolve.js';
-import { localised, otherLabels, labelOfType } from './store/read.js';
+import { derivedLabel, hasLabelOfType, labelOfType, localised, otherLabels } from './store/read.js';
 
 /**
  * The sources that exist whatever the controlled sets say.
@@ -129,13 +129,19 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
 
     const [prefix, type] = source.split(/:(.*)/s);
 
-    // **`labelOfType` rather than a filter, for the label case only.** It carries the fallback rule
-    // the whole vocabulary uses — a term with no label of the asked-for kind answers with its
-    // preferred one, and `omcToken` is derived rather than stored. A column that filtered the array
-    // would come out blank for exactly the terms a schema view exists to name.
+    // **A column is a stated property, not a name, and the difference matters here.**
+    // `labelOfType` falls back to the preferred label, because everywhere it is normally used a
+    // term *must* end up called something. A column headed `Acronym` is a claim about the term, so
+    // that same fallback would fill it with full names for every term carrying no acronym — which
+    // is not a gap in the data but a false statement about it.
+    //
+    // Derivation is kept, because a derived `omcToken` is genuinely that term's token; only the
+    // fallback to the preferred name is dropped.
     if (prefix === 'label') {
-        const value = labelOfType(term, type, language);
-        return value ? [value] : [];
+        if (!type || type === 'pref') return [labelOfType(term, 'pref', language)];
+        if (hasLabelOfType(term, type)) return [labelOfType(term, type, language)];
+        const derived = derivedLabel(term, type);
+        return derived ? [derived] : [];
     }
     if (prefix === 'note') {
         return (term.note ?? []).filter((entry) => entry.noteType === type).map((entry) => entry.value);
