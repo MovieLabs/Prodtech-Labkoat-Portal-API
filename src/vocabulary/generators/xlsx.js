@@ -120,8 +120,12 @@ function describe(head, profile, facets, language) {
         .filter((note) => note.value)
         .map((note) => `${headingOf.get(note.noteType) ?? note.noteType}: ${note.value}`);
 
+    const definition = localised(head.definition, language);
+
     return {
-        definition: localised(head.definition, language),
+        // Titled the way the synonyms and the notes are, so the three rows above the table read as
+        // a list of what is known about the scheme rather than as one loose sentence and two lists.
+        definition: definition ? `Definition: ${definition}` : '',
         synonyms: others.length ? `Synonyms: ${others.join(', ')}` : '',
         notes,
     };
@@ -160,8 +164,8 @@ export async function toXlsx(resolution, profile, facets) {
         title.value = group.name;
         title.font = { bold: true, size: 16 };
 
-        // A2 — what it means. Every scheme head carries one, so this is the row that is almost
-        // always worth reading.
+        // A2 — what it means, titled. Every scheme head carries a definition, so this is the row
+        // that is almost always worth reading.
         sheet.getCell(`A${DEFINITION_ROW}`).value = definition;
 
         // A3 — the other labels it goes by, titled so the list is not mistaken for the scheme's own
