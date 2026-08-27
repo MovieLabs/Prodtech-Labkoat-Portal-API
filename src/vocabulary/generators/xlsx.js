@@ -3,7 +3,7 @@
  *
  * The format the people who maintain a vocabulary actually work in, and the one with room to present
  * rather than only to tabulate. Each scheme gets its own sheet, headed by what that scheme is: its
- * label, the other labels it goes by, and its notes.
+ * label, its definition, the other labels it goes by, and its notes.
  *
  * ## A sheet per scheme, always
  *
@@ -25,16 +25,24 @@
 
 import ExcelJS from 'exceljs';
 
-import { otherLabels } from '../store/read.js';
+import { localised, otherLabels } from '../store/read.js';
 
 import { buildRows, joinCells } from './rows.js';
 
 /** The header bar. */
 const HEADER_FILL = 'FF56A1D5';
 
-/** Rows 1 to 3 are the scheme's own description; the table starts below the gap after them. */
-const NOTES_ROW = 3;
-const HEADER_GAP = 3;
+/**
+ * Where the scheme's own description sits, and where the table starts below it.
+ *
+ * A1 its label, A2 its definition, A3 the other labels it goes by, then one row per note. The table
+ * follows a fixed gap, so the header lands on the same row for a given number of notes and a reader
+ * moving between sheets is not hunting for it.
+ */
+const DEFINITION_ROW = 2;
+const SYNONYMS_ROW = 3;
+const NOTES_ROW = 4;
+const HEADER_GAP = 2;
 
 /**
  * A sheet name Excel will accept.
@@ -82,26 +90,38 @@ function selectedNotes(profile) {
 }
 
 /**
- * The scheme's description: what it is called besides its label, and what is noted about it.
+ * The scheme's description: what it means, what else it is called, and what is noted about it.
+ *
+ * Each note is prefixed with the heading its type carries in the controlled set, the same way the
+ * other labels are titled — a column of unattributed sentences says nothing about which is a scope
+ * note and which is editorial.
  *
  * @param {object|null} head - The term the scheme is derived from
  * @param {object} profile
+ * @param {Array<object>} facets
  * @param {string} language
- * @returns {{synonyms: string, notes: string[]}}
+ * @returns {{definition: string, synonyms: string, notes: string[]}}
  */
-function describe(head, profile, language) {
-    if (!head) return { synonyms: '', notes: [] };
+function describe(head, profile, facets, language) {
+    if (!head) return { definition: '', synonyms: '', notes: [] };
 
     const others = otherLabels(head).map((entry) => entry.value).filter(Boolean);
     const wanted = selectedNotes(profile);
 
+    const headingOf = new Map(facets
+        .filter((facet) => facet.appliesTo === 'note')
+        .flatMap((facet) => (facet.values ?? []).map((value) => [
+            value[facet.key], value.label?.[language] ?? value[facet.key],
+        ])));
+
     const notes = (head.note ?? [])
         .filter((note) => wanted.all || wanted.types.has(note.noteType))
         .filter((note) => !note.language || note.language === language)
-        .map((note) => note.value)
-        .filter(Boolean);
+        .filter((note) => note.value)
+        .map((note) => `${headingOf.get(note.noteType) ?? note.noteType}: ${note.value}`);
 
     return {
+        definition: localised(head.definition, language),
         synonyms: others.length ? `Synonyms: ${others.join(', ')}` : '',
         notes,
     };
@@ -133,24 +153,26 @@ export async function toXlsx(resolution, profile, facets) {
 
     groups.forEach((group) => {
         const sheet = workbook.addWorksheet(sheetName(group.name, used));
-        const { synonyms, notes } = describe(group.head, profile, language);
+        const { definition, synonyms, notes } = describe(group.head, profile, facets, language);
 
         // A1 — what this sheet is.
         const title = sheet.getCell('A1');
         title.value = group.name;
         title.font = { bold: true, size: 16 };
 
-        // A2 — the other labels it goes by, titled so the list is not mistaken for the scheme's own
-        // label repeated.
-        sheet.getCell('A2').value = synonyms;
+        // A2 — what it means. Every scheme head carries one, so this is the row that is almost
+        // always worth reading.
+        sheet.getCell(`A${DEFINITION_ROW}`).value = definition;
 
-        // A3 onwards — one row per note, of the kinds this profile publishes.
+        // A3 — the other labels it goes by, titled so the list is not mistaken for the scheme's own
+        // label repeated.
+        sheet.getCell(`A${SYNONYMS_ROW}`).value = synonyms;
+
+        // A4 onwards — one row per note, of the kinds this profile publishes.
         notes.forEach((note, index) => {
             sheet.getCell(`A${NOTES_ROW + index}`).value = note;
         });
 
-        // The table starts below a fixed gap, so every sheet in the workbook has its header on the
-        // same row for a given number of notes and a reader scanning across them is not hunting.
         const headerRow = NOTES_ROW + notes.length + HEADER_GAP;
 
         const header = sheet.getRow(headerRow);
