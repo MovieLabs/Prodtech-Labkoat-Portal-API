@@ -7,9 +7,19 @@
  *
  * ## Keyed by kind, not by format
  *
- * `skos-ttl` and `skos-jsonld` are one projection with two encodings: `generators/index.js` builds a
- * single triple set and writes it down twice. Giving them separate profiles would offer a difference
- * the generator cannot express, so both resolve to the `skos` profile.
+ * Several formats are the same decisions written down differently, and each such group takes one
+ * profile:
+ *
+ * - **`skos`** — `skos-ttl` and `skos-jsonld` are one projection with two encodings.
+ *   `generators/index.js` builds a single triple set and writes it down twice, so separate profiles
+ *   would offer a difference the generator cannot express.
+ * - **`table`** — `csv` and `xlsx` are one table in two containers. A column named `Definition` in
+ *   the sheet and `definition` in the file is not a choice anybody wants to have made; it is two
+ *   places to keep one decision, which is how they drift.
+ *
+ * `markdown` keeps its own profile. It shares the machinery but not the decision: a table nobody
+ * parses has room for three columns where a spreadsheet has room for fourteen, so one column list
+ * across both would be wrong for one of them.
  *
  * @module vocabulary/exportProfiles
  */
@@ -20,7 +30,12 @@
  * @param {string} format
  * @returns {string}
  */
-export const profileKindOf = ((format) => (String(format).startsWith('skos-') ? 'skos' : format));
+export function profileKindOf(format) {
+    const name = String(format);
+    if (name.startsWith('skos-')) return 'skos';
+    if (name === 'csv' || name === 'xlsx') return 'table';
+    return name;
+}
 
 /**
  * How a tabular format writes more than one value into one cell.
@@ -31,7 +46,8 @@ export const profileKindOf = ((format) => (String(format).startsWith('skos-') ? 
 export const DEFAULT_MULTI = ' | ';
 
 /**
- * The columns a CSV has always had, in the order it has always had them.
+ * The columns a CSV has always had, in the order it has always had them — and now the workbook's
+ * too, since the two are one table.
  *
  * **This list is load-bearing.** It is what a view with no profile publishes, so it has to reproduce
  * the hardcoded columns it replaced exactly — same sources, same order, same headers. The golden
@@ -43,7 +59,7 @@ export const DEFAULT_MULTI = ' | ';
  * `displayLabel` and `paths` genuinely held the same value, and still do. That was invisible while
  * the list was in code and is worth leaving visible here, because now somebody can remove one.
  */
-const LEGACY_CSV_COLUMNS = [
+const TABLE_COLUMNS = [
     { source: 'id', header: 'id' },
     { source: 'label:pref', header: 'prefLabel' },
     { source: 'display', header: 'displayLabel' },
@@ -70,20 +86,16 @@ const LEGACY_CSV_COLUMNS = [
  */
 export const DEFAULT_PROFILES = {
     skos: { labels: {}, notes: {}, examples: {} },
-    csv: {
+    table: {
         rows: 'term',
+        // `none` rather than `per-scheme`, which is what a CSV has always produced. A workbook would
+        // arguably rather open on a sheet per scheme, but one profile has one answer and this is the
+        // one that leaves an unconfigured view publishing what it published before.
         split: 'none',
+        // Read by CSV and ignored by the workbook, which has no separator to choose.
         delimiter: ',',
         multi: DEFAULT_MULTI,
-        columns: LEGACY_CSV_COLUMNS,
-    },
-    xlsx: {
-        rows: 'term',
-        // A workbook's whole advantage over a CSV is that it can hold more than one table, so this
-        // is the one kind whose useful default is to split.
-        split: 'per-scheme',
-        multi: DEFAULT_MULTI,
-        columns: LEGACY_CSV_COLUMNS,
+        columns: TABLE_COLUMNS,
     },
     markdown: {
         rows: 'term',

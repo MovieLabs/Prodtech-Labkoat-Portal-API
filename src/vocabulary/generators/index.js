@@ -11,7 +11,7 @@
  * @module vocabulary/generators
  */
 
-import { profileFor, projectionsWithOverrides } from '../exportProfiles.js';
+import { profileFor, profileKindOf, projectionsWithOverrides } from '../exportProfiles.js';
 import { resolveView } from '../resolve.js';
 import { skosProjectionIndex } from '../store/facetSeeds.js';
 import { listFacets } from '../store/read.js';
@@ -123,22 +123,41 @@ const GENERATORS = {
     },
 };
 
+/**
+ * What to call a group of formats that share one profile.
+ *
+ * Named for what the group produces rather than for one of its members: `csv` and `xlsx` are one
+ * table in two containers, and calling the pair "CSV" would suggest the workbook is a variation on
+ * the file rather than an equal way of holding the same table.
+ */
+const KIND_LABELS = {
+    skos: 'SKOS',
+    table: 'Spreadsheet',
+    markdown: 'Markdown',
+    json: 'JSON',
+};
+
 /** The formats this service can produce. */
 export const generatorNames = (() => Object.keys(GENERATORS));
 
 /**
  * The formats this service can produce, described.
  *
- * What a client needs to offer a download it has never heard of: what to call it, and what it
- * arrives as. Adding a generator therefore reaches every consumer without a change in any of them,
- * which is the same rule the controlled sets follow.
+ * What a client needs to offer a download it has never heard of: what to call it, what it arrives
+ * as, and **which profile drives it**. Formats sharing a `kind` share one setup, so a client can
+ * group them and offer one way in without knowing which those are — that rule lives here, next to
+ * the registry it describes, rather than being restated as a string test in every consumer.
  *
- * @returns {Array<{format: string, label: string, contentType: string, extension: string}>}
+ * @returns {Array<{format: string, label: string, kind: string, kindLabel: string,
+ *   contentType: string, extension: string}>}
  */
 export const generatorDescriptors = (() => Object.entries(GENERATORS)
-    .map(([format, { label, contentType, extension }]) => ({
-        format, label, contentType, extension,
-    })));
+    .map(([format, { label, contentType, extension }]) => {
+        const kind = profileKindOf(format);
+        return {
+            format, label, kind, kindLabel: KIND_LABELS[kind] ?? label, contentType, extension,
+        };
+    }));
 
 /** Whether a name is a format. */
 export const isGenerator = ((name) => Object.hasOwn(GENERATORS, name));
