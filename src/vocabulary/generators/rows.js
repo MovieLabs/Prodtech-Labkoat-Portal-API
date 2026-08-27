@@ -55,13 +55,13 @@ export function buildRows(resolution, profile, facets = []) {
         });
     }
 
-    // Sorted by the term's preferred name so a diff between two exports is readable. Unsorted output
-    // reorders whenever Mongo feels like it and every line then reads as changed.
+    // **Left in the order the view resolves them**, which is the order the graph draws and the
+    // order the arrangements are written in. An export is a rendering of the view, and a view is an
+    // arrangement somebody built deliberately — alphabetising it throws that away and puts a
+    // vocabulary's own structure behind the accident of its spelling.
     //
-    // **By the preferred label, not by the published one.** A dotted view renders `capture.audio`,
-    // which would sort every branch under its parent's name and scatter the alphabet; and this is
-    // what the hardcoded CSV sorted by, which the golden files hold this to.
-    entries.sort((a, b) => prefLabel(a.term, language).localeCompare(prefLabel(b.term, language)));
+    // This is deterministic, which was the worry the old sort answered: the order comes from walking
+    // stored `member[]` arrays, not from the order Mongo returns documents in.
 
     const cellsFor = ((entry) => columns.map((column) => valueAt(column.source, {
         term: entry.term,

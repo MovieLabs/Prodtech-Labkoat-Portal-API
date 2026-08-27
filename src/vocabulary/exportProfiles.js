@@ -83,7 +83,6 @@ function defaultTableColumns(facetDocs = []) {
         // The preferred label always, and by name rather than as one of the list below — it is the
         // one every term carries and the one a reader looks for first.
         { source: 'label:pref', header: 'prefLabel' },
-        { source: 'displayLabel', header: 'displayLabel' },
         { source: 'definition', header: 'definition' },
         { source: 'status', header: 'status' },
         ...typed('label', 'label', ['pref']),
@@ -129,7 +128,7 @@ export const DEFAULT_PROFILES = {
         // A markdown table is read rather than parsed, and fourteen columns is unreadable. The
         // default is what somebody scanning a vocabulary actually wants to see.
         columns: [
-            { source: 'displayLabel', header: 'Term' },
+            { source: 'label:pref', header: 'Term' },
             { source: 'definition', header: 'Definition' },
             { source: 'status', header: 'Status' },
         ],

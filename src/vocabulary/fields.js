@@ -15,7 +15,10 @@
  * gone: a reader choosing columns should see the label types this vocabulary has, and an entry
  * standing for "the others, lumped together" is not one of them.
  *
- * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`.
+ * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`. There
+ * is no source for the name a view renders a term under — the dotted compound the graph draws. It
+ * was offered as `displayLabel` and is not a thing the model has: a term has labels, of the types
+ * the controlled set declares, and nothing else.
  *
  * ## Why the catalogue is computed and served
  *
@@ -82,19 +85,9 @@ const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
  * @type {Array<{source: string, describes: string, group: string, multi: boolean}>}
  */
 const STRUCTURAL = [
-    { source: 'id', heading: 'id', describes: 'The term identifier', group: 'Term', multi: false },
-    {
-        source: 'displayLabel',
-        heading: 'displayLabel',
-        // Not a stored field and not a label type: it is whichever label type the *view* publishes,
-        // joined to its ancestors where the view is dotted. That join is why it cannot simply be
-        // `label:<something>` — the value depends on where the term sits, not only on the term.
-        describes: 'The label this view publishes, dotted if the view is',
-        group: 'Term',
-        multi: true,
-    },
-    { source: 'definition', heading: 'definition', describes: 'The definition', group: 'Term', multi: false },
-    { source: 'status', heading: 'status', describes: 'The term status', group: 'Term', multi: false },
+    { source: 'id', heading: 'id', describes: 'The term identifier', group: 'Structure', multi: false },
+    { source: 'definition', heading: 'definition', describes: 'The definition', group: 'Structure', multi: false },
+    { source: 'status', heading: 'status', describes: 'The term status', group: 'Structure', multi: false },
     { source: 'scheme', heading: 'scheme', describes: 'The schemes it is published under, by label', group: 'Structure', multi: true },
     { source: 'collections', heading: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
     { source: 'broader', heading: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
@@ -166,7 +159,6 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
 
     switch (source) {
         case 'id': return [term._id];
-        case 'displayLabel': return unique(placements.map((placement) => placement.display));
         case 'definition': return [localised(term.definition, language) ?? ''];
         case 'status': return [term.status ?? ''];
         case 'scheme': {
