@@ -18,7 +18,9 @@ import { listFacets } from '../store/read.js';
 
 import { toCsv } from './csv.js';
 import { toViewJson } from './json.js';
+import { toMarkdown } from './markdown.js';
 import { skosTriples, toJsonLd, toTurtle } from './skos.js';
+import { toXlsx } from './xlsx.js';
 
 /**
  * @typedef {object} Artifact
@@ -88,6 +90,18 @@ const GENERATORS = {
         contentType: 'text/csv',
         extension: 'csv',
         run: ({ resolution, profile, facets }) => toCsv(resolution, profile, facets),
+    },
+    'xlsx': {
+        label: 'Excel (XLSX)',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        extension: 'xlsx',
+        run: ({ resolution, profile, facets }) => toXlsx(resolution, profile, facets),
+    },
+    'markdown': {
+        label: 'Markdown',
+        contentType: 'text/markdown',
+        extension: 'md',
+        run: ({ resolution, profile, facets }) => toMarkdown(resolution, profile, facets),
     },
     'skos-ttl': {
         label: 'SKOS (Turtle)',

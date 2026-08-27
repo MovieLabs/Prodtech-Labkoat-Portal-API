@@ -72,15 +72,23 @@ async function main() {
         language: typeof options.language === 'string' ? options.language : undefined,
     });
 
-    const text = typeof artifact.body === 'string'
-        ? artifact.body
-        : JSON.stringify(artifact.body, null, 2);
+    // **A Buffer is written as it stands.** A workbook and a zip are binary, and the string branch
+    // below would turn either into `{"type":"Buffer",...}` — a valid JSON document and an unopenable
+    // spreadsheet, failing when somebody opens the file rather than when it is written.
+    const binary = Buffer.isBuffer(artifact.body);
+    let payload = artifact.body;
+    if (!binary && typeof payload !== 'string') payload = JSON.stringify(payload, null, 2);
 
     if (options.out) {
-        await fs.writeFile(options.out, text, 'utf8');
-        console.log(`Wrote ${options.out} (${text.length} bytes)`);
+        await fs.writeFile(options.out, payload, binary ? undefined : 'utf8');
+        console.log(`Wrote ${options.out} (${payload.length} bytes)`);
+    } else if (binary) {
+        // Piping a workbook to a terminal writes control characters over whatever is on screen and
+        // tells the reader nothing. `--out` is the only sensible way to take a binary format.
+        console.error(`${options.format} is binary — use --out to write it to a file.`);
+        process.exitCode = 1;
     } else {
-        process.stdout.write(text);
+        process.stdout.write(payload);
     }
 
     // Problems go to stderr so they are visible when the artifact is being piped, and so they never
