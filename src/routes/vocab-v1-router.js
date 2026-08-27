@@ -448,8 +448,10 @@ router.get('/views/:id/export/:format', authenticated, async (req, res, next) =>
             return;
         }
         const kind = profileKindOf(req.params.format);
+        // The sets, because a table's default columns are the vocabulary's own types.
+        const facets = await listFacets();
         res.json({
-            profile: profileFor(view, req.params.format),
+            profile: profileFor(view, req.params.format, facets),
             configured: Boolean(view.export?.[kind]),
             kind,
         });

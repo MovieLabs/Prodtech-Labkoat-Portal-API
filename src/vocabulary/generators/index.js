@@ -233,7 +233,7 @@ export async function generate({ viewId, format = 'json', status = null, languag
     // What this view publishes this format as, its own decisions over the built-in defaults. A view
     // that has never been configured gets the defaults, which reproduce what each generator did when
     // its choices were hardcoded.
-    const profile = profileFor(resolution.view, format);
+    const profile = profileFor(resolution.view, format, facets);
 
     // A generator may be asynchronous — anything that splits its output has to pack a zip — so this
     // is awaited whether or not the one that ran needed it.

@@ -45,36 +45,52 @@ export function profileKindOf(format) {
  */
 export const DEFAULT_MULTI = ' | ';
 
+/** A tag source names its set without repeating the `facet:` its identifier already carries. */
+const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
+
 /**
- * The columns a CSV has always had, in the order it has always had them — and now the workbook's
- * too, since the two are one table.
+ * The columns a table publishes when the view has not chosen any.
  *
- * **This list is load-bearing.** It is what a view with no profile publishes, so it has to reproduce
- * the hardcoded columns it replaced exactly — same sources, same order, same headers. The golden
- * files exist to prove it still does.
+ * **Derived from the controlled sets, not written down here.** Every label, note and example type
+ * the vocabulary declares gets its own column, named after itself. A static list could only name the
+ * types that existed when it was written, and would go on naming one after it was removed.
+ *
+ * This replaced a fixed fourteen carried over from the hardcoded exporter, which lumped every
+ * non-preferred label into one `altLabel` cell with their kinds in a parallel column. A column per
+ * type says the same thing and says which is which, so the spreadsheet round trip gains rather than
+ * loses by it.
  *
  * `id` is first because it is what makes a re-import an update rather than a duplicate: the importer
  * reads a blank id as a new term and a present one as an edit.
  *
- * `displayLabel` and `paths` genuinely held the same value, and still do. That was invisible while
- * the list was in code and is worth leaving visible here, because now somebody can remove one.
+ * @param {Array<object>} facetDocs
+ * @returns {Array<{source: string, header: string}>}
  */
-const TABLE_COLUMNS = [
-    { source: 'id', header: 'id' },
-    { source: 'label:pref', header: 'prefLabel' },
-    { source: 'displayLabel', header: 'displayLabel' },
-    { source: 'definition', header: 'definition' },
-    { source: 'status', header: 'status' },
-    { source: 'label:*', header: 'altLabel' },
-    { source: 'labelType:*', header: 'labelTypes' },
-    { source: 'note:*', header: 'notes' },
-    { source: 'noteType:*', header: 'noteTypes' },
-    { source: 'example:*', header: 'examples' },
-    { source: 'collections', header: 'collections' },
-    { source: 'scheme', header: 'schemes' },
-    { source: 'displayLabel', header: 'paths' },
-    { source: 'tag:*', header: 'tags' },
-];
+function defaultTableColumns(facetDocs = []) {
+    const typed = ((appliesTo, prefix, skip = []) => facetDocs
+        .filter((facet) => facet.appliesTo === appliesTo)
+        .flatMap((facet) => (facet.values ?? []).map((value) => value[facet.key]))
+        .filter((type) => type && !skip.includes(type))
+        .map((type) => ({ source: `${prefix}:${type}`, header: type })));
+
+    return [
+        { source: 'id', header: 'id' },
+        // The preferred label always, and by name rather than as one of the list below — it is the
+        // one every term carries and the one a reader looks for first.
+        { source: 'label:pref', header: 'prefLabel' },
+        { source: 'displayLabel', header: 'displayLabel' },
+        { source: 'definition', header: 'definition' },
+        { source: 'status', header: 'status' },
+        ...typed('label', 'label', ['pref']),
+        ...typed('note', 'note'),
+        ...typed('example', 'example'),
+        { source: 'collections', header: 'collections' },
+        { source: 'scheme', header: 'schemes' },
+        ...facetDocs
+            .filter((facet) => facet.appliesTo === 'tag')
+            .map((facet) => ({ source: `tag:${tagSlug(facet._id)}`, header: tagSlug(facet._id) })),
+    ];
+}
 
 /**
  * What each kind publishes when the view has not said.
@@ -95,7 +111,8 @@ export const DEFAULT_PROFILES = {
         // Read by CSV and ignored by the workbook, which has no separator to choose.
         delimiter: ',',
         multi: DEFAULT_MULTI,
-        columns: TABLE_COLUMNS,
+        // Filled from the controlled sets by `profileFor`, which is the only thing that has them.
+        columns: null,
     },
     markdown: {
         rows: 'term',
@@ -124,12 +141,18 @@ export const PROFILE_KINDS = Object.keys(DEFAULT_PROFILES);
  *
  * @param {object} view - The view document, as stored
  * @param {string} format
+ * @param {Array<object>} [facetDocs] - The controlled sets, which a table's default columns come from
  * @returns {object}
  */
-export function profileFor(view, format) {
+export function profileFor(view, format, facetDocs = []) {
     const kind = profileKindOf(format);
-    const fallback = DEFAULT_PROFILES[kind];
-    if (!fallback) return {};
+    const base = DEFAULT_PROFILES[kind];
+    if (!base) return {};
+
+    // A table's default column list is the vocabulary's own types, so it cannot be a constant.
+    const fallback = base.columns === null
+        ? { ...base, columns: defaultTableColumns(facetDocs) }
+        : base;
 
     const stored = view?.export?.[kind];
     if (!stored) return fallback;

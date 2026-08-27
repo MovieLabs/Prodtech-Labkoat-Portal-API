@@ -1,5 +1,4 @@
-/**
- * What a column can hold, and how it is filled.
+/** * What a column can hold, and how it is filled.
  *
  * A tabular profile names its columns by a **source** — `id`, `definition`, `label:acronym`. This
  * module owns both halves of that: which sources exist, and what each one produces for a term.
@@ -8,9 +7,13 @@
  *
  * `label:acronym`, `note:editorial`, `example:url`, `tag:departmentOrRole`. The prefix is the array
  * on the term and the suffix is the type within it, so a source says where its value comes from
- * without anybody having to learn a second vocabulary for it. `label:*` is every label of that kind
- * — the aggregate the spreadsheet round trip has always carried — and `labelType:*` is their kinds,
- * in the same order.
+ * without anybody having to learn a second vocabulary for it.
+ *
+ * **Every typed source names a type the controlled set declares, and nothing else.** There were
+ * aggregates once — `label:*` for every non-preferred label at once, with `labelType:*` giving their
+ * kinds in a parallel column — carried over from the CSV the hardcoded exporter produced. They are
+ * gone: a reader choosing columns should see the label types this vocabulary has, and an entry
+ * standing for "the others, lumped together" is not one of them.
  *
  * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`.
  *
@@ -32,7 +35,7 @@
  */
 
 import { broaderOf, schemeHeads, schemesOf, tagsFor } from './resolve.js';
-import { derivedLabel, hasLabelOfType, labelOfType, localised, otherLabels, prefLabel } from './store/read.js';
+import { derivedLabel, hasLabelOfType, labelOfType, localised, prefLabel } from './store/read.js';
 
 /**
  * Scheme identifier to the preferred label of the term heading it.
@@ -97,24 +100,6 @@ const STRUCTURAL = [
 ];
 
 /**
- * The aggregates, one per typed array.
- *
- * These are what the spreadsheet round trip has always carried: every non-preferred label in one
- * cell and their kinds in another. They are a spreadsheet convenience rather than anything the model
- * holds, which is why they are written `label:*` — plainly an aggregate over the same array a
- * `label:acronym` picks one from.
- */
-const AGGREGATES = [
-    { source: 'label:*', describes: 'Every label except the preferred one', group: 'Labels', multi: true },
-    { source: 'labelType:*', describes: 'Their label types, in the same order', group: 'Labels', multi: true },
-    { source: 'note:*', describes: 'Every note', group: 'Notes', multi: true },
-    { source: 'noteType:*', describes: 'Their note types, in the same order', group: 'Notes', multi: true },
-    { source: 'example:*', describes: 'Every example', group: 'Examples', multi: true },
-    { source: 'exampleType:*', describes: 'Their example types, in the same order', group: 'Examples', multi: true },
-    { source: 'tag:*', describes: 'Every tag this view gives it', group: 'Tags', multi: true },
-];
-
-/**
  * Every source a column may name, this vocabulary's own types included.
  *
  * @param {Array<object>} facetDocs - Facet documents, as stored
@@ -147,9 +132,7 @@ export function fieldCatalogue(facetDocs = []) {
         });
     });
 
-    // Typed before aggregate within each group, so a picker reads `label:acronym` … `label:*` —
-    // the specific things first and the catch-all last, which is the order somebody looks in.
-    return [...STRUCTURAL, ...typed, ...AGGREGATES];
+    return [...STRUCTURAL, ...typed];
 }
 
 /** Whether a source is one this vocabulary offers. */
@@ -187,13 +170,6 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
         case 'broader': return unique(placements.map((placement) => broaderOf(placement)));
         case 'placements': return [String(placements.length)];
 
-        case 'label:*': return otherLabels(term).map((entry) => entry.value);
-        case 'labelType:*': return otherLabels(term).map((entry) => entry.labelType);
-        case 'note:*': return (term.note ?? []).map((entry) => entry.value);
-        case 'noteType:*': return (term.note ?? []).map((entry) => entry.noteType);
-        case 'example:*': return (term.example ?? []).map((entry) => entry.value);
-        case 'exampleType:*': return (term.example ?? []).map((entry) => entry.exampleType);
-        case 'tag:*': return tagsFor(resolution, term._id);
         default: break;
     }
 
