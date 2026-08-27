@@ -30,8 +30,9 @@ const ALL = 'all';
  * @param {object} resolution
  * @param {object} profile
  * @param {Array<object>} facets
- * @returns {{groups: Array<{key: string, name: string, rows: Array<Array<string[]>>}>,
- *   columns: Array<{source: string, header: string}>, problems: object}}
+ * @returns {{groups: Array<{key: string, name: string, head: (object|null),
+ *   rows: Array<Array<string[]>>}>, columns: Array<{source: string, header: string}>,
+ *   problems: object}}
  */
 export function buildRows(resolution, profile, facets = []) {
     const { language } = resolution;
@@ -72,7 +73,12 @@ export function buildRows(resolution, profile, facets = []) {
 
     if (profile.split !== 'per-scheme') {
         return {
-            groups: [{ key: ALL, name: resolution.view?._id ?? ALL, rows: entries.map(cellsFor) }],
+            groups: [{
+                key: ALL,
+                name: resolution.view?._id ?? ALL,
+                head: null,
+                rows: entries.map(cellsFor),
+            }],
             columns,
             problems: {},
         };
@@ -82,9 +88,13 @@ export function buildRows(resolution, profile, facets = []) {
     // something true twice, the same way SKOS emits it twice, not a duplicate to be removed.
     const heads = schemeHeads(resolution);
     const nameOf = new Map();
+    const headOf = new Map();
     heads.forEach((schemeId, termId) => {
         const head = resolution.terms.get(termId);
         nameOf.set(schemeId, head ? prefLabel(head, language) : schemeId);
+        // The term the scheme is derived from, so a format with room to present it can read its
+        // labels and notes. A workbook heads each sheet with them.
+        if (head) headOf.set(schemeId, head);
     });
 
     const grouped = new Map();
@@ -107,11 +117,13 @@ export function buildRows(resolution, profile, facets = []) {
     const groups = [...grouped.entries()].map(([schemeId, group]) => ({
         key: schemeId,
         name: nameOf.get(schemeId) ?? schemeId,
+        head: headOf.get(schemeId) ?? null,
         rows: group.map(cellsFor),
     }));
 
     if (unscoped.length) {
-        groups.push({ key: 'unscoped', name: 'Ungrouped', rows: unscoped.map(cellsFor) });
+        // No head, because there is no scheme — these are the terms the view publishes outside one.
+        groups.push({ key: 'unscoped', name: 'Ungrouped', head: null, rows: unscoped.map(cellsFor) });
     }
 
     return {

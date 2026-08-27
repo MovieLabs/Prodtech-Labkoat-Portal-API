@@ -31,8 +31,40 @@
  * @module vocabulary/fields
  */
 
-import { broaderOf, schemesOf, tagsFor } from './resolve.js';
-import { derivedLabel, hasLabelOfType, labelOfType, localised, otherLabels } from './store/read.js';
+import { broaderOf, schemeHeads, schemesOf, tagsFor } from './resolve.js';
+import { derivedLabel, hasLabelOfType, labelOfType, localised, otherLabels, prefLabel } from './store/read.js';
+
+/**
+ * Scheme identifier to the preferred label of the term heading it.
+ *
+ * A scheme id is derived (`vmc:c-0001a7` heads `vmc:s-0001a7`) and legible to nobody, so a column of
+ * them says nothing a reader can use. Cached per resolution because every row asks, and the answer
+ * is the same for all of them.
+ *
+ * @type {WeakMap<object, Map<string, string>>}
+ */
+const schemeLabelCache = new WeakMap();
+
+/**
+ * @param {object} resolution
+ * @param {string} language
+ * @returns {Map<string, string>}
+ */
+function schemeLabels(resolution, language) {
+    const held = schemeLabelCache.get(resolution);
+    if (held) return held;
+
+    const labels = new Map();
+    schemeHeads(resolution).forEach((schemeId, termId) => {
+        const head = resolution.terms.get(termId);
+        // The identifier only where the head is missing, which means a term was deleted while a view
+        // still attached it — a state worth seeing rather than blanking.
+        labels.set(schemeId, head ? prefLabel(head, language) : schemeId);
+    });
+
+    schemeLabelCache.set(resolution, labels);
+    return labels;
+}
 
 /** A tag source names its set without repeating the `facet:` its identifier already carries. */
 const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
@@ -58,7 +90,7 @@ const STRUCTURAL = [
     },
     { source: 'definition', describes: 'The definition', group: 'Term', multi: false },
     { source: 'status', describes: 'The term status', group: 'Term', multi: false },
-    { source: 'scheme', describes: 'The schemes it is published under', group: 'Structure', multi: true },
+    { source: 'scheme', describes: 'The schemes it is published under, by label', group: 'Structure', multi: true },
     { source: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
     { source: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
     { source: 'placements', describes: 'How many times it is placed', group: 'Structure', multi: false },
@@ -146,7 +178,11 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
         case 'displayLabel': return unique(placements.map((placement) => placement.display));
         case 'definition': return [localised(term.definition, language) ?? ''];
         case 'status': return [term.status ?? ''];
-        case 'scheme': return unique(placements.flatMap((placement) => schemesOf(placement)));
+        case 'scheme': {
+            const labels = schemeLabels(resolution, language);
+            return unique(placements.flatMap((placement) => schemesOf(placement))
+                .map((schemeId) => labels.get(schemeId) ?? schemeId));
+        }
         case 'collections': return unique(placements.map((placement) => placement.collectionId));
         case 'broader': return unique(placements.map((placement) => broaderOf(placement)));
         case 'placements': return [String(placements.length)];

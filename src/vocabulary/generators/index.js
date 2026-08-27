@@ -31,18 +31,44 @@ import { toXlsx } from './xlsx.js';
  * @property {object} [problems] - Anything the generator could not express, stated rather than hidden
  */
 
+/** Path separators, the set Windows refuses, and the quotes that would end a header value early. */
+const UNSAFE_IN_FILENAME = /[\\/:*?"'<>|]/g;
+
 /**
  * What an artifact should be called.
  *
- * Named here rather than by the caller because the extension is the generator's to decide and a
- * caller cannot know it — a format that splits its output ships a zip, whatever format was asked
- * for. The browser reads this off `Content-Disposition`.
+ * The **extension** is the generator's to decide and a caller cannot know it — a format that splits
+ * its output ships a zip, whatever format was asked for. The browser reads the whole name off
+ * `Content-Disposition`.
  *
- * @param {string} viewId
+ * The **stem** is the view's, where it has said. A vocabulary published into another repository is
+ * often expected under a particular filename, and deriving one from the identifier meant renaming
+ * the view to change it — which cannot be done, because the identifier is minted once and fixed.
+ * Unset falls back to the identifier without its prefix, which is what every export was called
+ * before a view could name itself.
+ *
+ * The stem is sanitised whatever is stored: it reaches a response header and somebody's filesystem.
+ * Control characters go by code rather than through a character class, because a newline among them
+ * would let a stored value inject a second header, and an escape for that range is exactly the kind
+ * of thing that survives being written down wrong.
+ *
+ * @param {object} view
  * @param {string} extension
  * @returns {string}
  */
-const filenameFor = ((viewId, extension) => `${viewId.replace(/^view:/, '')}.${extension}`);
+function filenameFor(view, extension) {
+    const chosen = String(view?.filename ?? '').trim();
+    const stem = [...(chosen || String(view?._id ?? 'export').replace(/^view:/, ''))]
+        .filter((character) => character.charCodeAt(0) > 31)
+        .join('')
+        .replace(UNSAFE_IN_FILENAME, '-')
+        // A leading dot hides the file on a Unix filesystem, and a trailing dot or space is dropped
+        // silently by Windows — so the name written would not be the name that was asked for.
+        .replace(/^[.\s]+|[.\s]+$/g, '')
+        .slice(0, 120);
+
+    return `${stem || 'export'}.${extension}`;
+}
 
 /**
  * Every format, by name.
@@ -234,7 +260,7 @@ export async function generate({ viewId, format = 'json', status = null, languag
         body,
         contentType,
         extension,
-        filename: filenameFor(viewId, extension),
+        filename: filenameFor(resolution.view, extension),
         problems,
     };
 }

@@ -348,6 +348,20 @@ export function validateView(view, allowed) {
         }
     }
 
+    // What every export of this view is called, before its format's extension. Refused rather than
+    // sanitised where it is plainly not a filename: the generator sanitises whatever it is given,
+    // but silently rewriting somebody's typing means the file arrives under a name they did not
+    // choose and were never told about.
+    if (view?.filename !== undefined && view.filename !== null && view.filename !== '') {
+        if (typeof view.filename !== 'string') {
+            fail(found, 'filename must be text');
+        } else if (view.filename.length > 120) {
+            fail(found, 'A filename must be 120 characters or fewer');
+        } else if (/[\\/]/.test(view.filename)) {
+            fail(found, 'A filename cannot contain a path separator — it names the file, not where it goes');
+        }
+    }
+
     // Which kind of name this view publishes. Controlled for the same reason a term's label types
     // are: a view asking for `omcTokn` renders every name from the preferred-label fallback and
     // looks like it worked, because a substituted name is a name.
