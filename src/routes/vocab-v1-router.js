@@ -26,6 +26,7 @@ import { awsJwtValidator, jwtValidator } from 'mlHelpers';
 
 import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
+import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
 import {
@@ -428,6 +429,32 @@ router.put('/views/:id', authenticated, async (req, res, next) => {
         res.json(await saveView(req.params.id, req.body, actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
+    }
+});
+
+/**
+ * What a view publishes a format as, whether or not it has been configured.
+ *
+ * **The effective profile, not the stored one.** A view that has never been configured still
+ * publishes something — the service's default — and an editor that opened on a blank form, or on its
+ * own guess at that default, would write a narrower profile the moment somebody pressed Save. So the
+ * answer is what will actually be produced, and `configured` says whether any of it was chosen.
+ */
+router.get('/views/:id/export/:format', authenticated, async (req, res, next) => {
+    try {
+        const view = await getView(req.params.id);
+        if (!view) {
+            res.status(404).json({ message: `No such view: ${req.params.id}` });
+            return;
+        }
+        const kind = profileKindOf(req.params.format);
+        res.json({
+            profile: profileFor(view, req.params.format),
+            configured: Boolean(view.export?.[kind]),
+            kind,
+        });
+    } catch (err) {
+        next(err);
     }
 });
 
