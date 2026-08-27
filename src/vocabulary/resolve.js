@@ -219,10 +219,18 @@ function walkMembers({
     const childUnder = new Map();
 
     /** Members in an order where a parent is always seen before its children. */
+    // A key for rows with no parent, which cannot collide with a `mid` because no string a caller
+    // supplies can contain a NUL.
+    //
+    // **Written as the escape, not as the byte.** The literal control character this used to carry
+    // produced the same string at runtime and made the module read as binary: grep skipped it, and
+    // an editor that decided to clean it up would have changed the key silently.
+    const ROOT_KEY = '\u0000root';
+
     const ordered = [];
     const byParent = new Map();
     members.forEach((member) => {
-        const key = member.parent ?? ' root';
+        const key = member.parent ?? ROOT_KEY;
         if (!byParent.has(key)) byParent.set(key, []);
         byParent.get(key).push(member);
     });
@@ -232,7 +240,7 @@ function walkMembers({
             pushLevel(member.mid);
         });
     });
-    pushLevel(' root');
+    pushLevel(ROOT_KEY);
 
     ordered.forEach((member) => {
         const inherited = member.parent ? childPath.get(member.parent) ?? here : here;
