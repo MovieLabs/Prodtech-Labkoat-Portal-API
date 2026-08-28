@@ -7,6 +7,7 @@ import { awsSecrets, serviceToken } from 'mlHelpers';
 
 import errorHandler from '../src/errors/errorHandler.js';
 import InvalidRoute from '../src/errors/InvalidRoute.js';
+import { swaggerSetup, swaggerUi } from '../src/openapi/swagger.js';
 import adminRouter from '../src/routes/admin-router.js';
 import greenlightRouter from '../src/routes/greenlight-router.js';
 import ingestRouter from '../src/routes/ingest-router.js';
@@ -149,6 +150,11 @@ export default async function apiServer() {
         : `Pipeline storage: PIPELINE_STORAGE=s3, bucket ${config.PIPELINE_BUCKET}, `
             + 'one prefix per project');
     // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
+
+    // **Unauthenticated, deliberately.** It serves the shape of the API, never any vocabulary: a
+    // consumer writing a client needs to read it before they have a token, and every route it
+    // describes still refuses one without.
+    app.use('/api-docs', swaggerUi.serve, swaggerSetup);
 
     // Error handling
     app.use('/:universalURL', (req, res, next) => next(new InvalidRoute())); // Catch all invalid routes

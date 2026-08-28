@@ -29,6 +29,7 @@ import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
+import { hasDefinition, termSnippet } from '../vocabulary/snippet.js';
 import {
     allTerms,
     getTerm,
@@ -357,6 +358,73 @@ router.get('/terms', authenticated, async (req, res, next) => {
         }
         const limit = Math.min(Number(req.query.limit) || 25, 200);
         res.json(await searchTerms(req.query.q ?? '', limit));
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * One term as a line of markdown, for a build script to paste into a document.
+ *
+ * `text/markdown` rather than JSON: the caller is substituting this into a document, and a body it
+ * has to unwrap first is a body it has to know the shape of. **404 on an unknown identifier**, so a
+ * stale citation fails the build that produced it rather than shipping an empty line.
+ */
+router.get('/terms/:id/markdown', authenticated, async (req, res, next) => {
+    try {
+        const found = await getTerms([req.params.id]);
+        const term = found.get(req.params.id);
+        if (!term) {
+            res.status(404).json({ message: `No such term: ${req.params.id}` });
+            return;
+        }
+        res.type('text/markdown').send(termSnippet(term));
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * Many terms at once, for a document citing more than one.
+ *
+ * A build resolving a hundred markers one request at a time is a hundred round trips, so the whole
+ * set goes in one body. The reply separates three outcomes a caller may want to treat differently:
+ *
+ * - `terms` — rendered, keyed by identifier
+ * - `missing` — no such term. A citation nobody can satisfy; usually a build failure
+ * - `withoutDefinition` — the term exists and has none. Rendered as the label alone, and reported
+ *   because a line reading `**Asset**:` is a gap the document will show but the caller cannot
+ *   detect from the string
+ *
+ * Missing ids are **not** an error status: a batch is partly useful, and refusing the whole reply
+ * would make the caller ask again one at a time to find out which.
+ */
+router.post('/terms/markdown', authenticated, async (req, res, next) => {
+    try {
+        const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+        if (!ids) {
+            res.status(422).json({ errors: ['Send { ids: [...] }'] });
+            return;
+        }
+
+        const wanted = [...new Set(ids.filter((id) => typeof id === 'string' && id))];
+        const found = await getTerms(wanted);
+
+        const terms = {};
+        const missing = [];
+        const withoutDefinition = [];
+
+        wanted.forEach((id) => {
+            const term = found.get(id);
+            if (!term) {
+                missing.push(id);
+                return;
+            }
+            terms[id] = termSnippet(term);
+            if (!hasDefinition(term)) withoutDefinition.push(id);
+        });
+
+        res.json({ terms, missing, withoutDefinition });
     } catch (err) {
         next(err);
     }
