@@ -266,7 +266,8 @@ see `serviceToken.setup` in `api-server.js`).
 
 Deleted with it: `oktaInterface.js`, `directory/okta/`, `directory/directory.js`,
 `directory/securityController.js`, `directory/user.js`, `routes/directory-router.js`,
-`controllers/token-exchange/`, `routes/test-router.js`, and the `@okta/*` packages. None was
+`controllers/token-exchange/`, `routes/test-router.js`, `mlHelpers/src/jwtValidator.js` (the Okta
+bearer validator) and the `@okta/*`, `express-jwt` and `jwks-rsa` packages. None was
 reachable — `directory-router` was never mounted and several of those modules used extensionless
 CommonJS imports that cannot load in an ESM package.
 
