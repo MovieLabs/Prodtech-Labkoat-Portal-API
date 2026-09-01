@@ -29,6 +29,7 @@ import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
+import { hasDefinition, termSnippet } from '../vocabulary/snippet.js';
 import {
     allTerms,
     getTerm,
@@ -56,10 +57,13 @@ import {
     saveFacet,
     createView,
     deleteExportProfile,
+    deleteTableConfig,
     deleteView,
     saveExportProfile,
+    saveTableConfig,
     saveView,
 } from '../vocabulary/store/write.js';
+import { tableFor } from '../vocabulary/tableConfig.js';
 
 const router = express.Router();
 
@@ -362,6 +366,73 @@ router.get('/terms', authenticated, async (req, res, next) => {
     }
 });
 
+/**
+ * One term as a line of markdown, for a build script to paste into a document.
+ *
+ * `text/markdown` rather than JSON: the caller is substituting this into a document, and a body it
+ * has to unwrap first is a body it has to know the shape of. **404 on an unknown identifier**, so a
+ * stale citation fails the build that produced it rather than shipping an empty line.
+ */
+router.get('/terms/:id/markdown', authenticated, async (req, res, next) => {
+    try {
+        const found = await getTerms([req.params.id]);
+        const term = found.get(req.params.id);
+        if (!term) {
+            res.status(404).json({ message: `No such term: ${req.params.id}` });
+            return;
+        }
+        res.type('text/markdown').send(termSnippet(term));
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * Many terms at once, for a document citing more than one.
+ *
+ * A build resolving a hundred markers one request at a time is a hundred round trips, so the whole
+ * set goes in one body. The reply separates three outcomes a caller may want to treat differently:
+ *
+ * - `terms` — rendered, keyed by identifier
+ * - `missing` — no such term. A citation nobody can satisfy; usually a build failure
+ * - `withoutDefinition` — the term exists and has none. Rendered as the label alone, and reported
+ *   because a line reading `**Asset**:` is a gap the document will show but the caller cannot
+ *   detect from the string
+ *
+ * Missing ids are **not** an error status: a batch is partly useful, and refusing the whole reply
+ * would make the caller ask again one at a time to find out which.
+ */
+router.post('/terms/markdown', authenticated, async (req, res, next) => {
+    try {
+        const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+        if (!ids) {
+            res.status(422).json({ errors: ['Send { ids: [...] }'] });
+            return;
+        }
+
+        const wanted = [...new Set(ids.filter((id) => typeof id === 'string' && id))];
+        const found = await getTerms(wanted);
+
+        const terms = {};
+        const missing = [];
+        const withoutDefinition = [];
+
+        wanted.forEach((id) => {
+            const term = found.get(id);
+            if (!term) {
+                missing.push(id);
+                return;
+            }
+            terms[id] = termSnippet(term);
+            if (!hasDefinition(term)) withoutDefinition.push(id);
+        });
+
+        res.json({ terms, missing, withoutDefinition });
+    } catch (err) {
+        next(err);
+    }
+});
+
 /** One term, for the editor to load before changing it. */
 router.get('/terms/:id', authenticated, async (req, res, next) => {
     try {
@@ -467,6 +538,47 @@ router.get('/views/:id/export/:format', authenticated, async (req, res, next) =>
  * caller of that has to load the record and spread it first, and the tag map and the `arrange` lists
  * have each had to be rescued from a body built from a form's fields alone. This sets one key.
  */
+/**
+ * What a view's on-screen table shows, whether or not it has been configured.
+ *
+ * **The effective configuration, not the stored one**, for the reason an export profile is served
+ * the same way: a view nobody has configured still shows something, and a client opening on its own
+ * guess writes a narrower list the moment somebody presses Save.
+ *
+ * Columns are named by the same `source` an export column uses, so both are chosen from the one
+ * catalogue `GET /export/fields` serves.
+ */
+router.get('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        const view = await getView(req.params.id);
+        if (!view) {
+            res.status(404).json({ message: `No such view: ${req.params.id}` });
+            return;
+        }
+        res.json({ table: tableFor(view), configured: Boolean(view.table) });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/** Write what a view's table shows. Sets one key rather than replacing the document. */
+router.put('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        res.json(await saveTableConfig(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Put a view's table back to the default columns. */
+router.delete('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteTableConfig(req.params.id, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
 router.put('/views/:id/export/:format', authenticated, async (req, res, next) => {
     try {
         res.json(await saveExportProfile(

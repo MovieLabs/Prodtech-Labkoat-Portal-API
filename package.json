@@ -38,6 +38,8 @@
     "mlHelpers": "file:./mlHelpers",
     "mongodb": "^6.21.0",
     "node-fetch": "^2.6.9",
-    "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.4.0"
+    "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.4.0",
+    "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.9.0"
   }
 }

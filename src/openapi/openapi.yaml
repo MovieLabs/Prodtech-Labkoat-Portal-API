@@ -1,0 +1,1591 @@
+openapi: 3.0.3
+info:
+    title: Labkoat API
+    version: 1.0.0
+    description: |
+        The service gateway for the MovieLabs Production Technology platform. It fronts fMam,
+        StorageOrchestration and the processing pipelines, and it owns the vocabulary outright.
+
+        ## What is documented here
+
+        **`/api/vocab/v1` only, for now.** The vocabulary is the part with consumers outside the
+        Portal — a documentation build fetching definitions, a schema check reading a published
+        view — so it is the part that needed a written contract first.
+
+        The other routers on this service are **not yet described here**:
+
+        | Prefix | What it does |
+        |---|---|
+        | `/api/admin` | Projects, mapping templates |
+        | `/api/omc/v1` | OMC entities and GraphQL, proxied to fMam |
+        | `/api/pipeline/v1` | Processing pipelines — catalogue, upload, run, cancel |
+        | `/api/ingest/v1` | Files as OMC assets |
+        | `/api/greenlight` | Greenlight workflow |
+
+        `/api/pipeline/v1` and `/api/ingest/v1` have written contracts of their own, in
+        `Labkoat-Portal/src/Components/Omc/Import/{Pipeline,Ingest}/CONTRACTS.md`.
+
+        ## Authentication
+
+        Every route below requires a bearer token, and **two kinds are accepted**: an AWS Cognito
+        user token, which is what the Portal holds, and an Okta service token, which is what a build
+        script or another service holds. Each is verified against its own issuer, audience and
+        signature; a token from neither is refused.
+
+        That is what lets a documentation build call `/terms/{id}/markdown` on a schedule without a
+        person being signed in.
+    contact:
+        name: MovieLabs
+    license:
+        name: Proprietary
+
+servers:
+    - url: http://localhost:8080
+      description: Local development
+    - url: https://api.labkoat.media
+      description: Production
+
+tags:
+    - name: Documentation
+      description: |
+          Rendering a term for another document. The routes a build script calls.
+    - name: Views
+      description: Views — what gets published, how it is named, and in which formats
+    - name: Export profiles
+      description: What one view publishes one format as
+    - name: Terms
+      description: The terms themselves — read, create, replace, delete, search
+    - name: Arrangements
+      description: |
+          A term carrying a `member` array is an arrangement, which older names call a collection.
+          These routes read them, fork them, and move placements between them.
+    - name: Controlled sets
+      description: The kinds of label, note, example and tag this vocabulary declares
+    - name: Service
+      description: What this service can produce, and what a column may hold
+
+paths:
+    # ============================================================
+    # Documentation — the build-script routes
+    # ============================================================
+
+    /api/vocab/v1/terms/{id}/markdown:
+        get:
+            tags: [Documentation]
+            summary: One term as a line of markdown
+            description: |
+                Returns `**Label**: Definition` as `text/markdown`, for a build script to substitute
+                into a document in place of a marker naming the identifier.
+
+                **Always the preferred label**, never the label type a view publishes: a document
+                citing a term means the term, not whatever a particular view calls it.
+
+                **One line, always.** A definition written across several lines is collapsed to
+                single spaces, because the output replaces a marker inside a sentence or a list item.
+
+                **The label is escaped and the definition is not.** The label sits inside `**…**`,
+                so a `*` or `_` in it would close the emphasis early and corrupt the rest of the
+                line. A definition is prose its author may have meant to contain markdown.
+
+                A term with no definition returns the label and the colon — `**Anamorphic**:` — so
+                the document still names the term and the gap is visible. Use the batch route if you
+                need to know which terms those were.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  description: The term identifier, e.g. `vmc:c-000034`
+                  schema:
+                      type: string
+                  example: vmc:c-000034
+            responses:
+                '200':
+                    description: The rendered line
+                    content:
+                        text/markdown:
+                            schema:
+                                type: string
+                            examples:
+                                withDefinition:
+                                    summary: A term with a definition
+                                    value: '**Asset**: A physical or digital object or collection of objects specific to the creation of a Creative Work.'
+                                withoutDefinition:
+                                    summary: A term carrying no definition
+                                    value: '**Anamorphic**:'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    description: |
+                        No such term. Deliberately an error: a citation nobody can satisfy should
+                        fail the build that produced it rather than ship an empty line.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+
+    /api/vocab/v1/terms/markdown:
+        post:
+            tags: [Documentation]
+            summary: Many terms as markdown, in one request
+            description: |
+                For a document citing more than one term. A build resolving a hundred markers one
+                request at a time is a hundred round trips, so the whole set goes in one body.
+
+                The reply separates three outcomes a caller may want to treat differently:
+
+                - `terms` — rendered, keyed by identifier
+                - `missing` — no such term; usually a build failure
+                - `withoutDefinition` — the term exists and has none. Rendered as the label alone,
+                  and reported because a line reading `**Asset**:` is a gap the document will show
+                  but the caller cannot detect from the string
+
+                **Missing identifiers are not an error status.** A partial answer is useful, and
+                refusing the whole reply would make the caller ask again one at a time to find out
+                which identifier was at fault.
+
+                Identifiers are de-duplicated, and non-string entries are ignored.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [ids]
+                            properties:
+                                ids:
+                                    type: array
+                                    items:
+                                        type: string
+                                    description: Term identifiers
+                        example:
+                            ids: ['vmc:c-000034', 'vmc:c-0001a7', 'vmc:c-999999']
+            responses:
+                '200':
+                    description: What each identifier resolved to
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MarkdownBatch'
+                            example:
+                                terms:
+                                    vmc:c-000034: '**Asset**: A physical or digital object or collection of objects specific to the creation of a Creative Work.'
+                                    vmc:c-0001a7: '**Lens**:'
+                                missing: ['vmc:c-999999']
+                                withoutDefinition: ['vmc:c-0001a7']
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    description: The body did not carry an `ids` array
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Errors'
+
+    # ============================================================
+    # Service — what this service can produce
+    # ============================================================
+
+    /api/vocab/v1/formats:
+        get:
+            tags: [Service]
+            summary: The formats a view can be published as
+            description: |
+                Each entry carries what a client needs to offer it: the format name, a label, its
+                content type and extension, and the `kind` of profile that configures it.
+
+                **Asked rather than listed**, so a format added to this service is offered by every
+                client without a change to any of them. `internal` is reported here but is the
+                resolution itself rather than a contract, and clients filter it out of a menu.
+            responses:
+                '200':
+                    description: The formats, and what holds them
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    formats:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/FormatDescriptor'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/export/fields:
+        get:
+            tags: [Service]
+            summary: What an export column may hold, and what a type may project to
+            description: |
+                **Half of this is not knowable in advance.** `label:acronym` is a column because
+                somebody added *acronym* to the label set, so the catalogue is derived from the
+                controlled sets rather than restated in each client.
+
+                `predicates` is the fixed list of SKOS predicates a label, note or example type may
+                project to. It is served from here for the same reason: this service validates
+                against its own copy, and a second one in a client is the one that goes stale.
+            responses:
+                '200':
+                    description: The catalogue
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    fields:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/FieldDescriptor'
+                                    predicates:
+                                        type: array
+                                        items:
+                                            type: string
+                                        example: ['skos:prefLabel', 'skos:altLabel', 'skos:definition']
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    # ============================================================
+    # Views
+    # ============================================================
+
+    /api/vocab/v1/views:
+        get:
+            tags: [Views]
+            summary: Every view
+            responses:
+                '200':
+                    description: The views, as stored
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+        post:
+            tags: [Views]
+            summary: Create a view
+            description: |
+                The identifier is minted from the view's label and then fixed — it reaches the
+                ontology URI and any URL a consumer holds, so relabelling keeps the id. Read the
+                minted id off the response.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/View'
+            responses:
+                '200':
+                    description: The view as stored, with its minted identifier
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/views/{id}:
+        get:
+            tags: [Views]
+            summary: One view, resolved and rendered
+            description: |
+                Applies every inclusion, filters by status, leaves out hidden headings and names each
+                term the way the view names it — then hands the result to a generator.
+
+                Problems found while resolving travel in the `X-Vocab-Problems` header rather than
+                the body, because a Turtle document has nowhere to put them. **The header is
+                truncated at 900 characters**, so it is frequently not valid JSON: a caller parsing
+                it must be allowed to fail without losing its result.
+
+                A format that splits its output ships a zip whatever format was asked for, and names
+                itself in `Content-Disposition`.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  example: view:media-creation
+                - name: format
+                  in: query
+                  description: Any format `GET /formats` reports. Defaults to `json`.
+                  schema:
+                      type: string
+                      default: json
+                  example: skos-ttl
+                - name: status
+                  in: query
+                  description: |
+                      Comma-separated statuses, overriding the view's own `publish.status`. Absent
+                      means the view decides, which is the ordinary case.
+                  schema:
+                      type: string
+                  example: published,review
+            responses:
+                '200':
+                    description: The rendered view
+                    headers:
+                        X-Vocab-Problems:
+                            description: What the resolver reported, as JSON. Truncated at 900 characters.
+                            schema:
+                                type: string
+                        Content-Disposition:
+                            description: The filename the artifact asks to be saved as
+                            schema:
+                                type: string
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                        text/turtle:
+                            schema:
+                                type: string
+                        text/csv:
+                            schema:
+                                type: string
+                        text/markdown:
+                            schema:
+                                type: string
+                        application/zip:
+                            schema:
+                                type: string
+                                format: binary
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Views]
+            summary: Create or replace a view
+            description: |
+                **Replaces the whole document.** Anything not in the body is erased, the tag map and
+                the `arrange` block included — so load the record, spread it, and change what you
+                mean. To write an export profile use `PUT /views/{id}/export/{format}`, which sets
+                one key and leaves the rest alone.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/View'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Views]
+            summary: Delete a view
+            description: |
+                The record only. What it published, everything that reaches, and every term in it are
+                untouched — what goes is its ontology URI, how it names things, which statuses it
+                publishes, and its tag overlay.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: What was deleted
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    deleted:
+                                        type: boolean
+                                    attached:
+                                        type: integer
+                                        description: How many rows the view attached
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    /api/vocab/v1/views/{id}/record:
+        get:
+            tags: [Views]
+            summary: One view's stored record, unresolved
+            description: Its settings, tag overlay and `arrange` block — what an editor needs, not what a consumer receives.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: The record as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    # ============================================================
+    # Export profiles
+    # ============================================================
+
+    /api/vocab/v1/views/{id}/table:
+        get:
+            tags: [Views]
+            summary: What a view's on-screen table shows
+            description: |
+                **The effective configuration, not the stored one**, for the reason an export profile
+                is served the same way: a view nobody has configured still shows something, and a
+                client opening on its own guess writes a narrower list the moment somebody presses
+                Save. `configured` says whether the view carries a list of its own.
+
+                Columns are named by the same `source` an export column uses, so both are chosen
+                from the one catalogue `GET /export/fields` serves.
+
+                Not an export profile, though it looks like one: an export asks how to *serialise* a
+                vocabulary and answers `split` and `delimiter`; a table on a screen has neither.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: The effective table configuration
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    table:
+                                        $ref: '#/components/schemas/TableConfig'
+                                    configured:
+                                        type: boolean
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Views]
+            summary: Write what a view's table shows
+            description: |
+                **Its own route rather than a field on `PUT /views/{id}`**, which replaces the whole
+                document. This sets one key and leaves the rest alone.
+
+                Every column must name a source `GET /export/fields` reports, and no source may
+                appear twice — two columns of one source are two columns saying the same thing.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TableConfig'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Views]
+            summary: Put a view's table back to the default columns
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    /api/vocab/v1/views/{id}/export/{format}:
+        get:
+            tags: [Export profiles]
+            summary: What a view publishes a format as
+            description: |
+                **The effective profile, not the stored one.** A view that has never been configured
+                still publishes something, so this resolves the defaults and reports whether the view
+                has a profile of its own in `configured`.
+
+                An editor opening on a blank form, or on its own guess at the default, writes a
+                narrower profile the moment somebody presses Save.
+
+                `kind` says which profile drives this format: `skos`, `table`, `markdown` or `json`.
+                Turtle and JSON-LD share one `skos` profile; CSV and Excel share one `table`.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+                - $ref: '#/components/parameters/format'
+            responses:
+                '200':
+                    description: The effective profile
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    profile:
+                                        type: object
+                                    configured:
+                                        type: boolean
+                                        description: Whether the view carries a profile of its own
+                                    kind:
+                                        type: string
+                                        enum: [skos, table, markdown, json]
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Export profiles]
+            summary: Write one format's export profile
+            description: |
+                **Its own route rather than a field on `PUT /views/{id}`**, which replaces the whole
+                document. This sets one key and leaves the rest alone.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+                - $ref: '#/components/parameters/format'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Export profiles]
+            summary: Reset a format to the default
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+                - $ref: '#/components/parameters/format'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    # ============================================================
+    # Terms
+    # ============================================================
+
+    /api/vocab/v1/terms:
+        get:
+            tags: [Terms]
+            summary: Search terms, or list them all
+            description: |
+                Three questions on one route, chosen by query parameter:
+
+                - `?q=` — search by name, ranked prefix-first. An empty `q` returns the first page
+                  rather than nothing, so a picker has something in it before anyone types
+                - `?all=true` — every term in the store
+                - `?unplaced=true` — terms nothing places. **Computed, never a stored list**: a
+                  stored one goes stale the moment a term on it is really placed
+                - `?ids=` — comma-separated identifiers, for a client holding ids and no names
+            parameters:
+                - name: q
+                  in: query
+                  schema:
+                      type: string
+                - name: all
+                  in: query
+                  schema:
+                      type: string
+                      enum: ['true']
+                - name: unplaced
+                  in: query
+                  schema:
+                      type: string
+                      enum: ['true']
+                - name: ids
+                  in: query
+                  description: Comma-separated identifiers
+                  schema:
+                      type: string
+                - name: limit
+                  in: query
+                  schema:
+                      type: integer
+                      default: 25
+            responses:
+                '200':
+                    description: The matching terms
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Term'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+        post:
+            tags: [Terms]
+            summary: Create terms
+            description: |
+                Takes one term or an array. An array is minted as a single block, which is what lets
+                a spreadsheet import run in one pass rather than one write per row.
+
+                **A duplicate label warns, it does not refuse.** Two terms may legitimately share a
+                name, so the reply carries `warnings` naming the term already using it and the write
+                goes through.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            oneOf:
+                                - $ref: '#/components/schemas/Term'
+                                - type: array
+                                  items:
+                                      $ref: '#/components/schemas/Term'
+            responses:
+                '200':
+                    description: The terms as stored
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    terms:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Term'
+                                    warnings:
+                                        type: array
+                                        items:
+                                            type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/terms/{id}:
+        get:
+            tags: [Terms]
+            summary: One term, as stored
+            parameters:
+                - $ref: '#/components/parameters/termId'
+            responses:
+                '200':
+                    description: The term
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Term'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Terms]
+            summary: Replace a term
+            description: |
+                **A full replace, deliberately.** It is the only way to remove a label or a note — a
+                store that merged on write would leave a cleared field holding its old value.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Term'
+            responses:
+                '200':
+                    description: The term as stored
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                                    warnings:
+                                        type: array
+                                        items:
+                                            type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Terms]
+            summary: Delete a term and every placement of it
+            description: |
+                Refused while the term is in use unless `?force=true`, and the refusal names the
+                containers so a caller can show what the delete would cost before asking again.
+
+                On success the reply carries `removedFrom` — the containers the server edited. A
+                cache still holding their previous member arrays will keep drawing a term that is
+                gone.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+                - $ref: '#/components/parameters/force'
+            responses:
+                '200':
+                    description: What was deleted, and from where
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    deleted:
+                                        type: boolean
+                                    removedFrom:
+                                        type: array
+                                        items:
+                                            type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/terms/{id}/usage:
+        get:
+            tags: [Terms]
+            summary: Where a term is used
+            description: |
+                The terms placing it and the views attaching it. This is what a change-everywhere
+                prompt is built on: before an edit, the reach of that edit is on screen.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+            responses:
+                '200':
+                    description: Where it is used
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Usage'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    # ============================================================
+    # Arrangements
+    # ============================================================
+
+    /api/vocab/v1/collections:
+        get:
+            tags: [Arrangements]
+            summary: Every arrangement, without its members
+            description: |
+                A term carrying a `member` array is an arrangement. Each entry carries `memberCount`
+                instead of the array itself, which is what keeps the response small — the largest
+                holds several hundred members and a picker needs none of them.
+
+                `includes` carries the edges between arrangements, so a client can refuse a drop that
+                would close a loop before the gesture starts.
+            responses:
+                '200':
+                    description: The arrangement list
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/ArrangementSummary'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/collections/{id}:
+        get:
+            tags: [Arrangements]
+            summary: One arrangement, unresolved
+            description: It is a term, so this is the term with its members.
+            parameters:
+                - $ref: '#/components/parameters/containerId'
+            responses:
+                '200':
+                    description: The term, with its `member` array
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Term'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
+    /api/vocab/v1/collections/{id}/usage:
+        get:
+            tags: [Arrangements]
+            summary: Where an arrangement is used
+            description: The same question a term's usage asks — including an arrangement and placing a term are the same act.
+            parameters:
+                - $ref: '#/components/parameters/containerId'
+            responses:
+                '200':
+                    description: Where it is used
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Usage'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/terms/{id}/forks:
+        post:
+            tags: [Arrangements]
+            summary: Give a term another arrangement of its own
+            description: |
+                **One term, one identifier — several hierarchies.** A fork varies how the term is
+                arranged beneath it, never what the term is. That is the difference between this and
+                copying a term.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [name]
+                            properties:
+                                name:
+                                    type: string
+                                copyOf:
+                                    type: string
+                                    nullable: true
+                                    description: A fork id to copy, or null for the default arrangement
+                                empty:
+                                    type: boolean
+                                    description: True for a fork with no members
+            responses:
+                '200':
+                    description: The term and its new fork
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                                    fork:
+                                        type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/terms/{id}/forks/{forkId}:
+        put:
+            tags: [Arrangements]
+            summary: Name an arrangement
+            description: |
+                Nothing published moves — rows point at a fork's id, which never changes, and the
+                default arrangement is never pointed at by name at all. Use `default` as `forkId` to
+                name the term's own arrangement.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+                - $ref: '#/components/parameters/forkId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [name]
+                            properties:
+                                name:
+                                    type: string
+            responses:
+                '200':
+                    description: The term as stored
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Arrangements]
+            summary: Delete a fork
+            description: |
+                Refused while anything still brings it, unless `?force=true`. The rows inside it are
+                placements, so the terms it arranged are untouched either way.
+            parameters:
+                - $ref: '#/components/parameters/termId'
+                - $ref: '#/components/parameters/forkId'
+                - $ref: '#/components/parameters/force'
+            responses:
+                '200':
+                    description: The term, and how many placements pointed at the fork
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                                    placements:
+                                        type: integer
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/containers/{id}/arrange:
+        post:
+            tags: [Arrangements]
+            summary: Move a term's subtree onto the term
+            description: |
+                So it can be reused wherever the term is placed. The term's row does not move, so
+                what this container publishes is unchanged — what changes is that the subtree now
+                travels with the term instead of being rebuilt by hand as a copy that drifts.
+            parameters:
+                - $ref: '#/components/parameters/containerId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [mid]
+                            properties:
+                                mid:
+                                    type: string
+                                    description: The member row of the term to arrange
+            responses:
+                '200':
+                    description: What moved
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                                    source:
+                                        type: object
+                                    moved:
+                                        type: integer
+                                    repointed:
+                                        type: integer
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/containers/{id}/move:
+        post:
+            tags: [Arrangements]
+            summary: Move a placement, and everything beneath it
+            description: |
+                One request rather than a remove and an add, which is what lets a **subtree** move: a
+                detach-then-drop gesture has to refuse anything with children.
+
+                The reply's `mid` is where the row landed, which differs from the one asked for when
+                moving between containers forced a remint — a mid is unique only within its container.
+            parameters:
+                - $ref: '#/components/parameters/containerId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [mid, toId]
+                            properties:
+                                mid:
+                                    type: string
+                                toId:
+                                    type: string
+                                    description: The container to move into
+                                toParent:
+                                    type: string
+                                    nullable: true
+                                    description: The row to sit under, or null for the top level
+            responses:
+                '200':
+                    description: What moved, and where it landed
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    moved:
+                                        type: integer
+                                    repointed:
+                                        type: integer
+                                    mid:
+                                        type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/containers/{id}/unarrange:
+        post:
+            tags: [Arrangements]
+            summary: Give a term's arrangement back to this container
+            description: |
+                The inverse of arranging. Every other placement of the term loses what was under it,
+                so it is refused unless `?force=true`; the refusal says where.
+            parameters:
+                - $ref: '#/components/parameters/containerId'
+                - $ref: '#/components/parameters/force'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required: [mid]
+                            properties:
+                                mid:
+                                    type: string
+            responses:
+                '200':
+                    description: What came back
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    term:
+                                        $ref: '#/components/schemas/Term'
+                                    source:
+                                        type: object
+                                    moved:
+                                        type: integer
+                                    warnings:
+                                        type: array
+                                        items:
+                                            type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    # ============================================================
+    # Controlled sets
+    # ============================================================
+
+    /api/vocab/v1/facets:
+        get:
+            tags: [Controlled sets]
+            summary: The controlled sets
+            description: |
+                What kinds of label, note, example and tag exist. Each value declares how it degrades
+                to SKOS on export; a view may override that for its own export.
+            responses:
+                '200':
+                    description: The sets
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Facet'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/facets/{id}:
+        put:
+            tags: [Controlled sets]
+            summary: Create or replace a controlled set
+            description: |
+                Refused when it would drop a value terms still carry, unless `?force=true`. Removing
+                a value leaves the terms already using it untouched, and an export reports those as
+                unknown rather than dropping them quietly.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  example: facet:label
+                - $ref: '#/components/parameters/force'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Facet'
+            responses:
+                '200':
+                    description: The set as stored
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    facet:
+                                        $ref: '#/components/schemas/Facet'
+                                    warnings:
+                                        type: array
+                                        items:
+                                            type: string
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    # ============================================================
+    # Drift
+    # ============================================================
+
+    /api/vocab/v1/drift:
+        post:
+            tags: [Service]
+            summary: Drift between a view and a JSON Schema
+            description: |
+                In both directions — what the schema has that the view does not, and the reverse.
+                **A POST because the schema is the input**, not because anything is written.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The drift report
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+components:
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
+            description: |
+                An AWS Cognito user token, or an Okta service token. Each is verified against its own
+                issuer, audience and signature; a token from neither is refused.
+
+    parameters:
+        viewId:
+            name: id
+            in: path
+            required: true
+            description: The view identifier
+            schema:
+                type: string
+            example: view:media-creation
+        termId:
+            name: id
+            in: path
+            required: true
+            description: The term identifier
+            schema:
+                type: string
+            example: vmc:c-000034
+        containerId:
+            name: id
+            in: path
+            required: true
+            description: |
+                A container identifier — a view, a term's default arrangement, or one of its forks.
+                A fork is written `<termId>#<forkId>`.
+            schema:
+                type: string
+            example: vmc:c-000081#f1
+        forkId:
+            name: forkId
+            in: path
+            required: true
+            description: A fork identifier, or `default` for the term's own arrangement
+            schema:
+                type: string
+            example: f1
+        format:
+            name: format
+            in: path
+            required: true
+            description: Any format `GET /formats` reports
+            schema:
+                type: string
+            example: csv
+        force:
+            name: force
+            in: query
+            description: Carry out a write this service would otherwise refuse
+            schema:
+                type: string
+                enum: ['true']
+
+    responses:
+        Unauthorized:
+            description: No bearer token, or one neither validator accepts
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Message'
+        NotFound:
+            description: No such record
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Message'
+        Refused:
+            description: |
+                The write was refused. **Every reason is returned, not just the first** — fixing
+                three mistakes one round trip at a time is three times the work — and the reasons are
+                written for a person to read.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Errors'
+
+    schemas:
+        Message:
+            type: object
+            properties:
+                message:
+                    type: string
+
+        Errors:
+            type: object
+            properties:
+                errors:
+                    type: array
+                    items:
+                        type: string
+
+        TableConfig:
+            type: object
+            description: What a view's on-screen table shows, and in what order.
+            properties:
+                columns:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: object
+                        required: [source]
+                        properties:
+                            source:
+                                type: string
+                                description: A source `GET /export/fields` reports
+                                example: label:acronym
+                            header:
+                                type: string
+                                description: What the column is called on screen
+
+        MarkdownBatch:
+            type: object
+            properties:
+                terms:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: The rendered line, keyed by identifier
+                missing:
+                    type: array
+                    items:
+                        type: string
+                    description: Identifiers naming no term
+                withoutDefinition:
+                    type: array
+                    items:
+                        type: string
+                    description: Terms that exist and carry no definition
+
+        Label:
+            type: object
+            properties:
+                value:
+                    type: string
+                language:
+                    type: string
+                    example: en
+                labelType:
+                    type: string
+                    description: A type the label controlled set declares
+                    example: pref
+
+        Member:
+            type: object
+            description: One row of a container's `member` array — a placement.
+            properties:
+                mid:
+                    type: string
+                    description: Unique within its container, not globally
+                term:
+                    type: string
+                parent:
+                    type: string
+                    nullable: true
+                    description: The row it sits under, or absent for the top level
+                arrangement:
+                    type: string
+                    nullable: true
+                    description: |
+                        Which of the term's arrangements this placement brings. Absent for the
+                        default; `none` for a placement declining the arrangement and taking its
+                        children from the container it sits in.
+
+        Term:
+            type: object
+            description: |
+                A term. **A term carrying a `member` array is an arrangement** — what older names
+                call a collection. There is no separate collection record.
+            properties:
+                _id:
+                    type: string
+                    example: vmc:c-000034
+                label:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Label'
+                definition:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Keyed by language
+                status:
+                    type: string
+                    example: published
+                note:
+                    type: array
+                    items:
+                        type: object
+                example:
+                    type: array
+                    items:
+                        type: object
+                member:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Member'
+                fork:
+                    type: array
+                    items:
+                        type: object
+                    description: Further arrangements of this term, each with its own `member` array
+                arrangementName:
+                    type: string
+                    nullable: true
+                modified:
+                    type: string
+                modifiedBy:
+                    type: string
+
+        ArrangementSummary:
+            type: object
+            description: One arrangement as the list reports it — counts and edges, no member array.
+            properties:
+                _id:
+                    type: string
+                    description: The container id, which is a fork's where this is a fork
+                termId:
+                    type: string
+                forkId:
+                    type: string
+                    nullable: true
+                arrangementName:
+                    type: string
+                    nullable: true
+                label:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Label'
+                memberCount:
+                    type: integer
+                terms:
+                    type: array
+                    items:
+                        type: string
+                includes:
+                    type: array
+                    items:
+                        type: string
+                    description: The containers its rows reach, for cycle checks
+                inViews:
+                    type: array
+                    items:
+                        type: string
+
+        View:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: view:media-creation
+                label:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Label'
+                definition:
+                    type: object
+                    additionalProperties:
+                        type: string
+                member:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Member'
+                labelType:
+                    type: string
+                    description: Which of a term's labels this view names it by
+                    example: pref
+                labelStyle:
+                    type: string
+                    enum: [plain, dotted]
+                nodeWidth:
+                    type: integer
+                    description: How wide the graph draws a pill
+                ontology:
+                    type: string
+                    description: The identifier the published RDF declares itself under
+                filename:
+                    type: string
+                publish:
+                    type: object
+                    properties:
+                        status:
+                            type: array
+                            items:
+                                type: string
+                generators:
+                    type: array
+                    items:
+                        type: string
+                    description: The formats this view offers. Absent means all of them.
+                tag:
+                    type: object
+                    additionalProperties:
+                        type: array
+                        items:
+                            type: string
+                    description: View tags, keyed by term identifier
+                arrange:
+                    type: object
+                    properties:
+                        hide:
+                            type: array
+                            items:
+                                type: string
+                            description: Placement keys, `containerId/mid`, this view leaves out
+                        dotFrom:
+                            type: array
+                            items:
+                                type: string
+                            description: Placement keys a dotted name is counted from
+                export:
+                    type: object
+                    description: Export profiles, keyed by profile kind
+                table:
+                    $ref: '#/components/schemas/TableConfig'
+
+        Facet:
+            type: object
+            properties:
+                _id:
+                    type: string
+                    example: facet:label
+                appliesTo:
+                    type: string
+                    enum: [label, note, example, tag, status]
+                key:
+                    type: string
+                    description: Which property of a value carries its type
+                label:
+                    type: object
+                    additionalProperties:
+                        type: string
+                definition:
+                    type: object
+                    additionalProperties:
+                        type: string
+                values:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            label:
+                                type: object
+                                additionalProperties:
+                                    type: string
+                            skos:
+                                type: string
+                                nullable: true
+                                description: The SKOS predicate this value degrades to, or null to leave it out
+
+        FormatDescriptor:
+            type: object
+            properties:
+                format:
+                    type: string
+                    example: csv
+                label:
+                    type: string
+                contentType:
+                    type: string
+                extension:
+                    type: string
+                kind:
+                    type: string
+                    enum: [skos, table, markdown, json]
+                kindLabel:
+                    type: string
+
+        FieldDescriptor:
+            type: object
+            description: One source a column may name.
+            properties:
+                source:
+                    type: string
+                    example: label:acronym
+                heading:
+                    type: string
+                    description: What a column of this is called unless renamed
+                describes:
+                    type: string
+                group:
+                    type: string
+                    enum: [Structure, Labels, Notes, Examples, Tags]
+                multi:
+                    type: boolean
+
+        Usage:
+            type: object
+            properties:
+                collections:
+                    type: array
+                    items:
+                        type: object
+                views:
+                    type: array
+                    items:
+                        type: object
+
+security:
+    - bearerAuth: []

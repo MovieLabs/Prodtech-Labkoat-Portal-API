@@ -18,6 +18,7 @@
  */
 
 import { PROFILE_KINDS, profileKindOf } from '../exportProfiles.js';
+import { validateTableConfig } from '../tableConfig.js';
 
 import {
     VOCAB_FACETS,
@@ -1053,6 +1054,64 @@ export async function saveExportProfile(id, format, profile, actor) {
  * @returns {Promise<object>} The view as stored
  * @throws {ValidationError} On an unknown view or format
  */
+/**
+ * Write what a view's on-screen table shows.
+ *
+ * **Its own route, not a field on `PUT /views/:id`**, which replaces the whole document — the same
+ * hazard the export profiles are kept away from. This sets one key and leaves the rest alone.
+ *
+ * @param {string} id
+ * @param {object} config - `{columns}`
+ * @param {string} actor
+ * @returns {Promise<object>} The view as stored
+ */
+export async function saveTableConfig(id, config, actor) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (!view) throw new ValidationError([`No such view: ${id}`]);
+
+    const facets = await listFacets();
+    const check = validateTableConfig(config, facets);
+    if (!check.ok) throw new ValidationError(check.errors);
+
+    await vocabCollection(VOCAB_VIEWS).updateOne(
+        { _id: id },
+        {
+            $set: {
+                table: config,
+                modified: new Date().toISOString(),
+                modifiedBy: actor ?? 'unknown',
+            },
+        },
+    );
+
+    return vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+}
+
+/**
+ * Put a view's table back to the default set of columns.
+ *
+ * @param {string} id
+ * @param {string} actor
+ * @returns {Promise<object>} The view as stored
+ */
+export async function deleteTableConfig(id, actor) {
+    const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+    if (!view) throw new ValidationError([`No such view: ${id}`]);
+
+    await vocabCollection(VOCAB_VIEWS).updateOne(
+        { _id: id },
+        {
+            $unset: { table: '' },
+            $set: {
+                modified: new Date().toISOString(),
+                modifiedBy: actor ?? 'unknown',
+            },
+        },
+    );
+
+    return vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
+}
+
 export async function deleteExportProfile(id, format, actor) {
     const view = await vocabCollection(VOCAB_VIEWS).findOne({ _id: id });
     if (!view) throw new ValidationError([`No such view: ${id}`]);
