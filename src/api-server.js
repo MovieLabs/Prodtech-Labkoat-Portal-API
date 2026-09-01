@@ -17,7 +17,6 @@ import routeLog from '../src/routes/routeLog.js';
 import vocabV1Router from '../src/routes/vocab-v1-router.js';
 
 import config from './config.js';
-import { oktaSetup } from './controllers/oktaInterface.js';
 import { localStorageRoot } from './pipeline/projectConfig.js';
 import { setPipelineSecrets } from './pipeline/secrets.js';
 import { createVocabIndexes } from './vocabulary/store/collections.js';
@@ -87,7 +86,6 @@ export default async function apiServer() {
         region: config.AWS_REGION,
         arn: config.SECRET_ARN,
     });
-    await oktaSetup(secrets);
     // A failure here must not stop the service booting: every other route is unaffected, and the
     // vocabulary reporting its own unavailability is more useful than the gateway refusing to start.
     try {
@@ -102,12 +100,18 @@ export default async function apiServer() {
     }
     setPipelineSecrets(secrets); // So pipeline dispatch can hand a run only what it declared
     // await serviceSetup(secrets);
+    // The machine credential presented to fMam, from a Cognito client_credentials grant. The scope
+    // is what fMam checks to tell a service token apart from a user's.
     await serviceToken.setup({
-        issuer: config.OKTA_LABKOAT_SERVICE_API_ISSUER, // The URL for the Authorization server that is issuing the token
-        scope: config.OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE, // Scopes are not applicable in our application
-        clientId: config.OKTA_LABKOAT_SERVICE_API_CLIENT_ID,
-        clientSecret: secrets.LABKOAT.LABKOAT_SERVICE_API,
+        issuer: config.ISSUER, // The user pool that issues the token
+        tokenUrl: config.COGNITO_TOKEN_URL, // On the hosted domain, not the issuer host
+        scope: config.COGNITO_M2M_SCOPE,
+        clientId: config.COGNITO_M2M_CLIENT_ID,
+        clientSecret: secrets.LABKOAT.COGNITO_M2M_CLIENT_SECRET,
     });
+    if (!config.COGNITO_M2M_CLIENT_ID) {
+        console.warn('COGNITO_M2M_CLIENT_ID is not set: calls to fMam will be unauthenticated');
+    }
 
     app.use(cookieParser());
 
@@ -134,7 +138,6 @@ export default async function apiServer() {
         }
     }));
 
-    // app.use('/api/okta', okta); // Add the route controllers for Okta
     app.use('/api/admin', adminRouter); // Add the route controllers for the Admin page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab/v1', vocabV1Router); // The vocabulary: views, generators, usage

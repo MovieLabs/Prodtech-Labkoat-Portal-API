@@ -22,7 +22,7 @@
  */
 
 import express from 'express';
-import { awsJwtValidator, jwtValidator } from 'mlHelpers';
+import { cognitoValidator } from 'mlHelpers';
 
 import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
@@ -67,39 +67,21 @@ import { tableFor } from '../vocabulary/tableConfig.js';
 
 const router = express.Router();
 
-/** The Okta service-token validator. Same issuer and audience the service API already uses. */
-const oktaValidator = jwtValidator({
-    audience: 'https://service.labkoat.media',
-    issuer: config.OKTA_LABKOAT_SERVICE_API_ISSUER,
-    jwksUri: `${config.OKTA_LABKOAT_SERVICE_API_ISSUER}/v1/keys`,
-});
-
 /**
- * Accept a request that satisfies either validator.
+ * A browser user, or a machine.
  *
- * The **first** error is the one reported when both fail. A browser calling with an expired Cognito
- * token should be told that, not told its token is not a valid Okta service token — the second
- * message describes a credential it was never going to present.
- *
- * @param {Function} first
- * @param {Function} second
- * @returns {Function} Express middleware
+ * The vocabulary is published for builds in other repositories as well as for the Portal, so this
+ * route accepts a service token where the user-facing routes do not. Both now come from the same
+ * Cognito pool; they are told apart by their claims, since a machine token carries a scope and no
+ * `cognito:groups` while a user's carries the reverse.
  */
-function eitherAuth(first, second) {
-    return (req, res, next) => {
-        first(req, res, (firstError) => {
-            if (!firstError) {
-                next();
-                return;
-            }
-            second(req, res, (secondError) => {
-                next(secondError ? firstError : undefined);
-            });
-        });
-    };
-}
-
-const authenticated = eitherAuth(awsJwtValidator, oktaValidator);
+const authenticated = cognitoValidator({
+    userPoolId: config.USER_POOL_ID,
+    machine: config.COGNITO_M2M_CLIENT_ID
+        ? { clientId: config.COGNITO_M2M_CLIENT_ID, scope: config.COGNITO_M2M_SCOPE }
+        : null,
+    user: { clientId: config.CLIENT_ID, group: 'labkoat' },
+});
 
 /**
  * `?status=published,review` overrides the view's own default.

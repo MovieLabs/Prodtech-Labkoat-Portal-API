@@ -9,16 +9,19 @@
 
 const configEnv = {
     default: {
-        JWKS_URI: '"https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M/.well-known/jwks.json',
+        JWKS_URI: 'https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M/.well-known/jwks.json',
         USER_POOL_ID: 'us-west-2_EW6OVSs8M',
         CLIENT_ID: '7mo1c0om06ubavs3d30jhak2mj',
         ISSUER: 'https://cognito-idp.us-west-2.amazonaws.com/us-west-2_EW6OVSs8M',
         AUDIENCE: '7mo1c0om06ubavs3d30jhak2mj',
         FMAM_URL: 'https://service.labkoat.media/fmam/api',
         GRAPHQL_URL: 'https://service.labkoat.media/fmam/graphql',
-        OKTA_LABKOAT_SERVICE_API_ISSUER: 'https://movielabs.okta.com/oauth2/aus4zqd8ksuiL13Rl697',
-        OKTA_LABKOAT_SERVICE_API_DEFAULT_SCOPE: 'labkoat_api',
-        OKTA_LABKOAT_SERVICE_API_CLIENT_ID: '0oa55vfp9wLx8dxIF697',
+        // The machine credential this service presents to fMam. A Cognito client_credentials grant:
+        // the token carries `client_id` and `scope` but no `cognito:groups`, so it is not a user.
+        // The token endpoint lives on the pool's hosted domain, not on the issuer host.
+        COGNITO_TOKEN_URL: 'https://us-west-2ew6ovss8m.auth.us-west-2.amazoncognito.com/oauth2/token',
+        COGNITO_M2M_SCOPE: 'labkoat/fmam.access',
+        COGNITO_M2M_CLIENT_ID: '30l6v3jcm9v3jcunvb3jinco3m', // app client 'api.services.labkoat'
         // The vocabulary's Mongo store. Same cluster and same credentials fMam uses — the
         // gateway already holds SECRET_ARN.FMAM, so this needs no new secret to rotate. The
         // collections sit in `app_config` beside `projects` and `mappingTemplates`, all of them

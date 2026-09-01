@@ -12,7 +12,7 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 **Labkoat-API** is the Express REST gateway (port 8080) that the Portal talks to. Everything the
 browser needs goes through here: it proxies OMC reads and writes to fMam, serves the vocabulary out
-of MongoDB, brokers directory and token-exchange calls to Okta and Auth0, and **runs the processing
+of MongoDB, brokers directory calls to Auth0, and **runs the processing
 pipelines in worker threads**.
 
 The directory was renamed from `Prodtech-Labkoat-Portal-API-2` on 2026-07-29, but nothing else was:
@@ -91,11 +91,10 @@ entity. `DELETE /edge` is a separate route from `DELETE /update`.
 - `admin/` — `projects.js`, `templates.js`
 - `omc/omc-controller.js`, `fMamFetch.js` — the fMam proxy
 - `pipeline/` — `pipeline-controller.js`, `ingest-controller.js`
-- `directory/` — `directory.js`, `securityController.js`, `user.js`, plus `auth0/`, `okta/` and
-  `query/` sub-trees mapping directory records onto OMC
-- `token-exchange/` — `exchangeTokenController.js`, `serviceTokenController.js`
+- `directory/` — the `auth0/` and `query/` sub-trees mapping directory records onto OMC. Nothing
+  imports them since the Okta directory integration was deleted; see below.
 - `greenlight/greenlight-controller.js`
-- `auth0Interface.js`, `oktaInterface.js`
+- `auth0Interface.js`
 
 ### The pipeline runner (`src/pipeline/`)
 
@@ -244,8 +243,10 @@ Things that will bite:
   moment one of its terms was placed. `unplacedTerms()` asks the question instead — a term nothing
   places, counting views as placing, since a term attached straight to a view sits in no other term's
   arrangement and is not unplaced.
-- `/api/vocab/v1` accepts **either** a Cognito user token or an Okta service token — the Portal and a
-  build script are both legitimate callers and hold different credentials.
+- `/api/vocab/v1` accepts **either** a Cognito user token or a Cognito machine token — the Portal and
+  a build script are both legitimate callers and hold different credentials. They are told apart by
+  their claims: a machine token carries a `scope` and no `cognito:groups`, a user's carries the
+  reverse.
 - **`GET /terms` answers two different questions.** With `?q=` it searches by name, prefix-first;
   with `?ids=` it looks up a named batch. The membership editor needs the second to put a name on
   each of an arrangement's members — 312 in the largest — and the client batches at 150 ids because a
@@ -257,11 +258,20 @@ Things that will bite:
   a self-inclusion, so the *intermediate* states of an ordinary rearrangement would each be rejected
   — which is why the editor holds the arrangement locally and writes once.
 
-### Okta is still live here
+### Okta has been removed
 
-The legacy Okta *frontend* is gone, but Okta remains a backend dependency: `oktaInterface.js`, the
-`directory/okta/` mappers, and the service-token issuer all use it. Cognito authenticates end users;
-Okta backs the service API and directory.
+As of 2026-09-01 there is no Okta left in this service. Cognito issues both the user tokens the
+Portal presents and the machine token this service presents to fMam (a client_credentials grant;
+see `serviceToken.setup` in `api-server.js`).
+
+Deleted with it: `oktaInterface.js`, `directory/okta/`, `directory/directory.js`,
+`directory/securityController.js`, `directory/user.js`, `routes/directory-router.js`,
+`controllers/token-exchange/`, `routes/test-router.js`, and the `@okta/*` packages. None was
+reachable — `directory-router` was never mounted and several of those modules used extensionless
+CommonJS imports that cannot load in an ESM package.
+
+**This orphaned `auth0Interface.js` and the `directory/auth0/` and `directory/query/` sub-trees.**
+They are left in place deliberately, pending a decision on the Auth0 FGA work they belong to.
 
 ---
 
@@ -272,7 +282,7 @@ Okta backs the service API and directory.
 
 - Cognito: `JWKS_URI`, `USER_POOL_ID`, `CLIENT_ID`, `ISSUER`, `AUDIENCE`
 - Downstream: `FMAM_URL`, `GRAPHQL_URL` (localhost:4001 in local mode)
-- Okta service API: issuer, default scope, client id
+- Cognito machine token: `COGNITO_TOKEN_URL`, `COGNITO_M2M_CLIENT_ID`, `COGNITO_M2M_SCOPE`
 - Pipelines: `PIPELINE_WORKER_COUNT` (2), `PIPELINE_WORKER_MEMORY_MB` (1024),
   `PIPELINE_RUN_TIMEOUT_MS` (15 min), `PIPELINE_RUN_TTL_MS` (30 min — how long a finished run stays
   readable), `PIPELINE_MAX_UPLOAD_BYTES` (2 GB)
