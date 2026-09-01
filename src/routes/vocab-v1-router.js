@@ -57,10 +57,13 @@ import {
     saveFacet,
     createView,
     deleteExportProfile,
+    deleteTableConfig,
     deleteView,
     saveExportProfile,
+    saveTableConfig,
     saveView,
 } from '../vocabulary/store/write.js';
+import { tableFor } from '../vocabulary/tableConfig.js';
 
 const router = express.Router();
 
@@ -535,6 +538,47 @@ router.get('/views/:id/export/:format', authenticated, async (req, res, next) =>
  * caller of that has to load the record and spread it first, and the tag map and the `arrange` lists
  * have each had to be rescued from a body built from a form's fields alone. This sets one key.
  */
+/**
+ * What a view's on-screen table shows, whether or not it has been configured.
+ *
+ * **The effective configuration, not the stored one**, for the reason an export profile is served
+ * the same way: a view nobody has configured still shows something, and a client opening on its own
+ * guess writes a narrower list the moment somebody presses Save.
+ *
+ * Columns are named by the same `source` an export column uses, so both are chosen from the one
+ * catalogue `GET /export/fields` serves.
+ */
+router.get('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        const view = await getView(req.params.id);
+        if (!view) {
+            res.status(404).json({ message: `No such view: ${req.params.id}` });
+            return;
+        }
+        res.json({ table: tableFor(view), configured: Boolean(view.table) });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/** Write what a view's table shows. Sets one key rather than replacing the document. */
+router.put('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        res.json(await saveTableConfig(req.params.id, req.body, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
+/** Put a view's table back to the default columns. */
+router.delete('/views/:id/table', authenticated, async (req, res, next) => {
+    try {
+        res.json(await deleteTableConfig(req.params.id, actorOf(req)));
+    } catch (err) {
+        writeFailed(err, res, next);
+    }
+});
+
 router.put('/views/:id/export/:format', authenticated, async (req, res, next) => {
     try {
         res.json(await saveExportProfile(

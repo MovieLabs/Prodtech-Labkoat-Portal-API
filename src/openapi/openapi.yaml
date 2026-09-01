@@ -434,6 +434,84 @@ paths:
     # Export profiles
     # ============================================================
 
+    /api/vocab/v1/views/{id}/table:
+        get:
+            tags: [Views]
+            summary: What a view's on-screen table shows
+            description: |
+                **The effective configuration, not the stored one**, for the reason an export profile
+                is served the same way: a view nobody has configured still shows something, and a
+                client opening on its own guess writes a narrower list the moment somebody presses
+                Save. `configured` says whether the view carries a list of its own.
+
+                Columns are named by the same `source` an export column uses, so both are chosen
+                from the one catalogue `GET /export/fields` serves.
+
+                Not an export profile, though it looks like one: an export asks how to *serialise* a
+                vocabulary and answers `split` and `delimiter`; a table on a screen has neither.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: The effective table configuration
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    table:
+                                        $ref: '#/components/schemas/TableConfig'
+                                    configured:
+                                        type: boolean
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Views]
+            summary: Write what a view's table shows
+            description: |
+                **Its own route rather than a field on `PUT /views/{id}`**, which replaces the whole
+                document. This sets one key and leaves the rest alone.
+
+                Every column must name a source `GET /export/fields` reports, and no source may
+                appear twice — two columns of one source are two columns saying the same thing.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TableConfig'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Views]
+            summary: Put a view's table back to the default columns
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+            responses:
+                '200':
+                    description: The view as stored
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/View'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+
     /api/vocab/v1/views/{id}/export/{format}:
         get:
             tags: [Export profiles]
@@ -1203,6 +1281,25 @@ components:
                     items:
                         type: string
 
+        TableConfig:
+            type: object
+            description: What a view's on-screen table shows, and in what order.
+            properties:
+                columns:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: object
+                        required: [source]
+                        properties:
+                            source:
+                                type: string
+                                description: A source `GET /export/fields` reports
+                                example: label:acronym
+                            header:
+                                type: string
+                                description: What the column is called on screen
+
         MarkdownBatch:
             type: object
             properties:
@@ -1405,6 +1502,8 @@ components:
                 export:
                     type: object
                     description: Export profiles, keyed by profile kind
+                table:
+                    $ref: '#/components/schemas/TableConfig'
 
         Facet:
             type: object
