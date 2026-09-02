@@ -15,12 +15,25 @@
  * omitted **because somebody decided it should be**. A type with no facet entry at all is a
  * different thing: it is unknown, and it is reported rather than dropped in silence.
  *
+ * ## A dictionary, and one arrangement of it
+ *
+ * The document is written in three blocks, and the split is the point of the shape rather than a
+ * formatting preference. The **terms** carry identity and properties and no structure — that is the
+ * dictionary, and a term means the same thing in every view that reaches it. The **arrangement**
+ * says what this view does with them: which terms head schemes, what is broader than what, and that
+ * all of it arrived together as one `skos:Collection`.
+ *
+ * Nothing structural follows from the split — a consumer parsing the triples gets the same graph
+ * either way. What follows is that somebody reading the file can see which half is the vocabulary
+ * and which half is one opinion about it.
+ *
  * @module vocabulary/generators/skos
  */
 
 import {
     broaderOf, placementsByTerm, schemeHeads, schemesOf, topConceptOf,
 } from '../resolve.js';
+import { viewCollectionIdFor } from '../store/ids.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
 const PREFIXES = {
@@ -29,17 +42,39 @@ const PREFIXES = {
     owl: 'http://www.w3.org/2002/07/owl#',
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+    dct: 'http://purl.org/dc/terms/',
     vmc: 'https://mc.movielabs.com/vmc#',
 };
 
 /** Where a view that names no ontology of its own is published. */
 const ONTOLOGY = 'https://mc.movielabs.com/vmc';
 
+/** The blocks a document is written in, in the order they appear. */
+const BLOCKS = [
+    { name: 'header', title: 'This document' },
+    { name: 'terms', title: 'Terms — identity and properties, no structure' },
+    { name: 'structure', title: 'Arrangement — what this view makes of them' },
+];
+
+/**
+ * What every scheme and collection here says about itself.
+ *
+ * A published view is one arrangement, not the whole of anything. Two of them can be loaded together
+ * — they are triples, and a term keeps one identifier throughout — but each was arranged for its own
+ * purpose, so the union of two structures is not itself a considered structure. Saying so in the
+ * document means a consumer merging them has been told, rather than finding out from the result.
+ */
+const STANDALONE = 'This is a standalone scheme. Its structure is one view of the term dictionary; '
+    + 'the terms carry their own identity and properties independently of it. It may be merged with '
+    + 'other schemes, but a merge combines structures that were arranged for different purposes, and '
+    + 'the result may not be coherent.';
+
 /**
  * @typedef {object} Triple
  * @property {string} subject - A prefixed id
  * @property {string} predicate - A prefixed predicate
  * @property {object|string} object - `{ id }` for a reference, or `{ value, language }` for a literal
+ * @property {string} block - The block of the document it is written in, one of `BLOCKS`
  */
 
 /**
@@ -75,7 +110,8 @@ export function skosTriples(resolution, projections) {
     // emit the schemes, once so a head can say it belongs to its own.
     const heads = schemeHeads(resolution);
 
-    const add = ((subject, predicate, object) => triples.push({ subject, predicate, object }));
+    const add = ((subject, predicate, object, block) => triples
+        .push({ subject, predicate, object, block }));
     const literal = ((value, lang = language) => ({ value, language: lang }));
     const ref = ((id) => ({ id }));
 
@@ -87,12 +123,30 @@ export function skosTriples(resolution, projections) {
     // What the union needs is a name and a statement of what it gathers, which is what OWL says
     // here without touching skos:Concept at all.
     const ontology = resolution.view?.ontology ?? ONTOLOGY;
-    add(`<${ontology}>`, 'rdf:type', ref('owl:Ontology'));
-    const ontologyLabel = prefLabel(resolution.view, language);
-    if (ontologyLabel) add(`<${ontology}>`, 'rdfs:label', literal(ontologyLabel));
+    add(`<${ontology}>`, 'rdf:type', ref('owl:Ontology'), 'header');
+    const viewLabel = prefLabel(resolution.view, language);
+    if (viewLabel) add(`<${ontology}>`, 'rdfs:label', literal(viewLabel), 'header');
     (resolution.imports ?? []).forEach((imported) => {
-        add(`<${ontology}>`, 'owl:imports', ref(`<${imported}>`));
+        add(`<${ontology}>`, 'owl:imports', ref(`<${imported}>`), 'header');
     });
+
+    // ---- the view, as a collection ----
+    //
+    // What SKOS has for "these things were published together": a `skos:Collection`, identified by
+    // the view rather than by anything in it, so two views that share terms stay two collections.
+    // Its members are the concepts below; the schemes are not members, because `skos:member` ranges
+    // over Concept and Collection and a ConceptScheme in there is a validator finding. They are
+    // reached instead through the `skos:inScheme` their own members carry.
+    const collection = viewCollectionIdFor(resolution.view?._id);
+    add(collection, 'rdf:type', ref('skos:Collection'), 'header');
+    if (viewLabel) add(collection, 'skos:prefLabel', literal(viewLabel), 'header');
+    const viewDefinition = localised(resolution.view?.definition, language);
+    add(
+        collection,
+        'dct:description',
+        literal(viewDefinition ? `${viewDefinition}\n\n${STANDALONE}` : STANDALONE),
+        'header',
+    );
 
     // ---- schemes ----
     //
@@ -104,13 +158,18 @@ export function skosTriples(resolution, projections) {
     //
     // A term the view attaches that carries no arrangement is just a concept, and the tree below it
     // works the usual way.
+    // The identifier is the view's as much as the term's — `vmc:s-media-creation.000041` — because a
+    // scheme *is* an arrangement, and the arrangement belongs to the view. Keyed on the term alone,
+    // two views that both head `Audio` would publish one identifier for two different structures,
+    // and a consumer holding both documents would read their union as a single scheme.
     heads.forEach((schemeId, termId) => {
         const term = terms.get(termId);
         if (!term) return;
-        add(schemeId, 'rdf:type', ref('skos:ConceptScheme'));
-        add(schemeId, 'skos:prefLabel', literal(prefLabel(term, language)));
+        add(schemeId, 'rdf:type', ref('skos:ConceptScheme'), 'structure');
+        add(schemeId, 'skos:prefLabel', literal(prefLabel(term, language)), 'structure');
         const definition = localised(term.definition, language);
-        if (definition) add(schemeId, 'skos:definition', literal(definition));
+        if (definition) add(schemeId, 'skos:definition', literal(definition), 'structure');
+        add(schemeId, 'dct:description', literal(STANDALONE), 'structure');
     });
 
     // ---- concepts ----
@@ -131,22 +190,25 @@ export function skosTriples(resolution, projections) {
         const placements = heads.has(termId) ? all.filter((one) => one.path.length) : all;
         if (!placements.length) return;
 
-        add(termId, 'rdf:type', ref('skos:Concept'));
+        add(termId, 'rdf:type', ref('skos:Concept'), 'terms');
+        // Everything the view publishes as a concept is a member of the view's collection. Said
+        // here rather than in a second walk, because this is where a term is decided to be one.
+        add(collection, 'skos:member', ref(termId), 'structure');
 
         // Labels. The preferred one is the entry whose type is `pref`; everything else projects
         // through its facet.
-        add(termId, 'skos:prefLabel', literal(prefLabel(term, language)));
+        add(termId, 'skos:prefLabel', literal(prefLabel(term, language)), 'terms');
         otherLabels(term).forEach((entry) => {
             const { predicate, known } = projection(projections, 'label', entry.labelType);
             if (!known) {
                 problems.unknownTypes.push({ term: termId, target: 'label', type: entry.labelType });
                 return;
             }
-            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language), 'terms');
         });
 
         const definition = localised(term.definition, language);
-        if (definition) add(termId, 'skos:definition', literal(definition));
+        if (definition) add(termId, 'skos:definition', literal(definition), 'terms');
 
         (term.note ?? []).forEach((entry) => {
             const { predicate, known } = projection(projections, 'note', entry.noteType);
@@ -154,7 +216,7 @@ export function skosTriples(resolution, projections) {
                 problems.unknownTypes.push({ term: termId, target: 'note', type: entry.noteType });
                 return;
             }
-            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language), 'terms');
         });
 
         (term.example ?? []).forEach((entry) => {
@@ -163,7 +225,7 @@ export function skosTriples(resolution, projections) {
                 problems.unknownTypes.push({ term: termId, target: 'example', type: entry.exampleType });
                 return;
             }
-            if (predicate) add(termId, predicate, literal(entry.value, entry.language));
+            if (predicate) add(termId, predicate, literal(entry.value, entry.language), 'terms');
         });
 
         // Structure. Deduplicated across placements: a term appearing three times in one scheme
@@ -179,14 +241,15 @@ export function skosTriples(resolution, projections) {
             if (above) broader.add(above);
         });
 
-        inScheme.forEach((scheme) => add(termId, 'skos:inScheme', ref(scheme)));
+        inScheme.forEach((scheme) => add(termId, 'skos:inScheme', ref(scheme), 'structure'));
         tops.forEach((scheme) => {
-            add(termId, 'skos:topConceptOf', ref(scheme));
-            add(scheme, 'skos:hasTopConcept', ref(termId)); // Both halves, as SKOS expects
+            add(termId, 'skos:topConceptOf', ref(scheme), 'structure');
+            // Both halves, as SKOS expects
+            add(scheme, 'skos:hasTopConcept', ref(termId), 'structure');
         });
         broader.forEach((above) => {
-            add(termId, 'skos:broader', ref(above));
-            add(above, 'skos:narrower', ref(termId));
+            add(termId, 'skos:broader', ref(above), 'structure');
+            add(above, 'skos:narrower', ref(termId), 'structure');
         });
     });
 
@@ -202,6 +265,31 @@ const escapeTurtle = ((value) => String(value)
     .replace(/\t/g, '\\t'));
 
 /**
+ * Group triples by subject, keeping the order each subject was first seen.
+ *
+ * @param {Triple[]} triples
+ * @returns {Map<string, Triple[]>}
+ */
+function bySubject(triples) {
+    const grouped = new Map();
+    triples.forEach((triple) => {
+        if (!grouped.has(triple.subject)) grouped.set(triple.subject, []);
+        grouped.get(triple.subject).push(triple);
+    });
+    return grouped;
+}
+
+/**
+ * The triples of each block, in the order the blocks are written, skipping any that is empty.
+ *
+ * @param {Triple[]} triples
+ * @returns {Array<{title: string, triples: Triple[]}>}
+ */
+const inBlocks = ((triples) => BLOCKS
+    .map(({ name, title }) => ({ title, triples: triples.filter((one) => one.block === name) }))
+    .filter((block) => block.triples.length));
+
+/**
  * Turtle.
  *
  * @param {Triple[]} triples
@@ -212,51 +300,55 @@ export function toTurtle(triples) {
         .map(([prefix, uri]) => `@prefix ${prefix}: <${uri}> .`)
         .join('\n');
 
-    // Grouped by subject so the output reads as a document rather than a triple dump.
-    const bySubject = new Map();
-    triples.forEach((triple) => {
-        if (!bySubject.has(triple.subject)) bySubject.set(triple.subject, []);
-        bySubject.get(triple.subject).push(triple);
-    });
-
-    const blocks = [...bySubject.entries()].map(([subject, subjectTriples]) => {
-        const lines = subjectTriples.map((triple) => {
-            const object = triple.object.id
-                ? triple.object.id
-                : `"${escapeTurtle(triple.object.value)}"${triple.object.language ? `@${triple.object.language}` : ''}`;
-            return `    ${triple.predicate} ${object}`;
+    // Grouped by block, then by subject, so the output reads as a document rather than a triple
+    // dump — and so the dictionary and the arrangement of it are visibly two halves.
+    const sections = inBlocks(triples).map((block) => {
+        const banner = `#\n# ${block.title}\n#`;
+        const subjects = [...bySubject(block.triples).entries()].map(([subject, subjectTriples]) => {
+            const lines = subjectTriples.map((triple) => {
+                const object = triple.object.id
+                    ? triple.object.id
+                    : `"${escapeTurtle(triple.object.value)}"${triple.object.language ? `@${triple.object.language}` : ''}`;
+                return `    ${triple.predicate} ${object}`;
+            });
+            return `${subject}\n${lines.join(' ;\n')} .`;
         });
-        return `${subject}\n${lines.join(' ;\n')} .`;
+        return `${banner}\n\n${subjects.join('\n\n')}`;
     });
 
-    return `${header}\n\n${blocks.join('\n\n')}\n`;
+    return `${header}\n\n${sections.join('\n\n')}\n`;
 }
 
 /**
  * JSON-LD.
  *
+ * The same three blocks, in the same order, which means **a subject may appear in `@graph` more than
+ * once** — once describing a term and once placing it. That is ordinary JSON-LD: a graph is a set of
+ * statements, and two nodes with one `@id` merge on expansion. Worth knowing before it surprises a
+ * reader who expects one object per subject.
+ *
  * @param {Triple[]} triples
  * @returns {object}
  */
 export function toJsonLd(triples) {
-    const bySubject = new Map();
-    triples.forEach((triple) => {
-        if (!bySubject.has(triple.subject)) bySubject.set(triple.subject, {});
-        const node = bySubject.get(triple.subject);
-
-        if (triple.predicate === 'rdf:type') {
-            node['@type'] = node['@type'] ?? [];
-            node['@type'].push(triple.object.id);
-            return;
-        }
-        node[triple.predicate] = node[triple.predicate] ?? [];
-        node[triple.predicate].push(
-            triple.object.id
-                ? { '@id': triple.object.id }
-                : { '@value': triple.object.value, '@language': triple.object.language },
-        );
-    });
-
-    const graph = [...bySubject.entries()].map(([subject, node]) => ({ '@id': subject, ...node }));
+    const graph = inBlocks(triples).flatMap((block) => (
+        [...bySubject(block.triples).entries()].map(([subject, subjectTriples]) => {
+            const node = { '@id': subject };
+            subjectTriples.forEach((triple) => {
+                if (triple.predicate === 'rdf:type') {
+                    node['@type'] = node['@type'] ?? [];
+                    node['@type'].push(triple.object.id);
+                    return;
+                }
+                node[triple.predicate] = node[triple.predicate] ?? [];
+                node[triple.predicate].push(
+                    triple.object.id
+                        ? { '@id': triple.object.id }
+                        : { '@value': triple.object.value, '@language': triple.object.language },
+                );
+            });
+            return node;
+        })
+    ));
     return { '@context': { ...PREFIXES }, '@graph': graph };
 }

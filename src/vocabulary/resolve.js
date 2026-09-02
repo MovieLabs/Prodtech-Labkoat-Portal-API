@@ -81,6 +81,8 @@ import {
  * @property {string} id - A term id. Every entry is a term; there is nothing else to be.
  * @property {boolean} [scheme] - Set where this view attaches the term directly and it carries an
  *   arrangement, which is what makes it a `skos:ConceptScheme`
+ * @property {string} [schemeId] - The identifier that scheme takes, minted here because it is
+ *   scoped to the view and a placement does not carry one
  * @property {boolean} [dotFrom] - Set where this view starts its dotted names below this term
  *
  * @typedef {object} Placement
@@ -360,7 +362,13 @@ function walkMembers({
         const brings = member.arrangement === ARRANGEMENT_NONE
             ? null
             : arrangementOf(term, member.arrangement ?? null);
-        if (containerId === ctx.viewId && brings?.length) entry.scheme = true;
+        if (containerId === ctx.viewId && brings?.length) {
+            entry.scheme = true;
+            // Minted here and carried on the entry, because the identifier is scoped to the view and
+            // the readers below are given a placement, which knows nothing about which view it
+            // belongs to.
+            entry.schemeId = schemeIdFor(member.term, ctx.viewId);
+        }
         // Where this view starts counting a dotted name from. Marked on the entry rather than
         // handled here, because the name is built afterwards over whatever path survived — the same
         // reason hiding a heading shortens the names below it without anything shortening them.
@@ -584,7 +592,7 @@ export function broaderOf(placement) {
  */
 export const schemesOf = ((placement) => placement.path
     .filter((entry) => entry.scheme)
-    .map((entry) => schemeIdFor(entry.id)));
+    .map((entry) => entry.schemeId));
 
 /**
  * The schemes this placement is a **top concept** of.
@@ -599,7 +607,7 @@ export function topConceptOf(placement) {
     placement.path.forEach((entry, index) => {
         if (!entry.scheme) return;
         const termBelow = placement.path.slice(index + 1).some((later) => !later.scheme);
-        if (!termBelow) tops.push(schemeIdFor(entry.id));
+        if (!termBelow) tops.push(entry.schemeId);
     });
     return tops;
 }
@@ -618,7 +626,7 @@ export function schemeHeads(resolution) {
     const heads = new Map();
     resolution.placements.forEach((placement) => {
         placement.path.forEach((entry) => {
-            if (entry.scheme) heads.set(entry.id, schemeIdFor(entry.id));
+            if (entry.scheme) heads.set(entry.id, entry.schemeId);
         });
         // A head is normally found in its children's paths, but one whose children were all filtered
         // out by status appears in none — and it is still the vocabulary the view attached. Read off
@@ -626,7 +634,9 @@ export function schemeHeads(resolution) {
         // what makes it a scheme rather than a concept.
         if (placement.path.length) return;
         const term = resolution.terms.get(placement.termId);
-        if (term?.member?.length) heads.set(placement.termId, schemeIdFor(placement.termId));
+        if (term?.member?.length) {
+            heads.set(placement.termId, schemeIdFor(placement.termId, resolution.view?._id));
+        }
     });
     return heads;
 }
