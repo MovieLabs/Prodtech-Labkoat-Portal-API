@@ -726,16 +726,17 @@ router.delete('/terms/:id/forks/:forkId', authenticated, async (req, res, next) 
  * Move a term's subtree onto the term, so it can be reused wherever the term is placed.
  *
  * The term's row does not move, so what this container publishes does not change — see
- * `arrangeSubtree` for why.
+ * `arrangeSubtree` for why. `name` names the arrangement, and is **required where the term carries
+ * one already**: the rows become a fork, and a fork is told from its siblings by its name.
  */
 router.post('/containers/:id/arrange', authenticated, async (req, res, next) => {
     try {
-        const { mid } = req.body ?? {};
+        const { mid, name } = req.body ?? {};
         if (!mid) {
             res.status(422).json({ message: 'mid is required', errors: ['Say which member to arrange'] });
             return;
         }
-        res.status(201).json(await arrangeSubtree(req.params.id, mid, await actorOf(req)));
+        res.status(201).json(await arrangeSubtree(req.params.id, mid, await actorOf(req), { name }));
     } catch (err) {
         writeFailed(err, res, next);
     }

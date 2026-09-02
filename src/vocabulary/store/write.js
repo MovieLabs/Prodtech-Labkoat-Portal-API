@@ -26,7 +26,9 @@ import {
     VOCAB_VIEWS,
     vocabCollection,
 } from './collections.js';
-import { mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_ } from './ids.js';
+import {
+    arrangementContainer, mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_,
+} from './ids.js';
 import { normaliseFacet, normaliseTerm, normaliseView } from './normalise.js';
 import { arrangementOf, listFacets, termUsage } from './read.js';
 import {
@@ -513,13 +515,28 @@ function insertUnder(members, rows, parentMid) {
  *   write fails the rows exist in both places, which is visible and repairable, where the other order
  *   would lose them.
  *
+ * ## A term that is arranged already gets a second one
+ *
+ * The rows still have to go somewhere, and the term's own arrangement is taken — so they become a
+ * **fork**, and this placement is repointed at it. That is the only answer that keeps the promise
+ * above: the subtree stays exactly where it is on screen, and the alternative was refusing the verb
+ * on the one pill most likely to want it, a term placed without its arrangement and given children
+ * of its own here.
+ *
+ * A fork has to be named, because every arrangement of a term is called by the term's name and the
+ * name is the only thing telling one from another.
+ *
  * @param {string} containerId - The term or view holding the subtree
  * @param {string} mid - The member row of the term to arrange
  * @param {string} [actor]
- * @returns {Promise<{term: object, source: object, moved: number, repointed: number}>}
+ * @param {object} [options]
+ * @param {string} [options.name] - Names the arrangement. **Required where the term already carries
+ *   one**, since that makes this a fork; optional otherwise, where it names the term's own
+ * @returns {Promise<{term: object, source: object, moved: number, repointed: number,
+ *   fork: object|null}>}
  * @throws {ValidationError}
  */
-export async function arrangeSubtree(containerId, mid, actor) {
+export async function arrangeSubtree(containerId, mid, actor, { name = null } = {}) {
     const container = await containerOf(containerId);
     if (!container) throw new ValidationError([`No such container: ${containerId}`]);
 
@@ -530,8 +547,19 @@ export async function arrangeSubtree(containerId, mid, actor) {
 
     const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: row.term });
     if (!term) throw new ValidationError([`No such term: ${row.term}`]);
-    if (term.member?.length) {
-        throw new ValidationError([`"${row.term}" already carries an arrangement — it is reusable already`]);
+
+    // Which arrangement these rows are about to become. The term's own where it has none, and a
+    // fork where it has — the term's is not something to overwrite, and every placement in the
+    // vocabulary is using it.
+    const forking = Boolean(term.member?.length);
+    const wanted = name === null ? null : String(name).trim();
+    if (forking && !wanted) {
+        throw new ValidationError([`"${row.term}" carries an arrangement already, so this is a second one — name it`]);
+    }
+    if (wanted) {
+        const taken = term.arrangementName === wanted
+            || (term.fork ?? []).some((fork) => fork.name === wanted);
+        if (taken) throw new ValidationError([`"${row.term}" already has an arrangement called "${wanted}"`]);
     }
 
     const moved = descendantsOf(members, mid);
@@ -547,20 +575,37 @@ export async function arrangeSubtree(containerId, mid, actor) {
             return top;
         });
 
-    const arranged = stamped({ ...term, member: taken }, actor);
+    const fork = forking
+        ? { id: nextForkId(term.fork ?? []), name: wanted, member: taken }
+        : null;
+
+    const arranged = stamped(fork
+        ? { ...term, fork: [...(term.fork ?? []), fork] }
+        : { ...term, member: taken, ...(wanted ? { arrangementName: wanted } : {}) }, actor);
     const arrangedCheck = validateTerm(arranged, await allowedFacetValues());
     if (!arrangedCheck.ok) throw new ValidationError(arrangedCheck.errors);
 
-    const remaining = members.filter((member) => !moved.has(member.mid));
+    // **The row is repointed at what was just made**, which is the whole of why the published output
+    // does not move: a fork is reached only by naming it, and a row still saying `'none'` — which is
+    // how a placement comes to have children of its own while the term is arranged — would decline
+    // the very arrangement built out of them.
+    const arrangedIn = arrangementContainer(term._id, fork?.id ?? null);
+    const remaining = members
+        .filter((member) => !moved.has(member.mid))
+        .map((member) => {
+            if (member.mid !== mid) return member;
+            const { arrangement: _replaced, ...rest } = member;
+            return fork ? { ...rest, arrangement: fork.id } : rest;
+        });
     const source = stamped(container.withMembers(remaining), actor);
 
     await replaceUnchanged(VOCAB_TERMS, term, arranged, 'term');
     await replaceUnchanged(container.store, container.doc, source, 'collection');
 
-    const repointed = await repointArrange(containerId, term._id, moved, new Map(), actor);
+    const repointed = await repointArrange(containerId, arrangedIn, moved, new Map(), actor);
 
     return {
-        term: arranged, source, moved: taken.length, repointed,
+        term: arranged, source, moved: taken.length, repointed, fork,
     };
 }
 
