@@ -22,6 +22,12 @@ const configEnv = {
         COGNITO_TOKEN_URL: 'https://us-west-2ew6ovss8m.auth.us-west-2.amazoncognito.com/oauth2/token',
         COGNITO_M2M_SCOPE: 'labkoat/fmam.access',
         COGNITO_M2M_CLIENT_ID: '30l6v3jcm9v3jcunvb3jinco3m', // app client 'api.services.labkoat'
+        // Who a caller is, in words. An access token carries `sub` and `username` and no email, and
+        // where a pool signs people in by an email alias those two are the same opaque uuid -- so a
+        // record stamped from the token alone reads `58011380-e091-...` and names nobody. This
+        // endpoint answers for the token presented to it, so the name comes from the issuer rather
+        // than from the client. Same hosted domain as the token URL.
+        COGNITO_USERINFO_URL: 'https://us-west-2ew6ovss8m.auth.us-west-2.amazoncognito.com/oauth2/userInfo',
         // The vocabulary's Mongo store. Same cluster and same credentials fMam uses — the
         // gateway already holds SECRET_ARN.FMAM, so this needs no new secret to rotate. The
         // collections sit in `app_config` beside `projects` and `mappingTemplates`, all of them

@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node app.js",
     "lint": "eslint src app.js",
+    "verify:snippet": "node src/vocabulary/snippet.verify.mjs",
+    "verify:openapi": "node src/openapi/openapi.verify.mjs",
+    "verify:conflict": "node src/vocabulary/conflict.verify.mjs",
     "link:local": "npm link data-pipeline omc-util",
     "unlink:local": "npm uninstall --no-save data-pipeline omc-util && npm install"
   },

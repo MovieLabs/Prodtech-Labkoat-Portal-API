@@ -50,12 +50,96 @@ export class ValidationError extends Error {
     }
 }
 
-/** Stamped on every write, so a record can say when it last changed and who changed it. */
-const stamped = ((doc, actor) => ({
-    ...doc,
+/**
+ * When a record last changed, and who changed it.
+ *
+ * **Every write sets these, including one that only touches a corner of a document.** They are what
+ * a conditional write asserts against, so a document that changed without saying so is one a stale
+ * writer would still be allowed to overwrite. Offered as fields as well as a whole-document wrapper
+ * because a `$set` cannot use the latter.
+ *
+ * @param {string} [actor]
+ * @returns {{modified: string, modifiedBy: string}}
+ */
+const stampFields = ((actor) => ({
     modified: new Date().toISOString(),
     modifiedBy: actor ?? 'unknown',
 }));
+
+/** Stamped on every write, so a record can say when it last changed and who changed it. */
+const stamped = ((doc, actor) => ({ ...doc, ...stampFields(actor) }));
+
+/**
+ * Raised when a write was built on a copy somebody else has since changed.
+ *
+ * Carries the document as it now stands, so a caller can offer to reload without a second round
+ * trip. Separate from `ValidationError` because it is not a complaint about the payload — the same
+ * write would have been accepted a moment earlier.
+ */
+export class ConflictError extends Error {
+    constructor(message, current) {
+        super(message);
+        this.name = 'ConflictError';
+        this.errors = [message];
+        this.current = current;
+    }
+}
+
+/**
+ * The filter a write uses to assert what it was based on.
+ *
+ * **Concurrency-safe by filter, not by lock** — the same shape fMam's edge cleanup uses, and for the
+ * same reason: it needs no state on the server, so it survives more than one replica. With no
+ * expectation it degrades to an ordinary write by `_id`, which is what keeps a client that does not
+ * yet send one working unchanged.
+ *
+ * @param {string} id
+ * @param {string} [expected] - The `modified` the caller read
+ * @returns {object}
+ */
+const basedOn = ((id, expected) => (expected ? { _id: id, modified: expected } : { _id: id }));
+
+/**
+ * Refuse a write whose precondition did not hold, naming who got there first.
+ *
+ * Only called once a write has already matched nothing, so the re-read is off the failure path.
+ *
+ * @param {string} store
+ * @param {string} id
+ * @param {string} what - What the caller was writing, for the message
+ * @throws {ConflictError|ValidationError}
+ */
+async function refuseAsStale(store, id, what) {
+    const current = await vocabCollection(store).findOne({ _id: id });
+    // Gone rather than changed. A different failure, and a different thing to tell somebody.
+    if (!current) throw new ValidationError([`No such ${what}: ${id}`]);
+    throw new ConflictError(
+        `This ${what} was changed by ${current.modifiedBy ?? 'someone else'} while you were editing it.`,
+        current,
+    );
+}
+
+/**
+ * Replace a document, asserting nobody has changed it since it was read.
+ *
+ * For the writes that re-read on the server and then replace. The window is milliseconds rather than
+ * the minutes an editor sits open, but it is the window `nextMid` mints in — two people adding a row
+ * to one container both compute `m{highest+1}` from what they read, and without this the second lands
+ * a duplicate mid, which a placement key cannot tell from the first.
+ *
+ * A document carrying no `modified` — a seed nobody has edited — writes unconditionally rather than
+ * never, so this cannot brick anything the stamp has not reached yet.
+ *
+ * @param {string} store
+ * @param {object} was - The document as read, for its `_id` and `modified`
+ * @param {object} next
+ * @param {string} what - What it is, for the refusal message
+ * @throws {ConflictError}
+ */
+async function replaceUnchanged(store, was, next, what) {
+    const written = await vocabCollection(store).replaceOne(basedOn(was._id, was.modified), next);
+    if (!written.matchedCount) await refuseAsStale(store, was._id, what);
+}
 
 // ---------------------------------------------------------------------------
 // Terms
@@ -144,10 +228,12 @@ async function duplicateLabelWarnings(terms) {
  * @param {string} id
  * @param {object} term
  * @param {string} [actor]
+ * @param {string} [expected] - The `modified` the editor read. Given, the write is refused if
+ *   somebody else has changed the term since; absent, it behaves as it always did
  * @returns {Promise<{term: object, warnings: string[]}>}
- * @throws {ValidationError}
+ * @throws {ValidationError|ConflictError}
  */
-export async function replaceTerm(id, term, actor) {
+export async function replaceTerm(id, term, actor, expected) {
     const allowed = await allowedFacetValues();
 
     // **An empty arrangement is not an arrangement.** Carrying `member: []` puts a term in a state
@@ -172,7 +258,11 @@ export async function replaceTerm(id, term, actor) {
     // `migrated` is dropped on edit. It marks a document the migration owns and may replace on its
     // next run; once a person has changed it, it is theirs.
     const { migrated: _migrated, ...keep } = existing;
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: id }, { ...keep, ...prepared });
+    const written = await vocabCollection(VOCAB_TERMS)
+        .replaceOne(basedOn(id, expected), { ...keep, ...prepared });
+    // Nothing matched, and the `findOne` above proved it exists — so it exists with a different
+    // `modified`, which is somebody else's write landing between that read and this one.
+    if (!written.matchedCount) await refuseAsStale(VOCAB_TERMS, id, 'term');
     return { term: prepared, warnings };
 }
 
@@ -188,7 +278,7 @@ export async function replaceTerm(id, term, actor) {
  * @returns {Promise<{deleted: boolean, warnings: string[], removedFrom: string[]}>}
  * @throws {ValidationError} When the term is in use and `force` is not set
  */
-export async function deleteTerm(id, force = false) {
+export async function deleteTerm(id, force = false, actor) {
     const usage = await termUsage(id);
     const check = checkTermDeletion(usage);
 
@@ -209,14 +299,19 @@ export async function deleteTerm(id, force = false) {
             // **Both places a row can sit.** A term's forks hold members too, and a row left inside
             // one names a term that no longer exists — the same hole this whole step exists to
             // prevent, in the one container a `member` pull does not reach.
+            // Stamped as well as pulled: these are somebody else's containers, and a container
+            // that lost a row has changed, whoever asked for it.
             store === VOCAB_TERMS
-                ? { $pull: { 'member': { term: id }, 'fork.$[].member': { term: id } } }
-                : { $pull: { member: { term: id } } },
+                ? {
+                    $pull: { 'member': { term: id }, 'fork.$[].member': { term: id } },
+                    $set: stampFields(actor),
+                }
+                : { $pull: { member: { term: id } }, $set: stampFields(actor) },
         );
         // A member whose parent was one of the removed rows is now orphaned. Re-parenting them is
         // the same promotion the resolver does for a filtered term, and keeps the document valid
         // rather than leaving it to fail validation later.
-        await Promise.all(ids.map((one) => repairParents(store, one)));
+        await Promise.all(ids.map((one) => repairParents(store, one, actor)));
     }));
 
     const removedFrom = [...fromTerms, ...fromViews];
@@ -232,7 +327,7 @@ export async function deleteTerm(id, force = false) {
  * @param {string} id - The container to repair
  * @returns {Promise<void>}
  */
-async function repairParents(store, id) {
+async function repairParents(store, id, actor) {
     const container = await vocabCollection(store).findOne({ _id: id });
     if (!container) return;
 
@@ -259,7 +354,7 @@ async function repairParents(store, id) {
     const set = {};
     if (member) set.member = member;
     if (forkChanged) set.fork = forks;
-    await vocabCollection(store).updateOne({ _id: id }, { $set: set });
+    await vocabCollection(store).updateOne({ _id: id }, { $set: { ...set, ...stampFields(actor) } });
 }
 
 // ---------------------------------------------------------------------------
@@ -459,10 +554,10 @@ export async function arrangeSubtree(containerId, mid, actor) {
     const remaining = members.filter((member) => !moved.has(member.mid));
     const source = stamped(container.withMembers(remaining), actor);
 
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, arranged);
-    await vocabCollection(container.store).replaceOne({ _id: container.doc._id }, source);
+    await replaceUnchanged(VOCAB_TERMS, term, arranged, 'term');
+    await replaceUnchanged(container.store, container.doc, source, 'collection');
 
-    const repointed = await repointArrange(containerId, term._id, moved);
+    const repointed = await repointArrange(containerId, term._id, moved, new Map(), actor);
 
     return {
         term: arranged, source, moved: taken.length, repointed,
@@ -534,10 +629,12 @@ export async function unarrangeSubtree(containerId, mid, actor, force = false) {
     const { member: _wasArranged, ...plain } = term;
     const bare = stamped(plain, actor);
 
-    await vocabCollection(container.store).replaceOne({ _id: container.doc._id }, source);
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: term._id }, bare);
+    await replaceUnchanged(container.store, container.doc, source, 'collection');
+    await replaceUnchanged(VOCAB_TERMS, term, bare, 'term');
 
-    const repointed = await repointArrange(term._id, containerId, new Set(term.member.map((one) => one.mid)));
+    const repointed = await repointArrange(
+        term._id, containerId, new Set(term.member.map((one) => one.mid)), new Map(), actor,
+    );
 
     return {
         term: bare, source, moved: taken.length, repointed, warnings: check.warnings,
@@ -607,7 +704,7 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
         });
         const rest = source.filter((member) => !moving.has(member.mid));
         const updated = stamped(from.withMembers(insertUnder(rest, taken, toParent)), actor);
-        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, updated);
+        await replaceUnchanged(from.store, from.doc, updated, 'collection');
         return { moved: taken.length, repointed: 0, mid };
     }
 
@@ -648,18 +745,18 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
             { ...from.withMembers(remaining), ...to.withMembers(landed) },
             actor,
         );
-        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, both);
+        await replaceUnchanged(from.store, from.doc, both, 'collection');
     } else {
         const nextSource = stamped(from.withMembers(remaining), actor);
         const nextTarget = stamped(to.withMembers(landed), actor);
 
         // The source first: if the second write fails the rows are gone rather than duplicated, and
         // a duplicate placement is the harder of the two to find afterwards.
-        await vocabCollection(from.store).replaceOne({ _id: from.doc._id }, nextSource);
-        await vocabCollection(to.store).replaceOne({ _id: to.doc._id }, nextTarget);
+        await replaceUnchanged(from.store, from.doc, nextSource, 'collection');
+        await replaceUnchanged(to.store, to.doc, nextTarget, 'collection');
     }
 
-    const repointed = await repointArrange(fromId, toId, moving, rename);
+    const repointed = await repointArrange(fromId, toId, moving, rename, actor);
 
     return { moved: taken.length, repointed, mid: rename.get(mid) ?? mid };
 }
@@ -677,7 +774,7 @@ export async function movePlacement({ fromId, mid, toId, toParent = null }, acto
  * @param {Map<string, string>} [rename] - New mids, where moving forced a row to be reminted
  * @returns {Promise<number>} How many views were rewritten
  */
-async function repointArrange(fromId, toId, mids, rename = new Map()) {
+async function repointArrange(fromId, toId, mids, rename = new Map(), actor) {
     const swap = ((key) => {
         if (typeof key !== 'string') return key;
         const cut = key.indexOf('/');
@@ -696,7 +793,8 @@ async function repointArrange(fromId, toId, mids, rename = new Map()) {
         if (view.arrange.hide) arrange.hide = view.arrange.hide.map(swap);
         if (view.arrange.dotFrom) arrange.dotFrom = view.arrange.dotFrom.map(swap);
         if (JSON.stringify(arrange) === JSON.stringify(view.arrange)) return 0;
-        await vocabCollection(VOCAB_VIEWS).updateOne({ _id: view._id }, { $set: { arrange } });
+        await vocabCollection(VOCAB_VIEWS)
+            .updateOne({ _id: view._id }, { $set: { arrange, ...stampFields(actor) } });
         return 1;
     }));
 
@@ -756,7 +854,7 @@ export async function createFork(termId, { name, copyOf = null, empty = false },
 
     const fork = { id: nextForkId(term.fork ?? []), name: wanted, member };
     const next = stamped({ ...term, fork: [...(term.fork ?? []), fork] }, actor);
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    await replaceUnchanged(VOCAB_TERMS, term, next, 'term');
     return { term: next, fork };
 }
 
@@ -803,7 +901,7 @@ export async function renameArrangement(termId, forkId, name, actor) {
             fork: term.fork.map((fork) => (fork.id === forkId ? { ...fork, name: wanted } : fork)),
         }, actor);
     }
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    await replaceUnchanged(VOCAB_TERMS, term, next, 'term');
     return { term: next };
 }
 
@@ -850,7 +948,7 @@ export async function deleteFork(termId, forkId, force = false, actor) {
     }
 
     const next = stamped({ ...term, fork: term.fork.filter((fork) => fork.id !== forkId) }, actor);
-    await vocabCollection(VOCAB_TERMS).replaceOne({ _id: termId }, next);
+    await replaceUnchanged(VOCAB_TERMS, term, next, 'term');
     return { term: next, placements };
 }
 
@@ -892,7 +990,7 @@ export async function createView(view, actor) {
     return saveView(id, view, actor);
 }
 
-export async function saveView(id, view, actor) {
+export async function saveView(id, view, actor, expected) {
     const allowed = await allowedFacetValues();
     const prepared = stamped(normaliseView({ labelStyle: 'plain', member: [], ...view, _id: id }), actor);
 
@@ -911,7 +1009,13 @@ export async function saveView(id, view, actor) {
         if (missing.length) throw new ValidationError([`These terms do not exist: ${missing.join(', ')}`]);
     }
 
-    await vocabCollection(VOCAB_VIEWS).replaceOne({ _id: id }, prepared, { upsert: true });
+    // **Upsert only where there is no expectation.** A conditional filter *plus* upsert inserts a
+    // second document when the filter misses, which is the one outcome worse than the overwrite this
+    // is here to prevent. With an expectation the write must match an existing document or fail.
+    const written = expected
+        ? await vocabCollection(VOCAB_VIEWS).replaceOne(basedOn(id, expected), prepared)
+        : await vocabCollection(VOCAB_VIEWS).replaceOne({ _id: id }, prepared, { upsert: true });
+    if (expected && !written.matchedCount) await refuseAsStale(VOCAB_VIEWS, id, 'view');
     return prepared;
 }
 
@@ -953,7 +1057,7 @@ export async function deleteView(id) {
  * @returns {Promise<{facet: object, warnings: string[]}>}
  * @throws {ValidationError} When a removed value is still in use and `force` is not set
  */
-export async function saveFacet(id, facet, actor, force = false) {
+export async function saveFacet(id, facet, actor, force = false, expected) {
     if (!facet?.appliesTo || !facet?.key) {
         throw new ValidationError(['A facet must say what it applies to and which key its values carry']);
     }
@@ -998,7 +1102,11 @@ export async function saveFacet(id, facet, actor, force = false) {
         }
     }
 
-    await vocabCollection(VOCAB_FACETS).replaceOne({ _id: id }, prepared, { upsert: true });
+    // Upsert only where there is no expectation — see `saveView` for why the two cannot combine.
+    const written = expected
+        ? await vocabCollection(VOCAB_FACETS).replaceOne(basedOn(id, expected), prepared)
+        : await vocabCollection(VOCAB_FACETS).replaceOne({ _id: id }, prepared, { upsert: true });
+    if (expected && !written.matchedCount) await refuseAsStale(VOCAB_FACETS, id, 'controlled set');
     return { facet: prepared, warnings };
 }
 
@@ -1032,8 +1140,7 @@ export async function saveExportProfile(id, format, profile, actor) {
         {
             $set: {
                 [`export.${kind}`]: profile,
-                modified: new Date().toISOString(),
-                modifiedBy: actor ?? 'unknown',
+                ...stampFields(actor),
             },
         },
     );
@@ -1078,8 +1185,7 @@ export async function saveTableConfig(id, config, actor) {
         {
             $set: {
                 table: config,
-                modified: new Date().toISOString(),
-                modifiedBy: actor ?? 'unknown',
+                ...stampFields(actor),
             },
         },
     );
@@ -1103,8 +1209,7 @@ export async function deleteTableConfig(id, actor) {
         {
             $unset: { table: '' },
             $set: {
-                modified: new Date().toISOString(),
-                modifiedBy: actor ?? 'unknown',
+                ...stampFields(actor),
             },
         },
     );
@@ -1126,8 +1231,7 @@ export async function deleteExportProfile(id, format, actor) {
         {
             $unset: { [`export.${kind}`]: '' },
             $set: {
-                modified: new Date().toISOString(),
-                modifiedBy: actor ?? 'unknown',
+                ...stampFields(actor),
             },
         },
     );

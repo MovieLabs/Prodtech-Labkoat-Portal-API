@@ -24,6 +24,7 @@
 import express from 'express';
 import { cognitoValidator } from 'mlHelpers';
 
+import { actorFor } from '../auth/actor.js';
 import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
@@ -44,6 +45,7 @@ import {
 } from '../vocabulary/store/read.js';
 import { SKOS_PREDICATES } from '../vocabulary/store/validate.js';
 import {
+    ConflictError,
     ValidationError,
     arrangeSubtree,
     createFork,
@@ -291,12 +293,21 @@ router.get('/facets', authenticated, async (req, res, next) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Turn a refused write into a 422 carrying every reason.
+ * Turn a refused write into a 422 carrying every reason, or a stale one into a 409.
  *
- * All of them, not the first: a caller fixing one error at a time round-trips once per mistake,
+ * Every reason, not the first: a caller fixing one error at a time round-trips once per mistake,
  * and the editor can show them together.
+ *
+ * **409 is a different answer from 422.** A validation failure says the payload is wrong and will
+ * still be wrong if retried; a conflict says the payload was fine but is now built on a copy
+ * somebody else has moved on from. The current document rides along so a client can offer to reload
+ * without asking again.
  */
 function writeFailed(err, res, next) {
+    if (err instanceof ConflictError) {
+        res.status(409).json({ message: err.message, errors: err.errors, current: err.current });
+        return;
+    }
     if (err instanceof ValidationError) {
         res.status(422).json({ message: err.message, errors: err.errors });
         return;
@@ -304,8 +315,30 @@ function writeFailed(err, res, next) {
     next(err);
 }
 
-/** Who is writing, for the record stamp. Cognito puts it in the token; a service token has no user. */
-const actorOf = ((req) => req.user?.username ?? req.user?.sub ?? req.auth?.sub ?? 'service');
+/**
+ * Who is writing, for the record stamp.
+ *
+ * **Asynchronous, because the token does not know.** An access token carries no email, so the name
+ * is asked of Cognito and held — see `auth/actor`. It never throws and never blocks a write: an
+ * unresolvable caller is stamped with the token's own claim, exactly as before.
+ */
+const actorOf = ((req) => actorFor(req));
+
+/**
+ * What the caller believes it is editing, from `If-Match`.
+ *
+ * The document's `modified`, quoted or not — a browser is entitled to send `If-Match: "..."` and
+ * some proxies add the quotes. Absent means "write regardless", which is what every client did
+ * before this existed and what a create still does.
+ *
+ * @param {object} req
+ * @returns {string|undefined}
+ */
+const basedOnOf = ((req) => {
+    const header = req.headers['if-match'];
+    if (!header || header === '*') return undefined;
+    return String(header).replace(/^W\//, '').replace(/^"|"$/g, '');
+});
 
 /**
  * Search terms by name.
@@ -440,7 +473,7 @@ router.get('/terms/:id', authenticated, async (req, res, next) => {
 router.post('/terms', authenticated, async (req, res, next) => {
     try {
         const incoming = Array.isArray(req.body) ? req.body : [req.body];
-        const { terms, warnings } = await createTerms(incoming, actorOf(req));
+        const { terms, warnings } = await createTerms(incoming, await actorOf(req));
         res.status(201).json({ terms, warnings });
     } catch (err) {
         writeFailed(err, res, next);
@@ -450,7 +483,9 @@ router.post('/terms', authenticated, async (req, res, next) => {
 /** Replace a term. A full replace, so a label or note can actually be removed. */
 router.put('/terms/:id', authenticated, async (req, res, next) => {
     try {
-        const { term, warnings } = await replaceTerm(req.params.id, req.body, actorOf(req));
+        const { term, warnings } = await replaceTerm(
+            req.params.id, req.body, await actorOf(req), basedOnOf(req),
+        );
         res.json({ term, warnings });
     } catch (err) {
         writeFailed(err, res, next);
@@ -460,7 +495,7 @@ router.put('/terms/:id', authenticated, async (req, res, next) => {
 /** Delete a term and every placement of it. Refused while in use unless `?force=true`. */
 router.delete('/terms/:id', authenticated, async (req, res, next) => {
     try {
-        const outcome = await deleteTerm(req.params.id, req.query.force === 'true');
+        const outcome = await deleteTerm(req.params.id, req.query.force === 'true', await actorOf(req));
         res.json(outcome);
     } catch (err) {
         writeFailed(err, res, next);
@@ -470,7 +505,7 @@ router.delete('/terms/:id', authenticated, async (req, res, next) => {
 /** Create a view, its identifier minted from its name. */
 router.post('/views', authenticated, async (req, res, next) => {
     try {
-        res.status(201).json(await createView(req.body, actorOf(req)));
+        res.status(201).json(await createView(req.body, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -479,7 +514,7 @@ router.post('/views', authenticated, async (req, res, next) => {
 /** Create or replace a view. */
 router.put('/views/:id', authenticated, async (req, res, next) => {
     try {
-        res.json(await saveView(req.params.id, req.body, actorOf(req)));
+        res.json(await saveView(req.params.id, req.body, await actorOf(req), basedOnOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -546,7 +581,7 @@ router.get('/views/:id/table', authenticated, async (req, res, next) => {
 /** Write what a view's table shows. Sets one key rather than replacing the document. */
 router.put('/views/:id/table', authenticated, async (req, res, next) => {
     try {
-        res.json(await saveTableConfig(req.params.id, req.body, actorOf(req)));
+        res.json(await saveTableConfig(req.params.id, req.body, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -555,7 +590,7 @@ router.put('/views/:id/table', authenticated, async (req, res, next) => {
 /** Put a view's table back to the default columns. */
 router.delete('/views/:id/table', authenticated, async (req, res, next) => {
     try {
-        res.json(await deleteTableConfig(req.params.id, actorOf(req)));
+        res.json(await deleteTableConfig(req.params.id, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -564,7 +599,7 @@ router.delete('/views/:id/table', authenticated, async (req, res, next) => {
 router.put('/views/:id/export/:format', authenticated, async (req, res, next) => {
     try {
         res.json(await saveExportProfile(
-            req.params.id, req.params.format, req.body, actorOf(req),
+            req.params.id, req.params.format, req.body, await actorOf(req),
         ));
     } catch (err) {
         writeFailed(err, res, next);
@@ -574,7 +609,7 @@ router.put('/views/:id/export/:format', authenticated, async (req, res, next) =>
 /** Take a format's profile off a view, so it publishes the default again. */
 router.delete('/views/:id/export/:format', authenticated, async (req, res, next) => {
     try {
-        res.json(await deleteExportProfile(req.params.id, req.params.format, actorOf(req)));
+        res.json(await deleteExportProfile(req.params.id, req.params.format, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -593,7 +628,7 @@ router.delete('/views/:id', authenticated, async (req, res, next) => {
 router.put('/facets/:id', authenticated, async (req, res, next) => {
     try {
         const { facet, warnings } = await saveFacet(
-            req.params.id, req.body, actorOf(req), req.query.force === 'true',
+            req.params.id, req.body, await actorOf(req), req.query.force === 'true', basedOnOf(req),
         );
         res.json({ facet, warnings });
     } catch (err) {
@@ -617,7 +652,7 @@ router.post('/terms/:id/forks', authenticated, async (req, res, next) => {
             res.status(422).json({ message: 'name is required', errors: ['A fork needs a name'] });
             return;
         }
-        res.status(201).json(await createFork(req.params.id, { name, copyOf, empty }, actorOf(req)));
+        res.status(201).json(await createFork(req.params.id, { name, copyOf, empty }, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -637,7 +672,7 @@ router.put('/terms/:id/forks/:forkId', authenticated, async (req, res, next) => 
             return;
         }
         const forkId = req.params.forkId === 'default' ? null : req.params.forkId;
-        res.json(await renameArrangement(req.params.id, forkId, name, actorOf(req)));
+        res.json(await renameArrangement(req.params.id, forkId, name, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -652,7 +687,7 @@ router.put('/terms/:id/forks/:forkId', authenticated, async (req, res, next) => 
 router.delete('/terms/:id/forks/:forkId', authenticated, async (req, res, next) => {
     try {
         res.json(await deleteFork(
-            req.params.id, req.params.forkId, req.query.force === 'true', actorOf(req),
+            req.params.id, req.params.forkId, req.query.force === 'true', await actorOf(req),
         ));
     } catch (err) {
         writeFailed(err, res, next);
@@ -672,7 +707,7 @@ router.post('/containers/:id/arrange', authenticated, async (req, res, next) => 
             res.status(422).json({ message: 'mid is required', errors: ['Say which member to arrange'] });
             return;
         }
-        res.status(201).json(await arrangeSubtree(req.params.id, mid, actorOf(req)));
+        res.status(201).json(await arrangeSubtree(req.params.id, mid, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -696,7 +731,7 @@ router.post('/containers/:id/move', authenticated, async (req, res, next) => {
         }
         res.json(await movePlacement({
             fromId: req.params.id, mid, toId, toParent,
-        }, actorOf(req)));
+        }, await actorOf(req)));
     } catch (err) {
         writeFailed(err, res, next);
     }
@@ -715,7 +750,7 @@ router.post('/containers/:id/unarrange', authenticated, async (req, res, next) =
             res.status(422).json({ message: 'mid is required', errors: ['Say which member to revert'] });
             return;
         }
-        res.json(await unarrangeSubtree(req.params.id, mid, actorOf(req), req.query.force === 'true'));
+        res.json(await unarrangeSubtree(req.params.id, mid, await actorOf(req), req.query.force === 'true'));
     } catch (err) {
         writeFailed(err, res, next);
     }
