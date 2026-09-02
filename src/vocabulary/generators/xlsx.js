@@ -39,14 +39,26 @@ const HEADER_FILL = 'FF56A1D5';
 /**
  * Where the scheme's own description sits, and where the table starts below it.
  *
- * A1 its label, A2 its definition, A3 the other labels it goes by, then one row per note. The table
- * follows a fixed gap, so the header lands on the same row for a given number of notes and a reader
- * moving between sheets is not hunting for it.
+ * A1 its label, A2 its definition, then one row for each kind of name it also goes by, then one row
+ * per note. The table follows a fixed gap below whatever that comes to.
  */
 const DEFINITION_ROW = 2;
-const SYNONYMS_ROW = 3;
-const NOTES_ROW = 4;
+const DESCRIPTION_ROW = 3;
 const HEADER_GAP = 2;
+
+/**
+ * Each type in a controlled set, to the heading it carries there.
+ *
+ * @param {Array<object>} facets
+ * @param {string} appliesTo - `label` or `note`
+ * @param {string} language
+ * @returns {Map<string, string>}
+ */
+const headingsFor = ((facets, appliesTo, language) => new Map(facets
+    .filter((facet) => facet.appliesTo === appliesTo)
+    .flatMap((facet) => (facet.values ?? []).map((value) => [
+        value[facet.key], value.label?.[language] ?? value[facet.key],
+    ]))));
 
 /**
  * A sheet name Excel will accept.
@@ -75,62 +87,80 @@ function sheetName(name, used) {
 }
 
 /**
- * Which note types the profile publishes.
+ * Which types of one kind the profile publishes.
  *
- * The heading block shows the scheme's notes, and it shows the same kinds the table does — a profile
- * that leaves scope notes out of its columns did not ask to see them at the top of the sheet either.
+ * **The heading block describes the scheme with the same kinds the table gives its terms.** A
+ * profile that leaves scope notes, or acronyms, out of its columns did not ask to see them at the
+ * top of the sheet either — and a view whose rows carry no OMC Token column is not describing its
+ * schemes with one. The columns are the whole of the decision, so there is no kind this block has an
+ * opinion about on its own.
  *
  * @param {object} profile
+ * @param {string} prefix - The array the types belong to: `label` or `note`
  * @returns {{all: boolean, types: Set<string>}}
  */
-function selectedNotes(profile) {
+function selectedTypes(profile, prefix) {
     const sources = (profile.columns ?? []).map((column) => column.source);
+    const at = `${prefix}:`;
     return {
-        all: sources.includes('note:*'),
+        all: sources.includes(`${at}*`),
         types: new Set(sources
-            .filter((source) => source.startsWith('note:') && source !== 'note:*')
-            .map((source) => source.slice('note:'.length))),
+            .filter((source) => source.startsWith(at) && source !== `${at}*`)
+            .map((source) => source.slice(at.length))),
     };
 }
 
 /**
  * The scheme's description: what it means, what else it is called, and what is noted about it.
  *
- * Each note is prefixed with the heading its type carries in the controlled set, the same way the
- * other labels are titled — a column of unattributed sentences says nothing about which is a scope
- * note and which is editorial.
+ * Every line is prefixed with the heading its type carries in the controlled set — a list of
+ * unattributed values says nothing about which is a synonym and which an acronym, or which is a
+ * scope note and which editorial.
  *
  * @param {object|null} head - The term the scheme is derived from
  * @param {object} profile
  * @param {Array<object>} facets
  * @param {string} language
- * @returns {{definition: string, synonyms: string, notes: string[]}}
+ * @returns {{definition: string, names: string[], notes: string[]}}
  */
 function describe(head, profile, facets, language) {
-    if (!head) return { definition: '', synonyms: '', notes: [] };
+    if (!head) return { definition: '', names: [], notes: [] };
 
-    const others = otherLabels(head).map((entry) => entry.value).filter(Boolean);
-    const wanted = selectedNotes(profile);
+    const labelHeading = headingsFor(facets, 'label', language);
+    const noteHeading = headingsFor(facets, 'note', language);
 
-    const headingOf = new Map(facets
-        .filter((facet) => facet.appliesTo === 'note')
-        .flatMap((facet) => (facet.values ?? []).map((value) => [
-            value[facet.key], value.label?.[language] ?? value[facet.key],
-        ])));
+    // One row per kind of name, in the order the term holds them. Under a single `Synonyms` title
+    // every other kind was reported as a synonym — most often the OMC token, since that is the kind
+    // most terms actually carry. The preferred label is not among them: `otherLabels` leaves it out,
+    // and it is already the sheet's title.
+    const wantedNames = selectedTypes(profile, 'label');
+    const byType = new Map();
+    otherLabels(head)
+        .filter((entry) => entry.value)
+        .filter((entry) => wantedNames.all || wantedNames.types.has(entry.labelType))
+        .forEach((entry) => {
+            const held = byType.get(entry.labelType);
+            if (held) held.push(entry.value);
+            else byType.set(entry.labelType, [entry.value]);
+        });
+    const names = [...byType].map(([type, values]) => (
+        `${labelHeading.get(type) ?? type}: ${values.join(', ')}`
+    ));
 
+    const wanted = selectedTypes(profile, 'note');
     const notes = (head.note ?? [])
         .filter((note) => wanted.all || wanted.types.has(note.noteType))
         .filter((note) => !note.language || note.language === language)
         .filter((note) => note.value)
-        .map((note) => `${headingOf.get(note.noteType) ?? note.noteType}: ${note.value}`);
+        .map((note) => `${noteHeading.get(note.noteType) ?? note.noteType}: ${note.value}`);
 
     const definition = localised(head.definition, language);
 
     return {
-        // Titled the way the synonyms and the notes are, so the three rows above the table read as
-        // a list of what is known about the scheme rather than as one loose sentence and two lists.
+        // Titled the way the names and the notes are, so the rows above the table read as a list of
+        // what is known about the scheme rather than as one loose sentence and two lists.
         definition: definition ? `Definition: ${definition}` : '',
-        synonyms: others.length ? `Synonyms: ${others.join(', ')}` : '',
+        names,
         notes,
     };
 }
@@ -170,7 +200,7 @@ export async function toXlsx(resolution, profile, facets) {
 
     groups.forEach((group) => {
         const sheet = workbook.addWorksheet(sheetName(group.name, used));
-        const { definition, synonyms, notes } = describe(group.head, profile, facets, language);
+        const { definition, names, notes } = describe(group.head, profile, facets, language);
 
         // A1 — what this sheet is.
         const title = sheet.getCell('A1');
@@ -181,16 +211,15 @@ export async function toXlsx(resolution, profile, facets) {
         // that is almost always worth reading.
         sheet.getCell(`A${DEFINITION_ROW}`).value = definition;
 
-        // A3 — the other labels it goes by, titled so the list is not mistaken for the scheme's own
-        // label repeated.
-        sheet.getCell(`A${SYNONYMS_ROW}`).value = synonyms;
-
-        // A4 onwards — one row per note, of the kinds this profile publishes.
-        notes.forEach((note, index) => {
-            sheet.getCell(`A${NOTES_ROW + index}`).value = note;
+        // A3 onwards — the names it also goes by, a row per kind and titled so none is mistaken for
+        // the scheme's own label repeated, then one row per note of the kinds this profile
+        // publishes. No row is reserved for a kind the scheme has none of.
+        const description = [...names, ...notes];
+        description.forEach((line, index) => {
+            sheet.getCell(`A${DESCRIPTION_ROW + index}`).value = line;
         });
 
-        const headerRow = NOTES_ROW + notes.length + HEADER_GAP;
+        const headerRow = DESCRIPTION_ROW + description.length + HEADER_GAP;
 
         const header = sheet.getRow(headerRow);
         columns.forEach((column, index) => {
