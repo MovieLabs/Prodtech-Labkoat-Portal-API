@@ -338,6 +338,14 @@ export function validateView(view, allowed) {
         fail(found, 'labelStyle must be plain or dotted');
     }
 
+    // Whether this view is offered to a reader rather than only to whoever maintains it. It governs
+    // what the SKOS Explore tab lists and nothing else: a view is still resolved, exported and
+    // reachable by identifier whatever this says, so it is a claim about where a view is *offered*
+    // and never a permission.
+    if (view?.public !== undefined && typeof view.public !== 'boolean') {
+        fail(found, 'public must be true or false');
+    }
+
     // How wide the editor draws a pill for this view. Bounded rather than free: below about 120 a
     // pill cannot hold a word, and past 800 one node fills the canvas — both are ways of making the
     // graph unusable by typing a number into a form.
