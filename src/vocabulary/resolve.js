@@ -158,8 +158,15 @@ function divergentChildren(placements) {
  * Load every term a view reaches, one level of nesting at a time.
  *
  * Breadth-first rather than one query per term: the vocabulary nests three or four deep, so this is
- * a handful of round trips regardless of how many terms are involved. A term is followed for its own
- * arrangement, which is the only thing that reaches further.
+ * a handful of round trips regardless of how many terms are involved. A term is followed for its
+ * arrangements, which are the only thing that reaches further.
+ *
+ * **Every arrangement, not just the term's own.** Which fork a placement wants is decided in the
+ * walk below, long after the documents have to be in hand, so following only `member` lost any term
+ * a fork reaches and the default does not — reported as a missing term and dropped from the output.
+ * It stayed hidden while every fork was a copy of the default, where the terms load anyway. The
+ * cost of following them all is a few extra term documents, against a view silently publishing less
+ * than it says.
  *
  * @param {string[]} startIds - The terms a view attaches directly
  * @returns {Promise<Map<string, object>>}
@@ -174,7 +181,11 @@ async function loadReachable(startIds) {
         const next = [];
         loaded.forEach((doc, id) => {
             terms.set(id, doc);
-            (doc.member ?? []).forEach((member) => {
+            const rows = [
+                ...(doc.member ?? []),
+                ...(doc.fork ?? []).flatMap((fork) => fork.member ?? []),
+            ];
+            rows.forEach((member) => {
                 if (member.term && !terms.has(member.term)) next.push(member.term);
             });
         });
