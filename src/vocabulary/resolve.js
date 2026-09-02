@@ -354,6 +354,13 @@ function walkMembers({
             // groups on, and the only thing that tells two placements of one term apart when they
             // sit under the same parent.
             under: inheritedUnder,
+            // Which of the term's arrangements this placement named — `null` for the term's own,
+            // `'none'` for a placement that declined them all. The row's word rather than a
+            // resolved answer, because by the time the children below are resolved the two cases
+            // are indistinguishable: a client drawing this has no other way to tell a term that
+            // brought a hierarchy from one publishing a bare concept, and the term cannot answer it
+            // — the difference is the placement's.
+            arrangement: member.arrangement ?? null,
         });
 
         // A term the view attaches directly, which carries an arrangement, is what a SKOS consumer
