@@ -225,7 +225,12 @@ export async function generate({ viewId, format = 'json', status = null, languag
     const divergent = resolution.problems?.divergent ?? [];
     if (divergent.length && format.startsWith('skos-')) {
         const names = divergent.map((one) => one.termId).join(', ');
-        throw new Error(`Cannot publish ${format}: ${divergent.length} term(s) have more than one set of children in this view — ${names}. SKOS gives a concept one set of narrower concepts, so give each of them the same children everywhere it appears, or place it once. The view itself still opens.`);
+        const refusal = new Error(`Cannot publish ${format}: ${divergent.length} term(s) have more than one set of children in this view — ${names}. SKOS gives a concept one set of narrower concepts, so give each of them the same children everywhere it appears, or place it once. The view itself still opens.`);
+        // **A state the caller can fix, not a fault here.** Carried as a status so the route answers
+        // with the reason instead of a bare 500, which leaves the only useful sentence in a server
+        // log the person who hit it cannot see.
+        refusal.status = 422;
+        throw refusal;
     }
 
     const generator = GENERATORS[format];

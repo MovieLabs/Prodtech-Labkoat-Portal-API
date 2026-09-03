@@ -201,6 +201,13 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
             res.status(404).json({ message: err.message });
             return;
         }
+        // A refusal that names its own status is one the caller can act on — a format that cannot
+        // express the state this view is in. It is answered with the reason; anything without a
+        // status is ours and goes to the handler.
+        if (err.status) {
+            res.status(err.status).json({ message: err.message });
+            return;
+        }
         next(err);
     }
 });
