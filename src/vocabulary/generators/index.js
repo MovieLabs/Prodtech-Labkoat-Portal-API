@@ -210,14 +210,18 @@ export async function generate({ viewId, format = 'json', status = null, languag
     ]);
     const projections = skosProjectionIndex(facets);
 
-    // **No format refuses a divergent term, SKOS included.** `skos:narrower` belongs to the concept
-    // rather than to where it was placed, so a term this view gives three sets of children comes out
-    // with one list holding all of them: `skos.js` collects each term's `broader` across every
-    // placement into a set before emitting, so the union is asserted once and the document is
-    // well-formed. That is the closest the format gets to what the view says, and the distance is a
-    // limitation of SKOS rather than a fault in the vocabulary — which is why it is reported and not
-    // refused. `problems.divergent` travels out with every format, and `GET /views/:id/problems`
-    // says which terms and where.
+    // **No format refuses a divergent term, SKOS included**, and what comes out is worth knowing.
+    // `skos.js` accumulates each term's `broader` across every placement into a set, so a term
+    // published as a *concept* in two places comes out with the union of both sets of children,
+    // asserted once. A placement where the same term heads a **scheme** does not merge into that:
+    // `broaderOf` steps over a scheme, so those children are published as the scheme's
+    // `hasTopConcept` instead — two structures, separately, both true.
+    //
+    // Either way the document is well-formed and nothing is dropped. What SKOS cannot say is that
+    // one concept has different children in different places, which is a limitation of the format
+    // rather than a fault in the vocabulary — so it is reported and never refused.
+    // `problems.divergent` travels out with every format, and `GET /views/:id/problems` says which
+    // terms and where.
 
     const generator = GENERATORS[format];
 

@@ -135,8 +135,8 @@ export function childrenByPlacement(placements) {
  *
  * **A term is one concept.** `skos:narrower` belongs to the concept rather than to where it was
  * placed, so a view in which Lens has two different sets of children says something SKOS has no way
- * to write down. What it publishes instead is the union — every child from every placement, in one
- * list — which is well-formed and is more than any one branch of the view shows.
+ * to write down. What it publishes is the union of the sets Lens has as a concept — more children
+ * than any one branch shows — plus, separately, the top concepts of any scheme it heads.
  *
  * That is a limitation of the format rather than a fault in the vocabulary, so it is **reported and
  * never refused**: the model holds a term whose children depend on where it sits, which is the
