@@ -23,12 +23,14 @@ import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
+import { childrenByPlacement, placementKey, resolveView } from '../vocabulary/resolve.js';
 import { hasDefinition, termSnippet } from '../vocabulary/snippet.js';
 import {
     allTerms,
     getTerm,
     getTerms,
     getView,
+    labelOfType,
     listCollections,
     listFacets,
     listViews,
@@ -206,6 +208,53 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
         // status is ours and goes to the handler.
         if (err.status) {
             res.status(err.status).json({ message: err.message });
+            return;
+        }
+        next(err);
+    }
+});
+
+/**
+ * What is wrong with this view, in words a person can act on.
+ *
+ * The same resolution an export runs, reported rather than rendered. `problems` alone names counts
+ * and identifiers; `divergent` is expanded here into the placements that disagree, each with the
+ * path the view reaches it by and the children it has there — which is the only form of the answer
+ * anybody can do anything with, and needs a resolution to produce.
+ */
+router.get('/views/:id/problems', authenticated, async (req, res, next) => {
+    try {
+        const resolution = await resolveView({
+            viewId: req.params.id,
+            status: statusFrom(req.query),
+            language: req.query.language,
+        });
+
+        const labelType = resolution.view?.labelType ?? 'pref';
+        const nameOf = ((id) => labelOfType(resolution.terms.get(id), labelType, req.query.language)
+            || id);
+        const beneath = childrenByPlacement(resolution.placements ?? []);
+
+        const divergent = (resolution.problems?.divergent ?? []).map(({ termId }) => ({
+            termId,
+            label: nameOf(termId),
+            placements: (resolution.placements ?? [])
+                .filter((placement) => placement.termId === termId)
+                .map((placement) => ({
+                    // Outermost first and named, so the reader is told where to look rather than
+                    // handed a container id they have no way to find on the graph.
+                    path: placement.path.map((entry) => nameOf(entry.id)),
+                    container: placement.collectionId,
+                    mid: placement.mid,
+                    children: [...(beneath.get(placementKey(placement.collectionId, placement.mid))
+                        ?? [])].map(nameOf).sort(),
+                })),
+        }));
+
+        res.json({ problems: resolution.problems ?? {}, divergent });
+    } catch (err) {
+        if (err.message?.startsWith('No such')) {
+            res.status(404).json({ message: err.message });
             return;
         }
         next(err);

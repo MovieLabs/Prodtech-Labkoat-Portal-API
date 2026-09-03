@@ -112,32 +112,46 @@ import {
 export const placementKey = ((collectionId, mid) => `${collectionId}/${mid}`);
 
 /**
- * Terms this view publishes with more than one set of children.
+ * What hangs from each placement, keyed by the row it hangs from.
  *
- * **This is the rule that lets a placement choose its arrangement at all.** A term is one concept:
- * `skos:narrower` belongs to the concept, not to where it was placed, so a view in which Lens has
- * two different sets of children cannot be expressed in SKOS. One of the two would have to win, and
- * nothing says which.
- *
- * Asked of the **resolved children** rather than of what each row asked for, because the two are not
- * the same question. A placement that declines the arrangement and is given local rows can diverge
- * from an ordinary one without either naming anything unusual, and comparing what the rows *say*
- * would see two rows that agree.
- *
- * Reported rather than thrown: this is a fact about a view somebody is editing, and the editor has
- * to be able to draw the disagreement in order to resolve it. The generators are what refuse.
+ * Exported because saying *which* placements disagree needs the same grouping the check below does,
+ * and computing it twice is two chances to group differently.
  *
  * @param {Array<object>} placements
- * @returns {Array<{termId: string, sets: string[][]}>} One entry per term that disagrees with itself
+ * @returns {Map<string, Set<string>>}
  */
-function divergentChildren(placements) {
-    // What hangs from each placement, by the row it hangs from.
+export function childrenByPlacement(placements) {
     const beneath = new Map();
     placements.forEach((placement) => {
         if (!placement.under) return;
         if (!beneath.has(placement.under)) beneath.set(placement.under, new Set());
         beneath.get(placement.under).add(placement.termId);
     });
+    return beneath;
+}
+
+/**
+ * Terms this view publishes with more than one set of children.
+ *
+ * **A term is one concept.** `skos:narrower` belongs to the concept rather than to where it was
+ * placed, so a view in which Lens has two different sets of children says something SKOS has no way
+ * to write down. What it publishes instead is the union — every child from every placement, in one
+ * list — which is well-formed and is more than any one branch of the view shows.
+ *
+ * That is a limitation of the format rather than a fault in the vocabulary, so it is **reported and
+ * never refused**: the model holds a term whose children depend on where it sits, which is the
+ * reason it exists. `GET /views/:id/problems` says which terms and where.
+ *
+ * Asked of the **resolved children** rather than of what each row asked for, because the two are not
+ * the same question. A placement that declines the arrangement and is given local rows can diverge
+ * from an ordinary one without either naming anything unusual, and comparing what the rows *say*
+ * would see two rows that agree.
+ *
+ * @param {Array<object>} placements
+ * @returns {Array<{termId: string, sets: string[][]}>} One entry per term that disagrees with itself
+ */
+function divergentChildren(placements) {
+    const beneath = childrenByPlacement(placements);
 
     const setsFor = new Map();
     placements.forEach((placement) => {

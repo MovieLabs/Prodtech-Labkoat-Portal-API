@@ -210,28 +210,14 @@ export async function generate({ viewId, format = 'json', status = null, languag
     ]);
     const projections = skosProjectionIndex(facets);
 
-    // **A SKOS document cannot say that one term has two sets of children.** `skos:narrower` belongs
-    // to the concept, not to where it was placed, so the file would have to pick one set and say
-    // nothing about having picked. Refused rather than resolved, and named so the editor can be
-    // opened at the term that disagrees with itself.
-    //
-    // **Only the SKOS formats refuse**, and the boundary is what the format can express rather than
-    // whether the state is wanted. `internal` and `json` are what the editor itself reads — the
-    // header's counts come from `json` — so refusing them takes the view away from the person who is
-    // midway through composing it and is the only one who can resolve it. A table carries structure
-    // as data rather than as shape, so it can name both child sets without contradicting itself. All
-    // of them carry `problems.divergent` out to the caller regardless, so nothing is hidden by not
-    // throwing.
-    const divergent = resolution.problems?.divergent ?? [];
-    if (divergent.length && format.startsWith('skos-')) {
-        const names = divergent.map((one) => one.termId).join(', ');
-        const refusal = new Error(`Cannot publish ${format}: ${divergent.length} term(s) have more than one set of children in this view — ${names}. SKOS gives a concept one set of narrower concepts, so give each of them the same children everywhere it appears, or place it once. The view itself still opens.`);
-        // **A state the caller can fix, not a fault here.** Carried as a status so the route answers
-        // with the reason instead of a bare 500, which leaves the only useful sentence in a server
-        // log the person who hit it cannot see.
-        refusal.status = 422;
-        throw refusal;
-    }
+    // **No format refuses a divergent term, SKOS included.** `skos:narrower` belongs to the concept
+    // rather than to where it was placed, so a term this view gives three sets of children comes out
+    // with one list holding all of them: `skos.js` collects each term's `broader` across every
+    // placement into a set before emitting, so the union is asserted once and the document is
+    // well-formed. That is the closest the format gets to what the view says, and the distance is a
+    // limitation of SKOS rather than a fault in the vocabulary — which is why it is reported and not
+    // refused. `problems.divergent` travels out with every format, and `GET /views/:id/problems`
+    // says which terms and where.
 
     const generator = GENERATORS[format];
 
