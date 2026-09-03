@@ -162,11 +162,9 @@ function divergentChildren(placements) {
  * arrangements, which are the only thing that reaches further.
  *
  * **Every arrangement, not just the term's own.** Which fork a placement wants is decided in the
- * walk below, long after the documents have to be in hand, so following only `member` lost any term
- * a fork reaches and the default does not — reported as a missing term and dropped from the output.
- * It stayed hidden while every fork was a copy of the default, where the terms load anyway. The
- * cost of following them all is a few extra term documents, against a view silently publishing less
- * than it says.
+ * walk below, long after the documents have to be in hand, so a term only a fork reaches has to be
+ * loaded too — unloaded, it is reported as a missing term and left out of the output. The cost is a
+ * few term documents this view may not use.
  *
  * @param {string[]} startIds - The terms a view attaches directly
  * @returns {Promise<Map<string, object>>}
@@ -366,11 +364,8 @@ function walkMembers({
             // sit under the same parent.
             under: inheritedUnder,
             // Which of the term's arrangements this placement named — `null` for the term's own,
-            // `'none'` for a placement that declined them all. The row's word rather than a
-            // resolved answer, because by the time the children below are resolved the two cases
-            // are indistinguishable: a client drawing this has no other way to tell a term that
-            // brought a hierarchy from one publishing a bare concept, and the term cannot answer it
-            // — the difference is the placement's.
+            // `'none'` for one that declined them all. The row's word, because the resolution below
+            // looks the same either way and only this says whether a hierarchy came with it.
             arrangement: member.arrangement ?? null,
         });
 

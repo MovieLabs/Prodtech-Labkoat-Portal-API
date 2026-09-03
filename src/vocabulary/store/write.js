@@ -517,14 +517,10 @@ function insertUnder(members, rows, parentMid) {
  *
  * ## A term that is arranged already gets a second one
  *
- * The rows still have to go somewhere, and the term's own arrangement is taken — so they become a
- * **fork**, and this placement is repointed at it. That is the only answer that keeps the promise
- * above: the subtree stays exactly where it is on screen, and the alternative was refusing the verb
- * on the one pill most likely to want it, a term placed without its arrangement and given children
- * of its own here.
- *
- * A fork has to be named, because every arrangement of a term is called by the term's name and the
- * name is the only thing telling one from another.
+ * Its own arrangement is taken and in use by every placement of it, so the rows become a **fork**
+ * and this placement is repointed at it — which is what keeps the promise above that the published
+ * output does not move. The fork has to be named: every arrangement of a term is called by the
+ * term's name, so the name is the only thing telling one from another.
  *
  * @param {string} containerId - The term or view holding the subtree
  * @param {string} mid - The member row of the term to arrange
@@ -548,9 +544,8 @@ export async function arrangeSubtree(containerId, mid, actor, { name = null } = 
     const term = await vocabCollection(VOCAB_TERMS).findOne({ _id: row.term });
     if (!term) throw new ValidationError([`No such term: ${row.term}`]);
 
-    // Which arrangement these rows are about to become. The term's own where it has none, and a
-    // fork where it has — the term's is not something to overwrite, and every placement in the
-    // vocabulary is using it.
+    // Which arrangement these rows become: the term's own where it has none, a fork where it has,
+    // since the term's own is in use by every placement of it.
     const forking = Boolean(term.member?.length);
     const wanted = name === null ? null : String(name).trim();
     if (forking && !wanted) {
@@ -585,10 +580,8 @@ export async function arrangeSubtree(containerId, mid, actor, { name = null } = 
     const arrangedCheck = validateTerm(arranged, await allowedFacetValues());
     if (!arrangedCheck.ok) throw new ValidationError(arrangedCheck.errors);
 
-    // **The row is repointed at what was just made**, which is the whole of why the published output
-    // does not move: a fork is reached only by naming it, and a row still saying `'none'` — which is
-    // how a placement comes to have children of its own while the term is arranged — would decline
-    // the very arrangement built out of them.
+    // **The row is repointed at what was just made.** A fork is reached only by naming it, and a
+    // row still saying `'none'` would decline the arrangement built out of its own children.
     const arrangedIn = arrangementContainer(term._id, fork?.id ?? null);
     const remaining = members
         .filter((member) => !moved.has(member.mid))
