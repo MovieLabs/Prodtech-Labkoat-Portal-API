@@ -22,6 +22,16 @@ const configEnv = {
         COGNITO_TOKEN_URL: 'https://us-west-2ew6ovss8m.auth.us-west-2.amazoncognito.com/oauth2/token',
         COGNITO_M2M_SCOPE: 'labkoat/fmam.access',
         COGNITO_M2M_CLIENT_ID: '30l6v3jcm9v3jcunvb3jinco3m', // app client 'api.services.labkoat'
+        // The machine credential this service *accepts*, for the vocabulary. A separate scope and a
+        // separate app client from the pair above, which is what this service *presents* to fMam:
+        // one credential opening both services is one credential too many, and a build that only
+        // needs to read a published vocabulary should not thereby reach the OMC store.
+        //
+        // **The separation is in Cognito, not here.** The verifier asks whether the token carries at
+        // least one of the scopes it expects, so a token minted with both would satisfy both guards.
+        // What keeps them apart is that each app client is allowed to request only its own scope.
+        COGNITO_VOCAB_SCOPE: 'labkoat/vocab.read',
+        COGNITO_VOCAB_CLIENT_ID: '', // app client 'api.vocab.labkoat' — set once it exists
         // Who a caller is, in words. An access token carries `sub` and `username` and no email, and
         // where a pool signs people in by an email alias those two are the same opaque uuid -- so a
         // record stamped from the token alone reads `58011380-e091-...` and names nobody. This

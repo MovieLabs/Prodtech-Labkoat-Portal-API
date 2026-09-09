@@ -43,7 +43,8 @@ import { derivedLabel, labelOfType, localised, prefLabel } from './store/read.js
 /**
  * Scheme identifier to the preferred label of the term heading it.
  *
- * A scheme id is derived (`vmc:c-0001a7` heads `vmc:s-0001a7`) and legible to nobody, so a column of
+ * A scheme id is derived (`vmc:c-0001a7` heads `vmc:s-media-creation.0001a7` in the view that
+ * attaches it) and legible to nobody, so a column of
  * them says nothing a reader can use. Cached per resolution because every row asks, and the answer
  * is the same for all of them.
  *

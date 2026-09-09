@@ -31,8 +31,14 @@ import { VOCAB_COUNTERS, vocabCollection } from './collections.js';
 /** Terms: `vmc:c-0000b8`. Six lowercase hex digits, as the live vocabulary has. */
 const TERM_PREFIX = 'vmc:c-';
 
-/** Concept schemes: `vmc:s-0000b8`, derived from a term id at export. Never stored. */
+/** Concept schemes: `vmc:s-media-creation.0000b8`, derived at export. Never stored. */
 const SCHEME_PREFIX = 'vmc:s-';
+
+/** The `skos:Collection` a view publishes as: `vmc:v-media-creation`. Never stored. */
+const VIEW_COLLECTION_PREFIX = 'vmc:v-';
+
+/** Separates the view a scheme belongs to from the term heading it. */
+const SCHEME_SEPARATOR = '.';
 
 /** Views: `view:media-creation`, a slug — see `viewId` for why these are not counted. */
 const VIEW_PREFIX = 'view:';
@@ -135,21 +141,50 @@ export function viewId(name) {
     return `${VIEW_PREFIX}${slug}`;
 }
 
+/** A view id with its `view:` prefix taken off, which is the slug it was minted as. */
+const viewSlug = ((id) => (typeof id === 'string' && id.startsWith(VIEW_PREFIX)
+    ? id.slice(VIEW_PREFIX.length)
+    : String(id ?? '')));
+
 /**
- * The SKOS `ConceptScheme` identifier for a term published as one.
+ * The SKOS `ConceptScheme` identifier for a term a view publishes as one.
  *
  * A term that a view attaches directly is published twice over: as the scheme, and as a concept
  * inside it. **SKOS declares Concept and ConceptScheme mutually disjoint** (SKOS Reference S9, S12),
  * so those cannot be the same URI — hence a second identifier, derived rather than stored.
  *
- * Derived from the term id and not from its name, so a rename never moves a published scheme.
+ * **Scoped to the view, because a scheme is an arrangement and an arrangement belongs to a view.**
+ * Whether a term heads a scheme is a fact about where it sits in *this* view; two views may both
+ * attach `Audio` and arrange what hangs beneath it differently. Keyed on the term alone, both would
+ * publish `vmc:s-000041` and a consumer holding the two documents would read one scheme with the
+ * union of two structures.
+ *
+ * Derived from the two ids and not from either name: a term id never changes, and a view id is a
+ * slug minted once from the name it was created with, so a rename cannot move a published scheme.
  *
  * @param {string} id - A term id, `vmc:c-000041`
- * @returns {string} `vmc:s-000041`
+ * @param {string} inView - The view publishing it, `view:media-creation`
+ * @returns {string} `vmc:s-media-creation.000041`
  */
-export function schemeIdFor(id) {
+export function schemeIdFor(id, inView) {
     if (typeof id !== 'string' || !id.startsWith(TERM_PREFIX)) return id;
-    return `${SCHEME_PREFIX}${id.slice(TERM_PREFIX.length)}`;
+    const hex = id.slice(TERM_PREFIX.length);
+    const slug = viewSlug(inView);
+    if (!slug) return `${SCHEME_PREFIX}${hex}`;
+    return `${SCHEME_PREFIX}${slug}${SCHEME_SEPARATOR}${hex}`;
+}
+
+/**
+ * The SKOS `Collection` identifier a view publishes as.
+ *
+ * Everything the view publishes is a member of it, so a consumer holding several vocabularies at
+ * once can still say which terms arrived together and under whose arrangement.
+ *
+ * @param {string} inView - `view:media-creation`
+ * @returns {string} `vmc:v-media-creation`
+ */
+export function viewCollectionIdFor(inView) {
+    return `${VIEW_COLLECTION_PREFIX}${viewSlug(inView)}`;
 }
 
 /**

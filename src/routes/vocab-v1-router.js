@@ -1,22 +1,15 @@
 /**
  * `/api/vocab/v1` — reading and writing the vocabulary, and publishing a view.
  *
- * **Writes land here, not in Neo4j.** The old `/api/vocab` routes still serve the old editor, and
- * the two stores are not synchronised: a term created here does not appear there. That is the point
- * of the staging — the new tool is exercised against real writes while the old one keeps working —
- * but it is worth knowing before wondering why a term is missing from the other tab.
- *
  * ## Two kinds of caller, both legitimate
  *
- * The design called for service-token auth so a build script in another repository could fetch a
- * view. But the Portal is a consumer too, and it holds a **Cognito** user token, not an Okta service
- * token. Requiring one would lock out the browser; requiring the other would lock out the build.
+ * A build script in another repository fetches a view with a service token. The Portal is a consumer
+ * too, and it holds a user token. Requiring one would lock out the browser; requiring the other
+ * would lock out the build.
  *
- * So a request is accepted if **either** validates. That is not a weakening: each validator still
- * verifies its own issuer, audience and signature, and a token from neither is refused. It also
- * closes the standing anomaly where `/api/vocab/skos/ttl` and `/skos/json` are the only
- * unauthenticated routes on this service — the vocabulary is currently world-readable by anyone who
- * knows the URL.
+ * So a request is accepted if **either** validates. That is not a weakening: each still verifies its
+ * own issuer and signature, and a token from neither is refused. What the two may *do* differs —
+ * see `machineReadOnly` below.
  *
  * @module routes/vocab-v1-router
  */
@@ -30,12 +23,14 @@ import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
 import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
+import { childrenByPlacement, placementKey, resolveView } from '../vocabulary/resolve.js';
 import { hasDefinition, termSnippet } from '../vocabulary/snippet.js';
 import {
     allTerms,
     getTerm,
     getTerms,
     getView,
+    labelOfType,
     listCollections,
     listFacets,
     listViews,
@@ -72,18 +67,53 @@ const router = express.Router();
 /**
  * A browser user, or a machine.
  *
- * The vocabulary is published for builds in other repositories as well as for the Portal, so this
- * route accepts a service token where the user-facing routes do not. Both now come from the same
- * Cognito pool; they are told apart by their claims, since a machine token carries a scope and no
+ * The vocabulary is published for builds in other repositories as well as for the Portal, so these
+ * routes accept a service token where the user-facing routes do not. Both come from the same Cognito
+ * pool; they are told apart by their claims, since a machine token carries a scope and no
  * `cognito:groups` while a user's carries the reverse.
+ *
+ * **The machine credential is this service's own, not the one it presents to fMam.** They were the
+ * same client and the same scope, so whoever was given access to the published vocabulary was
+ * thereby given access to the OMC store as well — one credential opening two services. A build that
+ * reads a view now holds `labkoat/vocab.read`, which fMam does not accept, and the fMam service
+ * token no longer opens anything here.
  */
-const authenticated = cognitoValidator({
+const validated = cognitoValidator({
     userPoolId: config.USER_POOL_ID,
-    machine: config.COGNITO_M2M_CLIENT_ID
-        ? { clientId: config.COGNITO_M2M_CLIENT_ID, scope: config.COGNITO_M2M_SCOPE }
+    machine: config.COGNITO_VOCAB_CLIENT_ID
+        ? { clientId: config.COGNITO_VOCAB_CLIENT_ID, scope: config.COGNITO_VOCAB_SCOPE }
         : null,
     user: { clientId: config.CLIENT_ID, group: 'labkoat' },
 });
+
+/**
+ * A machine reads; it does not write.
+ *
+ * The vocabulary is edited by people, in the Portal, against a user token that says who they are —
+ * which is what every write here stamps as its actor. A service token names a client and nobody, so
+ * a write behind one lands in the audit trail attributed to a machine, and there is no use for that
+ * yet. Refused rather than merely unused: the credential is handed to other repositories, and what
+ * it cannot do should not depend on what they choose to call.
+ *
+ * @param {object} req
+ * @param {object} res
+ * @param {Function} next
+ */
+function machineReadOnly(req, res, next) {
+    if (req.tokenKind === 'machine' && req.method !== 'GET') {
+        res.status(403).json({ message: 'This token may read the vocabulary but not change it' });
+        return;
+    }
+    next();
+}
+
+/**
+ * Both, in order, as one guard.
+ *
+ * An array because every route names this once, and Express takes a list wherever it takes a
+ * middleware — so the read-only rule cannot be forgotten on a route added later.
+ */
+const authenticated = [validated, machineReadOnly];
 
 /**
  * `?status=published,review` overrides the view's own default.
@@ -168,6 +198,60 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
         // somebody opens the file rather than when the request is served.
         if (Buffer.isBuffer(artifact.body)) res.send(artifact.body);
         else res.send(typeof artifact.body === 'string' ? artifact.body : JSON.stringify(artifact.body));
+    } catch (err) {
+        if (err.message?.startsWith('No such')) {
+            res.status(404).json({ message: err.message });
+            return;
+        }
+        // A refusal that names its own status is one the caller can act on — a format that cannot
+        // express the state this view is in. It is answered with the reason; anything without a
+        // status is ours and goes to the handler.
+        if (err.status) {
+            res.status(err.status).json({ message: err.message });
+            return;
+        }
+        next(err);
+    }
+});
+
+/**
+ * What is wrong with this view, in words a person can act on.
+ *
+ * The same resolution an export runs, reported rather than rendered. `problems` alone names counts
+ * and identifiers; `divergent` is expanded here into the placements that disagree, each with the
+ * path the view reaches it by and the children it has there — which is the only form of the answer
+ * anybody can do anything with, and needs a resolution to produce.
+ */
+router.get('/views/:id/problems', authenticated, async (req, res, next) => {
+    try {
+        const resolution = await resolveView({
+            viewId: req.params.id,
+            status: statusFrom(req.query),
+            language: req.query.language,
+        });
+
+        const labelType = resolution.view?.labelType ?? 'pref';
+        const nameOf = ((id) => labelOfType(resolution.terms.get(id), labelType, req.query.language)
+            || id);
+        const beneath = childrenByPlacement(resolution.placements ?? []);
+
+        const divergent = (resolution.problems?.divergent ?? []).map(({ termId }) => ({
+            termId,
+            label: nameOf(termId),
+            placements: (resolution.placements ?? [])
+                .filter((placement) => placement.termId === termId)
+                .map((placement) => ({
+                    // Outermost first and named, so the reader is told where to look rather than
+                    // handed a container id they have no way to find on the graph.
+                    path: placement.path.map((entry) => nameOf(entry.id)),
+                    container: placement.collectionId,
+                    mid: placement.mid,
+                    children: [...(beneath.get(placementKey(placement.collectionId, placement.mid))
+                        ?? [])].map(nameOf).sort(),
+                })),
+        }));
+
+        res.json({ problems: resolution.problems ?? {}, divergent });
     } catch (err) {
         if (err.message?.startsWith('No such')) {
             res.status(404).json({ message: err.message });
@@ -698,16 +782,17 @@ router.delete('/terms/:id/forks/:forkId', authenticated, async (req, res, next) 
  * Move a term's subtree onto the term, so it can be reused wherever the term is placed.
  *
  * The term's row does not move, so what this container publishes does not change — see
- * `arrangeSubtree` for why.
+ * `arrangeSubtree` for why. `name` names the arrangement, and is **required where the term carries
+ * one already**: the rows become a fork, and a fork is told from its siblings by its name.
  */
 router.post('/containers/:id/arrange', authenticated, async (req, res, next) => {
     try {
-        const { mid } = req.body ?? {};
+        const { mid, name } = req.body ?? {};
         if (!mid) {
             res.status(422).json({ message: 'mid is required', errors: ['Say which member to arrange'] });
             return;
         }
-        res.status(201).json(await arrangeSubtree(req.params.id, mid, await actorOf(req)));
+        res.status(201).json(await arrangeSubtree(req.params.id, mid, await actorOf(req), { name }));
     } catch (err) {
         writeFailed(err, res, next);
     }

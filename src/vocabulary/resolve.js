@@ -81,6 +81,8 @@ import {
  * @property {string} id - A term id. Every entry is a term; there is nothing else to be.
  * @property {boolean} [scheme] - Set where this view attaches the term directly and it carries an
  *   arrangement, which is what makes it a `skos:ConceptScheme`
+ * @property {string} [schemeId] - The identifier that scheme takes, minted here because it is
+ *   scoped to the view and a placement does not carry one
  * @property {boolean} [dotFrom] - Set where this view starts its dotted names below this term
  *
  * @typedef {object} Placement
@@ -110,32 +112,46 @@ import {
 export const placementKey = ((collectionId, mid) => `${collectionId}/${mid}`);
 
 /**
- * Terms this view publishes with more than one set of children.
+ * What hangs from each placement, keyed by the row it hangs from.
  *
- * **This is the rule that lets a placement choose its arrangement at all.** A term is one concept:
- * `skos:narrower` belongs to the concept, not to where it was placed, so a view in which Lens has
- * two different sets of children cannot be expressed in SKOS. One of the two would have to win, and
- * nothing says which.
- *
- * Asked of the **resolved children** rather than of what each row asked for, because the two are not
- * the same question. A placement that declines the arrangement and is given local rows can diverge
- * from an ordinary one without either naming anything unusual, and comparing what the rows *say*
- * would see two rows that agree.
- *
- * Reported rather than thrown: this is a fact about a view somebody is editing, and the editor has
- * to be able to draw the disagreement in order to resolve it. The generators are what refuse.
+ * Exported because saying *which* placements disagree needs the same grouping the check below does,
+ * and computing it twice is two chances to group differently.
  *
  * @param {Array<object>} placements
- * @returns {Array<{termId: string, sets: string[][]}>} One entry per term that disagrees with itself
+ * @returns {Map<string, Set<string>>}
  */
-function divergentChildren(placements) {
-    // What hangs from each placement, by the row it hangs from.
+export function childrenByPlacement(placements) {
     const beneath = new Map();
     placements.forEach((placement) => {
         if (!placement.under) return;
         if (!beneath.has(placement.under)) beneath.set(placement.under, new Set());
         beneath.get(placement.under).add(placement.termId);
     });
+    return beneath;
+}
+
+/**
+ * Terms this view publishes with more than one set of children.
+ *
+ * **A term is one concept.** `skos:narrower` belongs to the concept rather than to where it was
+ * placed, so a view in which Lens has two different sets of children says something SKOS has no way
+ * to write down. What it publishes is the union of the sets Lens has as a concept — more children
+ * than any one branch shows — plus, separately, the top concepts of any scheme it heads.
+ *
+ * That is a limitation of the format rather than a fault in the vocabulary, so it is **reported and
+ * never refused**: the model holds a term whose children depend on where it sits, which is the
+ * reason it exists. `GET /views/:id/problems` says which terms and where.
+ *
+ * Asked of the **resolved children** rather than of what each row asked for, because the two are not
+ * the same question. A placement that declines the arrangement and is given local rows can diverge
+ * from an ordinary one without either naming anything unusual, and comparing what the rows *say*
+ * would see two rows that agree.
+ *
+ * @param {Array<object>} placements
+ * @returns {Array<{termId: string, sets: string[][]}>} One entry per term that disagrees with itself
+ */
+function divergentChildren(placements) {
+    const beneath = childrenByPlacement(placements);
 
     const setsFor = new Map();
     placements.forEach((placement) => {
@@ -156,8 +172,13 @@ function divergentChildren(placements) {
  * Load every term a view reaches, one level of nesting at a time.
  *
  * Breadth-first rather than one query per term: the vocabulary nests three or four deep, so this is
- * a handful of round trips regardless of how many terms are involved. A term is followed for its own
- * arrangement, which is the only thing that reaches further.
+ * a handful of round trips regardless of how many terms are involved. A term is followed for its
+ * arrangements, which are the only thing that reaches further.
+ *
+ * **Every arrangement, not just the term's own.** Which fork a placement wants is decided in the
+ * walk below, long after the documents have to be in hand, so a term only a fork reaches has to be
+ * loaded too — unloaded, it is reported as a missing term and left out of the output. The cost is a
+ * few term documents this view may not use.
  *
  * @param {string[]} startIds - The terms a view attaches directly
  * @returns {Promise<Map<string, object>>}
@@ -172,7 +193,11 @@ async function loadReachable(startIds) {
         const next = [];
         loaded.forEach((doc, id) => {
             terms.set(id, doc);
-            (doc.member ?? []).forEach((member) => {
+            const rows = [
+                ...(doc.member ?? []),
+                ...(doc.fork ?? []).flatMap((fork) => fork.member ?? []),
+            ];
+            rows.forEach((member) => {
                 if (member.term && !terms.has(member.term)) next.push(member.term);
             });
         });
@@ -352,6 +377,10 @@ function walkMembers({
             // groups on, and the only thing that tells two placements of one term apart when they
             // sit under the same parent.
             under: inheritedUnder,
+            // Which of the term's arrangements this placement named — `null` for the term's own,
+            // `'none'` for one that declined them all. The row's word, because the resolution below
+            // looks the same either way and only this says whether a hierarchy came with it.
+            arrangement: member.arrangement ?? null,
         });
 
         // A term the view attaches directly, which carries an arrangement, is what a SKOS consumer
@@ -360,7 +389,13 @@ function walkMembers({
         const brings = member.arrangement === ARRANGEMENT_NONE
             ? null
             : arrangementOf(term, member.arrangement ?? null);
-        if (containerId === ctx.viewId && brings?.length) entry.scheme = true;
+        if (containerId === ctx.viewId && brings?.length) {
+            entry.scheme = true;
+            // Minted here and carried on the entry, because the identifier is scoped to the view and
+            // the readers below are given a placement, which knows nothing about which view it
+            // belongs to.
+            entry.schemeId = schemeIdFor(member.term, ctx.viewId);
+        }
         // Where this view starts counting a dotted name from. Marked on the entry rather than
         // handled here, because the name is built afterwards over whatever path survived — the same
         // reason hiding a heading shortens the names below it without anything shortening them.
@@ -584,7 +619,7 @@ export function broaderOf(placement) {
  */
 export const schemesOf = ((placement) => placement.path
     .filter((entry) => entry.scheme)
-    .map((entry) => schemeIdFor(entry.id)));
+    .map((entry) => entry.schemeId));
 
 /**
  * The schemes this placement is a **top concept** of.
@@ -599,7 +634,7 @@ export function topConceptOf(placement) {
     placement.path.forEach((entry, index) => {
         if (!entry.scheme) return;
         const termBelow = placement.path.slice(index + 1).some((later) => !later.scheme);
-        if (!termBelow) tops.push(schemeIdFor(entry.id));
+        if (!termBelow) tops.push(entry.schemeId);
     });
     return tops;
 }
@@ -618,7 +653,7 @@ export function schemeHeads(resolution) {
     const heads = new Map();
     resolution.placements.forEach((placement) => {
         placement.path.forEach((entry) => {
-            if (entry.scheme) heads.set(entry.id, schemeIdFor(entry.id));
+            if (entry.scheme) heads.set(entry.id, entry.schemeId);
         });
         // A head is normally found in its children's paths, but one whose children were all filtered
         // out by status appears in none — and it is still the vocabulary the view attached. Read off
@@ -626,7 +661,9 @@ export function schemeHeads(resolution) {
         // what makes it a scheme rather than a concept.
         if (placement.path.length) return;
         const term = resolution.terms.get(placement.termId);
-        if (term?.member?.length) heads.set(placement.termId, schemeIdFor(placement.termId));
+        if (term?.member?.length) {
+            heads.set(placement.termId, schemeIdFor(placement.termId, resolution.view?._id));
+        }
     });
     return heads;
 }
