@@ -119,7 +119,7 @@ export const derivedLabel = ((term, labelType) => DERIVABLE[labelType]?.(term) ?
  * kind still has to be named. Where the kind can be worked out from the preferred name it is
  * derived — see `DERIVABLE` — which is how a schema view stops publishing `Set Dressing` where it
  * needs `setDressing`. Where it cannot, the preferred name is used as it stands, because naming the
- * term by its identifier would put `vmc:c-0003C4` in an artifact where a word belongs.
+ * term by its identifier would put `mlv:c-0003C4` in an artifact where a word belongs.
  *
  * Either way it is a substitution, and `problems.untyped` counts every one: a derived token is a
  * good guess, and a guess in a schema is worth checking before it is published.

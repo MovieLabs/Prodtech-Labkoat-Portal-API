@@ -276,7 +276,7 @@ function checkArrangement(term, found) {
 /**
  * Check the shape of a view's `arrange` block.
  *
- * **Shape only, and that is the whole design.** Whether `vmc:c-000041/m7` names a placement this
+ * **Shape only, and that is the whole design.** Whether `mlv:c-000041/m7` names a placement this
  * view actually reaches depends on every arrangement the view gathers, which is not in hand here and
  * changes without this view being written to. So it is reported at resolve time, in `problems` — the
  * same split `checkArrangement` already makes for indirect cycles.
@@ -309,7 +309,7 @@ function checkArrange(view, found) {
         }
         list.forEach((key) => {
             if (!wellFormed(key)) {
-                fail(found, `"${key}" is not a placement key — it must read containerId/memberId, e.g. vmc:c-000041/m7`);
+                fail(found, `"${key}" is not a placement key — it must read containerId/memberId, e.g. mlv:c-000041/m7`);
             }
         });
     });

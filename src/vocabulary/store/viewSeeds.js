@@ -36,7 +36,7 @@ export const VIEW_SEEDS = [
         member: [],
         // The artifact's own identity. Named here so a view that gathers this one can declare the
         // composition with `owl:imports` rather than inventing a structure SKOS cannot express.
-        ontology: 'https://mc.movielabs.com/vmc/media-creation',
+        ontology: 'https://mc.movielabs.com/mlv/media-creation',
         labelStyle: 'plain',
         // The statuses today's serializers hard-code, kept so this view's output matches what
         // consumers already receive. Every concept in the live data is `published` or `review`, so
@@ -58,7 +58,7 @@ export const VIEW_SEEDS = [
         // declares what it is made of with `owl:imports` — which is where an aggregate belongs,
         // because SKOS has no aggregate of schemes and adding one would mean retyping a scheme as
         // something else in this artifact but not in its own.
-        ontology: 'https://mc.movielabs.com/vmc',
+        ontology: 'https://mc.movielabs.com/mlv',
         labelStyle: 'plain',
         // Matching Media Creation's, so gathering a vocabulary does not silently publish more of it
         // than its own view does. An inclusion can narrow this per vocabulary with `filter.status`

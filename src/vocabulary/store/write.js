@@ -193,7 +193,7 @@ export async function createTerms(terms, actor) {
  * Labels in these terms that already name something else.
  *
  * **The message says "duplicate term" in those words.** It used to read `"X" already names
- * vmc:c-000455`, which states the collision and leaves the reader to work out what it means and
+ * mlv:c-000455`, which states the collision and leaves the reader to work out what it means and
  * whether anything went wrong. Two terms sharing a name is usually a mistake and occasionally
  * deliberate — `Costume` the garment and `Costume` the department are both wanted — so this names
  * the thing, says the write went through, and leaves the judgement where it belongs.

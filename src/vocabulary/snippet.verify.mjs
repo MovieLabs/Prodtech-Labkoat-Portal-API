@@ -28,7 +28,7 @@ function is(what, got, wanted) {
 
 /** A term document in the shape the store holds. */
 const term = ((labels, definition) => ({
-    _id: 'vmc:c-000001',
+    _id: 'mlv:c-000001',
     label: labels,
     ...(definition === undefined ? {} : { definition }),
 }));

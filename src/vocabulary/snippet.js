@@ -8,7 +8,7 @@
  * ## Always the preferred label
  *
  * Not the label type a view publishes. A snippet is a statement about the **term**, and the term is
- * the same one whichever view a reader arrives from — a document citing `vmc:c-000034` means Asset,
+ * the same one whichever view a reader arrives from — a document citing `mlv:c-000034` means Asset,
  * not whatever a particular view happens to call it. That is also why nothing here takes a view.
  *
  * ## One line, always

@@ -20,7 +20,7 @@
  * ## The formats are the ones already in use
  *
  * Existing ids are kept exactly as they are through the migration, because they are the identifiers
- * external consumers key on — the whole point of the vocabulary is that `vmc:c-0000b8` means the
+ * external consumers key on — the whole point of the vocabulary is that `mlv:c-0000b8` means the
  * same thing tomorrow. New ids continue the same sequences.
  *
  * @module vocabulary/store/ids
@@ -28,14 +28,21 @@
 
 import { VOCAB_COUNTERS, vocabCollection } from './collections.js';
 
-/** Terms: `vmc:c-0000b8`. Six lowercase hex digits, as the live vocabulary has. */
-const TERM_PREFIX = 'vmc:c-';
+/**
+ * The vocabulary's namespace: the prefix on every identifier it mints or derives, and the CURIE
+ * prefix the SKOS generator declares for them. **Stored ids carry it**, so changing it is a
+ * migration of the store as well as of this line.
+ */
+export const NAMESPACE = 'mlv';
 
-/** Concept schemes: `vmc:s-media-creation.0000b8`, derived at export. Never stored. */
-const SCHEME_PREFIX = 'vmc:s-';
+/** Terms: `mlv:c-0000b8`. Six lowercase hex digits, as the live vocabulary has. */
+const TERM_PREFIX = `${NAMESPACE}:c-`;
 
-/** The `skos:Collection` a view publishes as: `vmc:v-media-creation`. Never stored. */
-const VIEW_COLLECTION_PREFIX = 'vmc:v-';
+/** Concept schemes: `mlv:s-media-creation.0000b8`, derived at export. Never stored. */
+const SCHEME_PREFIX = `${NAMESPACE}:s-`;
+
+/** The `skos:Collection` a view publishes as: `mlv:v-media-creation`. Never stored. */
+const VIEW_COLLECTION_PREFIX = `${NAMESPACE}:v-`;
 
 /** Separates the view a scheme belongs to from the term heading it. */
 const SCHEME_SEPARATOR = '.';
@@ -70,7 +77,7 @@ async function nextBlock(name, count = 1) {
  * Mint identifiers for new terms.
  *
  * @param {number} [count=1] - How many to mint
- * @returns {Promise<string[]>} Ids in the form `vmc:c-0001a3`
+ * @returns {Promise<string[]>} Ids in the form `mlv:c-0001a3`
  */
 export async function mintTermIds(count = 1) {
     const start = await nextBlock('term', count);
@@ -156,15 +163,15 @@ const viewSlug = ((id) => (typeof id === 'string' && id.startsWith(VIEW_PREFIX)
  * **Scoped to the view, because a scheme is an arrangement and an arrangement belongs to a view.**
  * Whether a term heads a scheme is a fact about where it sits in *this* view; two views may both
  * attach `Audio` and arrange what hangs beneath it differently. Keyed on the term alone, both would
- * publish `vmc:s-000041` and a consumer holding the two documents would read one scheme with the
+ * publish `mlv:s-000041` and a consumer holding the two documents would read one scheme with the
  * union of two structures.
  *
  * Derived from the two ids and not from either name: a term id never changes, and a view id is a
  * slug minted once from the name it was created with, so a rename cannot move a published scheme.
  *
- * @param {string} id - A term id, `vmc:c-000041`
+ * @param {string} id - A term id, `mlv:c-000041`
  * @param {string} inView - The view publishing it, `view:media-creation`
- * @returns {string} `vmc:s-media-creation.000041`
+ * @returns {string} `mlv:s-media-creation.000041`
  */
 export function schemeIdFor(id, inView) {
     if (typeof id !== 'string' || !id.startsWith(TERM_PREFIX)) return id;
@@ -181,7 +188,7 @@ export function schemeIdFor(id, inView) {
  * once can still say which terms arrived together and under whose arrangement.
  *
  * @param {string} inView - `view:media-creation`
- * @returns {string} `vmc:v-media-creation`
+ * @returns {string} `mlv:v-media-creation`
  */
 export function viewCollectionIdFor(inView) {
     return `${VIEW_COLLECTION_PREFIX}${viewSlug(inView)}`;
@@ -210,9 +217,9 @@ const FORK_SEPARATOR = '#';
  * makes forking cost no migration: `view.arrange.hide` and `dotFrom` are keyed `containerId/mid`,
  * so every key written before forks existed still names the same row afterwards.
  *
- * @param {string} termId - `vmc:c-000081`
+ * @param {string} termId - `mlv:c-000081`
  * @param {string|null} [forkId] - `f2`, or nothing for the default arrangement
- * @returns {string} `vmc:c-000081#f2`, or `vmc:c-000081`
+ * @returns {string} `mlv:c-000081#f2`, or `mlv:c-000081`
  */
 export function arrangementContainer(termId, forkId = null) {
     if (!forkId || forkId === ARRANGEMENT_NONE) return termId;

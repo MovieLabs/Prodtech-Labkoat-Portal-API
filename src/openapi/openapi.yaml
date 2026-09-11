@@ -94,10 +94,10 @@ paths:
                 - name: id
                   in: path
                   required: true
-                  description: The term identifier, e.g. `vmc:c-000034`
+                  description: The term identifier, e.g. `mlv:c-000034`
                   schema:
                       type: string
-                  example: vmc:c-000034
+                  example: mlv:c-000034
             responses:
                 '200':
                     description: The rendered line
@@ -158,7 +158,7 @@ paths:
                                         type: string
                                     description: Term identifiers
                         example:
-                            ids: ['vmc:c-000034', 'vmc:c-0001a7', 'vmc:c-999999']
+                            ids: ['mlv:c-000034', 'mlv:c-0001a7', 'mlv:c-999999']
             responses:
                 '200':
                     description: What each identifier resolved to
@@ -168,10 +168,10 @@ paths:
                                 $ref: '#/components/schemas/MarkdownBatch'
                             example:
                                 terms:
-                                    vmc:c-000034: '**Asset**: A physical or digital object or collection of objects specific to the creation of a Creative Work.'
-                                    vmc:c-0001a7: '**Lens**:'
-                                missing: ['vmc:c-999999']
-                                withoutDefinition: ['vmc:c-0001a7']
+                                    mlv:c-000034: '**Asset**: A physical or digital object or collection of objects specific to the creation of a Creative Work.'
+                                    mlv:c-0001a7: '**Lens**:'
+                                missing: ['mlv:c-999999']
+                                withoutDefinition: ['mlv:c-0001a7']
                 '401':
                     $ref: '#/components/responses/Unauthorized'
                 '422':
@@ -1208,7 +1208,7 @@ components:
             description: The term identifier
             schema:
                 type: string
-            example: vmc:c-000034
+            example: mlv:c-000034
         containerId:
             name: id
             in: path
@@ -1218,7 +1218,7 @@ components:
                 A fork is written `<termId>#<forkId>`.
             schema:
                 type: string
-            example: vmc:c-000081#f1
+            example: mlv:c-000081#f1
         forkId:
             name: forkId
             in: path
@@ -1361,7 +1361,7 @@ components:
             properties:
                 _id:
                     type: string
-                    example: vmc:c-000034
+                    example: mlv:c-000034
                 label:
                     type: array
                     items:

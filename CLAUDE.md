@@ -183,10 +183,15 @@ node src/vocabulary/skosCheck.js --view view:media-creation
 ```
 
 **The migration has run and its scripts are deleted.** Three of them mattered: `collapse.mjs`
-(collections onto terms), `omcNamespace.mjs` (`omc:` ids into `vmc:`) and `pruneTokens.mjs`. Nothing
-can re-run them and nothing should — choosing which term heads each arrangement was a human
-decision, not a derivation, so there is no faithful port. Git history holds them if the reasoning is
-ever needed.
+(collections onto terms), `omcNamespace.mjs` (`omc:` ids into the vocabulary's own namespace) and
+`pruneTokens.mjs`. Nothing can re-run them and nothing should — choosing which term heads each
+arrangement was a human decision, not a derivation, so there is no faithful port. Git history holds
+them if the reasoning is ever needed.
+
+**`migrateNamespace.js` is one more, not yet run.** It moves every stored id and IRI from `vmc` to the
+`NAMESPACE` in `store/ids.js`. Dry run by default; `--write --backup <file>` applies it in one
+transaction after writing the backup, and `--restore <file>` puts a backup back. Safe to repeat.
+Delete it once it has run.
 
 **Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
 `seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
@@ -204,8 +209,11 @@ minted. That is why the store looks as it does.
 **Those 183 kept an `omc:` identifier, and no longer do.** Two namespaces for one kind of thing meant
 a term in the second was indistinguishable from a term in the first until it reached an export —
 where `omc:` was not even in the Turtle's prefix map, so it emitted an undeclared CURIE.
-The move kept the number where it was free (`omc:002A0` → `vmc:c-0002a0`) and minted where it was
-not. Every term id is `vmc:` now.
+The move kept the number where it was free (`omc:002A0` → `c-0002a0`) and minted where it was not.
+
+**Every id carries one namespace, `mlv:`** — `NAMESPACE` in `store/ids.js`, which minting, the scheme
+and collection ids, and the SKOS prefix map all read. Stored ids carry it and are written out as
+CURIEs exactly as stored, so changing it is a migration of the store, never just of that constant.
 
 - **A view can name which kind of label it publishes** (`view.labelType`, default `pref`).
   `view:omc-controlled-values` uses `omcToken` with `labelStyle: 'dotted'`, so `capture` +

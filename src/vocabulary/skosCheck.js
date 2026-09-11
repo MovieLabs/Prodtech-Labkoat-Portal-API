@@ -6,7 +6,7 @@
  * node src/vocabulary/skosCheck.js --view view:media-creation --check oc,tchbc
  * ```
  *
- * qSKOS and its kin answer in identifiers, and `vmc:c-00044e` says nothing about what is wrong or
+ * qSKOS and its kin answer in identifiers, and `mlv:c-00044e` says nothing about what is wrong or
  * whether it matters. The same checks are computed here from the resolution the generators read, so
  * every finding comes back as a name — and, where the shape of the problem is a relationship, the
  * name of the thing at the other end of it.

@@ -4,7 +4,7 @@
  * One projection, two encodings. The old code had two hand-written serializers that had drifted
  * apart — JSON-LD emitted `skos:altLabel` as a literal and Turtle emitted it as a URI, which is
  * wrong; both duplicated the status filter as a literal; and JSON-LD put an always-empty
- * `vmc:hasAcronym` on every concept. Building the triples once and encoding them twice makes that
+ * `mlv:hasAcronym` on every concept. Building the triples once and encoding them twice makes that
  * class of divergence impossible rather than merely fixed.
  *
  * ## Loss is declared, not accidental
@@ -33,9 +33,16 @@
 import {
     broaderOf, placementsByTerm, schemeHeads, schemesOf, topConceptOf,
 } from '../resolve.js';
-import { viewCollectionIdFor } from '../store/ids.js';
+import { NAMESPACE, viewCollectionIdFor } from '../store/ids.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
+/** Where a view that names no ontology of its own is published. */
+const ONTOLOGY = `https://mc.movielabs.com/${NAMESPACE}`;
+
+/**
+ * The vocabulary's own prefix is the one its stored ids carry, because an id is written out as a
+ * CURIE exactly as stored. Declared from the same constant, so the two cannot disagree.
+ */
 const PREFIXES = {
     skos: 'http://www.w3.org/2004/02/skos/core#',
     skosxl: 'http://www.w3.org/2008/05/skos-xl#',
@@ -43,11 +50,8 @@ const PREFIXES = {
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
     dct: 'http://purl.org/dc/terms/',
-    vmc: 'https://mc.movielabs.com/vmc#',
+    [NAMESPACE]: `${ONTOLOGY}#`,
 };
-
-/** Where a view that names no ontology of its own is published. */
-const ONTOLOGY = 'https://mc.movielabs.com/vmc';
 
 /** The blocks a document is written in, in the order they appear. */
 const BLOCKS = [
@@ -158,7 +162,7 @@ export function skosTriples(resolution, projections) {
     //
     // A term the view attaches that carries no arrangement is just a concept, and the tree below it
     // works the usual way.
-    // The identifier is the view's as much as the term's — `vmc:s-media-creation.000041` — because a
+    // The identifier is the view's as much as the term's — `mlv:s-media-creation.000041` — because a
     // scheme *is* an arrangement, and the arrangement belongs to the view. Keyed on the term alone,
     // two views that both head `Audio` would publish one identifier for two different structures,
     // and a consumer holding both documents would read their union as a single scheme.
