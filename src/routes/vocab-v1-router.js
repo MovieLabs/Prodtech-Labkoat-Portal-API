@@ -22,7 +22,8 @@ import config from '../config.js';
 import { driftReport } from '../vocabulary/driftReport.js';
 import { profileFor, profileKindOf } from '../vocabulary/exportProfiles.js';
 import { fieldCatalogue } from '../vocabulary/fields.js';
-import { generate, generatorDescriptors } from '../vocabulary/generators/index.js';
+import { generate, generatorDescriptors, isGenerator } from '../vocabulary/generators/index.js';
+import { describeProblems } from '../vocabulary/problems.js';
 import { childrenByPlacement, placementKey, resolveView } from '../vocabulary/resolve.js';
 import { hasDefinition, termSnippet } from '../vocabulary/snippet.js';
 import {
@@ -171,6 +172,11 @@ router.get('/views', authenticated, async (req, res, next) => {
  * Problems are returned in a header rather than mixed into the body: a Turtle document has nowhere
  * to put them, and a caller piping the response to a file should still be able to see that a
  * hundred terms were dropped.
+ *
+ * **The header carries counts, never the entries.** A header has to stay small — a proxy refuses a
+ * response whose headers outgrow its buffer — and the entries grow with the vocabulary, so any cut
+ * leaves invalid JSON and the caller with nothing it can read. Counts are a few dozen bytes. What
+ * each problem *is* comes from `GET /views/:id/problems`, in words.
  */
 router.get('/views/:id', authenticated, async (req, res, next) => {
     try {
@@ -181,11 +187,10 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
             language: req.query.language,
         });
 
-        const problems = Object.entries(artifact.problems ?? {})
-            .filter(([, value]) => (Array.isArray(value) ? value.length : value));
-        if (problems.length) {
-            res.set('X-Vocab-Problems', JSON.stringify(Object.fromEntries(problems)).slice(0, 900));
-        }
+        const counts = Object.entries(artifact.problems ?? {})
+            .map(([name, value]) => [name, Array.isArray(value) ? value.length : value])
+            .filter(([, count]) => count);
+        if (counts.length) res.set('X-Vocab-Problems', JSON.stringify(Object.fromEntries(counts)));
 
         // The generator names the file, because the extension is its decision and not the caller's:
         // a format that splits its output ships a zip whatever was asked for. A browser download
@@ -220,22 +225,31 @@ router.get('/views/:id', authenticated, async (req, res, next) => {
  * The same resolution an export runs, reported rather than rendered. `problems` alone names counts
  * and identifiers; `divergent` is expanded here into the placements that disagree, each with the
  * path the view reaches it by and the children it has there — which is the only form of the answer
- * anybody can do anything with, and needs a resolution to produce.
+ * anybody can do anything with, and needs a resolution to produce. `details` says every other
+ * problem that names something, one sentence each.
+ *
+ * `?format=` runs that format's generator as well, because some problems are the format's: a label
+ * type the controlled sets no longer have is only found when SKOS tries to project it. Without it,
+ * the resolution alone is checked.
  */
 router.get('/views/:id/problems', authenticated, async (req, res, next) => {
     try {
-        const resolution = await resolveView({
+        const params = {
             viewId: req.params.id,
             status: statusFrom(req.query),
             language: req.query.language,
-        });
+        };
+        const format = isGenerator(req.query.format) ? req.query.format : null;
+        const { resolution, problems } = format
+            ? await generate({ ...params, format })
+            : await resolveView(params).then((resolved) => ({ resolution: resolved, problems: resolved.problems }));
 
         const labelType = resolution.view?.labelType ?? 'pref';
         const nameOf = ((id) => labelOfType(resolution.terms.get(id), labelType, req.query.language)
             || id);
         const beneath = childrenByPlacement(resolution.placements ?? []);
 
-        const divergent = (resolution.problems?.divergent ?? []).map(({ termId }) => ({
+        const divergent = (problems?.divergent ?? []).map(({ termId }) => ({
             termId,
             label: nameOf(termId),
             placements: (resolution.placements ?? [])
@@ -251,7 +265,11 @@ router.get('/views/:id/problems', authenticated, async (req, res, next) => {
                 })),
         }));
 
-        res.json({ problems: resolution.problems ?? {}, divergent });
+        res.json({
+            problems: problems ?? {},
+            divergent,
+            details: describeProblems({ resolution, problems: problems ?? {} }),
+        });
     } catch (err) {
         if (err.message?.startsWith('No such')) {
             res.status(404).json({ message: err.message });

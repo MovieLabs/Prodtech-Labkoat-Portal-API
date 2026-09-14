@@ -5,9 +5,9 @@
  *
  * ## A source is written the way the model is
  *
- * `label:acronym`, `note:editorial`, `example:url`, `tag:departmentOrRole`. The prefix is the array
- * on the term and the suffix is the type within it, so a source says where its value comes from
- * without anybody having to learn a second vocabulary for it.
+ * `label:acronym`, `note:editorial`, `example:url`. The prefix is the array on the term and the
+ * suffix is the type within it, so a source says where its value comes from without anybody having
+ * to learn a second vocabulary for it.
  *
  * **Every typed source names a type the controlled set declares, and nothing else.** There were
  * aggregates once — `label:*` for every non-preferred label at once, with `labelType:*` giving their
@@ -15,7 +15,8 @@
  * gone: a reader choosing columns should see the label types this vocabulary has, and an entry
  * standing for "the others, lumped together" is not one of them.
  *
- * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`. There
+ * A source that is not one of the typed arrays is written plainly: `id`, `status`, `broader`,
+ * `tags` — one column, since there is one tag list and a view decides which of it applies. There
  * is no source for the name a view renders a term under — the dotted compound the graph draws. It
  * was offered as `displayLabel` and is not a thing the model has: a term has labels, of the types
  * the controlled set declares, and nothing else.
@@ -39,6 +40,7 @@
 
 import { broaderOf, displayName, schemeHeads, schemesOf, tagsFor } from './resolve.js';
 import { derivedLabel, labelOfType, localised, prefLabel } from './store/read.js';
+import { tagWords } from './tags.js';
 
 /**
  * Scheme identifier to the preferred label of the term heading it.
@@ -73,9 +75,6 @@ function schemeLabels(resolution, language) {
     return labels;
 }
 
-/** A tag source names its set without repeating the `facet:` its identifier already carries. */
-const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
-
 /**
  * The sources that exist whatever the controlled sets say.
  *
@@ -93,6 +92,7 @@ const STRUCTURAL = [
     { source: 'collections', heading: 'collections', describes: 'Collections using it', group: 'Structure', multi: true },
     { source: 'broader', heading: 'broader', describes: 'The term it sits under', group: 'Structure', multi: true },
     { source: 'placements', heading: 'placements', describes: 'How many times it is placed', group: 'Structure', multi: false },
+    { source: 'tags', heading: 'tags', describes: 'Its tags, of those this view offers', group: 'Tags', multi: true },
 ];
 
 /**
@@ -103,19 +103,6 @@ const STRUCTURAL = [
  */
 export function fieldCatalogue(facetDocs = []) {
     const typed = facetDocs.flatMap((facet) => {
-        // A tag set contributes one column carrying that set's values, because two sets sharing a
-        // value are two different designations and one column cannot say which was meant.
-        if (facet.appliesTo === 'tag') {
-            return [{
-                source: `tag:${tagSlug(facet._id)}`,
-                // The set's own heading, which is the one the sets editor shows beside each value.
-                heading: facet.label?.en ?? tagSlug(facet._id),
-                describes: facet.definition?.en ?? facet.label?.en ?? facet._id,
-                group: 'Tags',
-                multi: true,
-            }];
-        }
-
         const prefix = { label: 'label', note: 'note', example: 'example' }[facet.appliesTo];
         if (!prefix) return [];
 
@@ -150,8 +137,8 @@ export const isField = ((source, facetDocs) => fieldCatalogue(facetDocs)
  * @param {Array<object>} context.placements - The placements this row covers. One for a placement
  *   row; every placement of the term for a term row
  * @param {object} context.resolution
- * @param {Array<object>} context.facets - Needed by `tag:<set>`, to know which values are that
- *   set's. The resolution does not carry them
+ * @param {Array<object>} context.facets - Needed by `tags`, for the word each tag is called by.
+ *   The resolution does not carry them
  * @param {string} context.language
  * @returns {Array<string>}
  */
@@ -170,6 +157,11 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
         case 'collections': return unique(placements.map((placement) => placement.collectionId));
         case 'broader': return unique(placements.map((placement) => broaderOf(placement)));
         case 'placements': return [String(placements.length)];
+        // Published by word, never by key: a key keeps the spelling a tag was created with.
+        case 'tags': {
+            const words = tagWords(facets, language);
+            return tagsFor(resolution, term._id).map((key) => words.get(key) ?? key);
+        }
 
         default: break;
     }
@@ -229,13 +221,6 @@ export function valueAt(source, { term, placements, resolution, facets = [], lan
     if (prefix === 'example') {
         return (term.example ?? []).filter((entry) => entry.exampleType === type).map((entry) => entry.value);
     }
-    if (prefix === 'tag') {
-        const facet = facets.find((entry) => tagSlug(entry._id) === type);
-        if (!facet) return [];
-        const allowed = new Set((facet.values ?? []).map((value) => value[facet.key]));
-        return tagsFor(resolution, term._id).filter((tag) => allowed.has(tag));
-    }
-
     // An unknown source is refused at the point a profile is saved, so reaching here means a set
     // value was removed after the fact. Empty rather than thrown: one blank column is a better
     // answer than no export at all, and it is reported alongside.

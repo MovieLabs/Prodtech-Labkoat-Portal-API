@@ -29,6 +29,7 @@ import { toXlsx } from './xlsx.js';
  * @property {string} extension
  * @property {string} filename - What the artifact should be saved as, extension included
  * @property {object} [problems] - Anything the generator could not express, stated rather than hidden
+ * @property {object} resolution - What the generator ran over, so its problems can be named
  */
 
 /** Path separators, the set Windows refuses, and the quotes that would end a header value early. */
@@ -109,7 +110,7 @@ const GENERATORS = {
         label: 'JSON',
         contentType: 'application/json',
         extension: 'json',
-        run: ({ resolution, profile }) => toViewJson(resolution, profile),
+        run: ({ resolution, facets }) => toViewJson(resolution, facets),
     },
     'csv': {
         label: 'CSV',
@@ -257,5 +258,6 @@ export async function generate({ viewId, format = 'json', status = null, languag
         extension,
         filename: filenameFor(resolution.view, extension),
         problems,
+        resolution,
     };
 }

@@ -103,6 +103,7 @@ export function normaliseTerm(term) {
                 })),
             }
             : {}),
+        ...(Array.isArray(term.tag) ? { tag: term.tag.map(oneLine) } : {}),
         ...(term.status ? { status: oneLine(term.status) } : {}),
         ...(term.arrangementName ? { arrangementName: oneLine(term.arrangementName) } : {}),
     };
@@ -128,6 +129,7 @@ export function normaliseView(view) {
         ...(view.ontology ? { ontology: oneLine(view.ontology) } : {}),
         ...(view.filename ? { filename: oneLine(view.filename) } : {}),
         ...(view.labelType ? { labelType: oneLine(view.labelType) } : {}),
+        ...(Array.isArray(view.tags) ? { tags: view.tags.map(oneLine) } : {}),
     };
 }
 

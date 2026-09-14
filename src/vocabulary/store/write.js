@@ -19,6 +19,7 @@
 
 import { PROFILE_KINDS, profileKindOf } from '../exportProfiles.js';
 import { validateTableConfig } from '../tableConfig.js';
+import { prepareTagValues, withKnownTags } from '../tags.js';
 
 import {
     VOCAB_FACETS,
@@ -27,7 +28,7 @@ import {
     vocabCollection,
 } from './collections.js';
 import {
-    arrangementContainer, mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_,
+    ARRANGEMENT_NONE, arrangementContainer, mintTermIds, nextForkId, readArrangementContainer, viewId as viewId_,
 } from './ids.js';
 import { normaliseFacet, normaliseTerm, normaliseView } from './normalise.js';
 import { arrangementOf, listFacets, termUsage } from './read.js';
@@ -166,7 +167,7 @@ export async function createTerms(terms, actor) {
 
     // Tidied before anything looks at it, so the duplicate-label check compares what will be stored
     // rather than what happened to be pasted.
-    const prepared = terms.map((term, index) => stamped(normaliseTerm({
+    const prepared = terms.map((term, index) => stamped(withKnownTags(normaliseTerm({
         status: 'proposed', // The safe default: a new term is a proposal until somebody says otherwise
         label: [],
         note: [],
@@ -174,7 +175,7 @@ export async function createTerms(terms, actor) {
         definition: {},
         ...term,
         _id: ids[index],
-    }), actor));
+    }), 'tag', allowed.get('tag') ?? new Set()), actor));
 
     const errors = prepared.flatMap((term, index) => validateTerm(term, allowed)
         .errors.map((message) => `Row ${index + 1}: ${message}`));
@@ -237,13 +238,16 @@ async function duplicateLabelWarnings(terms) {
  */
 export async function replaceTerm(id, term, actor, expected) {
     const allowed = await allowedFacetValues();
+    const knownTags = allowed.get('tag') ?? new Set();
 
+    // A tag since removed from the list leaves the term here, on its next save.
+    //
     // **An empty arrangement is not an arrangement.** Carrying `member: []` puts a term in a state
     // that is neither: the palette leaves it out, because a collection with nothing in it is not
     // something to place, while `unarrangeSubtree` refuses it as carrying no arrangement — so a term
     // emptied row by row could not be reverted and could not be used. Dropped on write instead, so
     // taking the last row out of an arrangement is the same act as reverting it. The same for forks.
-    const tidied = normaliseTerm({ ...term });
+    const tidied = withKnownTags(normaliseTerm({ ...term }), 'tag', knownTags);
     if (Array.isArray(tidied.member) && !tidied.member.length) delete tidied.member;
     if (Array.isArray(tidied.fork) && !tidied.fork.length) delete tidied.fork;
 
@@ -259,9 +263,10 @@ export async function replaceTerm(id, term, actor, expected) {
 
     // `migrated` is dropped on edit. It marks a document the migration owns and may replace on its
     // next run; once a person has changed it, it is theirs.
+    // Filtered again once merged, for a caller that sent no `tag` and so keeps the stored one.
     const { migrated: _migrated, ...keep } = existing;
     const written = await vocabCollection(VOCAB_TERMS)
-        .replaceOne(basedOn(id, expected), { ...keep, ...prepared });
+        .replaceOne(basedOn(id, expected), withKnownTags({ ...keep, ...prepared }, 'tag', knownTags));
     // Nothing matched, and the `findOne` above proved it exists — so it exists with a different
     // `modified`, which is somebody else's write landing between that read and this one.
     if (!written.matchedCount) await refuseAsStale(VOCAB_TERMS, id, 'term');
@@ -946,10 +951,16 @@ export async function renameArrangement(termId, forkId, name, actor) {
 /**
  * Delete a fork.
  *
- * **Refused while anything still places it**, unless forced. A row naming a fork that has gone
- * publishes nothing beneath it and the resolver reports it — recoverable, but silent until somebody
- * opens that view, so the write says so instead. The usage is returned with the refusal so a caller
- * can name where.
+ * **Refused while anything still places it**, unless forced. The usage is returned with the refusal
+ * so a caller can name where.
+ *
+ * **Forced, the rows that brought it are repointed rather than left to dangle** — the rule
+ * `deleteTerm` follows for a deleted term. Each says `'none'`, which publishes nothing beneath the
+ * term: what the placement published with the fork gone, and what the caller agreed to by forcing.
+ * Left naming the fork, the row changes no output but is a reference to nothing, reported on every
+ * export of every view that reaches it — including views nobody was looking at when the delete was
+ * confirmed, because a row can sit inside another term's arrangement. A term with no default
+ * arrangement has nothing to decline, so there the row names none, which publishes the same.
  *
  * The rows *inside* the fork are placements, not terms: deleting it removes the arrangement, never
  * the terms it arranged.
@@ -987,6 +998,30 @@ export async function deleteFork(termId, forkId, force = false, actor) {
 
     const next = stamped({ ...term, fork: term.fork.filter((fork) => fork.id !== forkId) }, actor);
     await replaceUnchanged(VOCAB_TERMS, term, next, 'term');
+
+    // After the fork has gone, so a refused delete — stale, or not forced — changes nothing else.
+    if (placements) {
+        const row = { term: termId, arrangement: forkId };
+        const repoint = ((path) => (term.member?.length
+            ? { $set: { [`${path}.arrangement`]: ARRANGEMENT_NONE, ...stampFields(actor) } }
+            : { $unset: { [`${path}.arrangement`]: '' }, $set: stampFields(actor) }));
+        const rowFilter = { 'row.term': termId, 'row.arrangement': forkId };
+        await Promise.all([
+            vocabCollection(VOCAB_VIEWS).updateMany(
+                { member: brings }, repoint('member.$[row]'), { arrayFilters: [rowFilter] },
+            ),
+            vocabCollection(VOCAB_TERMS).updateMany(
+                { member: brings }, repoint('member.$[row]'), { arrayFilters: [rowFilter] },
+            ),
+            // Only the forks holding such a row are addressed, so a fork with no `member` array is
+            // never walked into.
+            vocabCollection(VOCAB_TERMS).updateMany(
+                { fork: { $elemMatch: { member: brings } } },
+                repoint('fork.$[holder].member.$[row]'),
+                { arrayFilters: [{ 'holder.member': { $elemMatch: row } }, rowFilter] },
+            ),
+        ]);
+    }
     return { term: next, placements };
 }
 
@@ -1030,7 +1065,11 @@ export async function createView(view, actor) {
 
 export async function saveView(id, view, actor, expected) {
     const allowed = await allowedFacetValues();
-    const prepared = stamped(normaliseView({ labelStyle: 'plain', member: [], ...view, _id: id }), actor);
+    const prepared = stamped(withKnownTags(
+        normaliseView({ labelStyle: 'plain', member: [], ...view, _id: id }),
+        'tags',
+        allowed.get('tag') ?? new Set(),
+    ), actor);
 
     const check = validateView(prepared, allowed);
     if (!check.ok) throw new ValidationError(check.errors);
@@ -1067,7 +1106,7 @@ export async function saveView(id, view, actor, expected) {
  * two sit next to each other in the interface.
  *
  * What is lost is the record itself: the ontology URI, the label style, the statuses it publishes
- * and its tag overlay. A seeded view comes back on the next seed run, without those edits.
+ * and the tags it offers. A seeded view comes back on the next seed run, without those edits.
  *
  * @param {string} id
  * @returns {Promise<{deleted: boolean, root: string|null}>}
@@ -1082,11 +1121,11 @@ export async function deleteView(id) {
 /**
  * Create or replace a facet — the controlled set behind a kind of label, note, example or tag.
  *
- * **Removing a value does not remove it from the terms already using it.** Those terms keep it, the
- * SKOS generator reports it as an unknown type rather than dropping it silently, and the next edit
- * to such a term is refused until it is corrected. That is deliberate: rewriting hundreds of terms
- * as a side effect of an edit to a list is not something a list editor should be able to do by
- * accident.
+ * **Removing a label, note or example type does not remove it from the terms using it.** Those
+ * terms keep it, the SKOS generator reports it as an unknown type rather than dropping it silently,
+ * and the next edit to such a term is refused until it is corrected. That is deliberate: rewriting
+ * hundreds of terms as a side effect of an edit to a list is not something a list editor should be
+ * able to do by accident. The tag list is the exception, and is cleaned up lazily instead.
  *
  * @param {string} id
  * @param {object} facet
@@ -1103,8 +1142,18 @@ export async function saveFacet(id, facet, actor, force = false, expected) {
     const prepared = stamped(normaliseFacet({ ...facet, _id: id }), actor);
     const warnings = [];
 
+    // **The tag list is not refused for a tag in use.** Removing one rewrites nothing: every view
+    // stops offering it when next read and every term drops it when next saved — see
+    // `vocabulary/tags.js`. What it does need is a word per value and a key minted for each new one.
+    const isTagList = prepared.appliesTo === 'tag';
+    if (isTagList) {
+        const { values, errors } = prepareTagValues(prepared.values ?? []);
+        if (errors.length) throw new ValidationError(errors);
+        prepared.values = values;
+    }
+
     const previous = await vocabCollection(VOCAB_FACETS).findOne({ _id: id });
-    if (previous) {
+    if (previous && !isTagList) {
         const before = new Set((previous.values ?? []).map((value) => value[previous.key]));
         const after = new Set((prepared.values ?? []).map((value) => value[prepared.key]));
         const removed = [...before].filter((value) => !after.has(value));

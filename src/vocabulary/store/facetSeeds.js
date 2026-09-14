@@ -20,6 +20,8 @@
  * @module vocabulary/store/facetSeeds
  */
 
+import { TAG_FACET_ID } from '../tags.js';
+
 /**
  * @typedef {object} FacetValue
  * @property {object} label - Multilingual display name, keyed by language
@@ -94,20 +96,18 @@ export const FACET_SEEDS = [
         ],
     },
     {
-        _id: 'facet:departmentOrRole',
+        _id: TAG_FACET_ID,
         appliesTo: 'tag',
         key: 'tag',
-        label: { en: 'Department or Role' },
+        label: { en: 'Tags' },
         definition: {
-            en: 'The set of allowed tags. A view uses these to say whether a term designates a '
-                + 'department or a role, which nothing on the term itself says.',
+            en: 'The tags a term can be given, each a single word. A view chooses which of these '
+                + 'it offers.',
         },
-        // Tag facets carry no `skos`: a tag is a view's own designation, and it projects only where
-        // a generator asks for it.
-        values: [
-            { tag: 'department', label: { en: 'Department' } },
-            { tag: 'role', label: { en: 'Role' } },
-        ],
+        // **Seeded empty**, because `reconcileFacetValues` puts back any seeded value missing from
+        // the store — so a seeded tag could never be deleted. No `skos` either: a tag has no SKOS
+        // projection.
+        values: [],
     },
     {
         _id: 'facet:status',

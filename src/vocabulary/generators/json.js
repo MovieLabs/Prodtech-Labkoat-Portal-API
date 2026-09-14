@@ -14,7 +14,9 @@
 import {
     schemeHeads, schemesOf, tagsFor, topConceptOf,
 } from '../resolve.js';
+import { ontologyFor } from '../store/ids.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
+import { tagWords } from '../tags.js';
 
 /**
  * One term, as this view presents it.
@@ -24,9 +26,10 @@ import { localised, otherLabels, prefLabel } from '../store/read.js';
  *
  * @param {object} resolution
  * @param {object} placement
+ * @param {Map<string, string>} words - Tag key to the word it is published as
  * @returns {object}
  */
-function node(resolution, placement) {
+function node(resolution, placement, words) {
     const term = resolution.terms.get(placement.termId);
     const { language } = resolution;
 
@@ -61,7 +64,7 @@ function node(resolution, placement) {
     }
 
     const tags = tagsFor(resolution, placement.termId);
-    if (tags.length) entry.tags = tags;
+    if (tags.length) entry.tags = tags.map((key) => words.get(key) ?? key);
 
     const schemes = schemesOf(placement);
     if (schemes.length) entry.inCollections = schemes;
@@ -76,10 +79,12 @@ function node(resolution, placement) {
  * The view as a nested document.
  *
  * @param {object} resolution
+ * @param {Array<object>} [facets] - The controlled sets, for the word each tag is called by
  * @returns {object}
  */
-export function toViewJson(resolution) {
+export function toViewJson(resolution, facets = []) {
     const { view, language } = resolution;
+    const words = tagWords(facets, language);
 
     // Rebuild the nesting from the flat list. Every path entry is a term, so a placement's parent is
     // simply the last one and a single pass gives the whole tree.
@@ -96,7 +101,7 @@ export function toViewJson(resolution) {
     const pathKey = ((entries) => entries.map((entry) => entry.id).join('>'));
 
     resolution.placements.forEach((placement) => {
-        const entry = node(resolution, placement);
+        const entry = node(resolution, placement, words);
         entry.kind = 'term';
         // The vocabulary this term heads, where a view attaches it. A consumer reading the JSON gets
         // the same answer the SKOS gives without having to know how the identifier is derived.
@@ -114,6 +119,11 @@ export function toViewJson(resolution) {
             id: view._id,
             label: prefLabel(view, language),
             definition: localised(view.definition, language),
+            // The ontology this view publishes under, which anything deriving RDF from this document
+            // needs to name what the terms belong to. The **effective** one: a view that states none
+            // still publishes somewhere, and asking `ontologyFor` is what keeps this and the SKOS
+            // saying the same thing.
+            publishedAs: ontologyFor(view),
             labelStyle: view.labelStyle ?? 'plain',
             status: resolution.status,
         },

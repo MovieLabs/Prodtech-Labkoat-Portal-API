@@ -51,9 +51,6 @@ export function profileKindOf(format) {
  */
 export const DEFAULT_MULTI = ', ';
 
-/** A tag source names its set without repeating the `facet:` its identifier already carries. */
-const tagSlug = ((facetId) => String(facetId).replace(/^facet:/, ''));
-
 /**
  * The columns a table publishes when the view has not chosen any.
  *
@@ -96,12 +93,7 @@ function defaultTableColumns(facetDocs = []) {
         ...typed('example', 'example'),
         { source: 'collections', header: 'collections' },
         { source: 'scheme', header: 'schemes' },
-        ...facetDocs
-            .filter((facet) => facet.appliesTo === 'tag')
-            .map((facet) => ({
-                source: `tag:${tagSlug(facet._id)}`,
-                header: facet.label?.en ?? tagSlug(facet._id),
-            })),
+        { source: 'tags', header: 'tags' },
     ];
 }
 

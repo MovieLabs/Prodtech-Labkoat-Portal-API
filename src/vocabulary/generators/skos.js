@@ -33,11 +33,10 @@
 import {
     broaderOf, placementsByTerm, schemeHeads, schemesOf, topConceptOf,
 } from '../resolve.js';
-import { NAMESPACE, viewCollectionIdFor } from '../store/ids.js';
+import {
+    NAMESPACE, ONTOLOGY_BASE, ontologyFor, viewCollectionIdFor,
+} from '../store/ids.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
-
-/** Where a view that names no ontology of its own is published. */
-const ONTOLOGY = `https://mc.movielabs.com/${NAMESPACE}`;
 
 /**
  * The vocabulary's own prefix is the one its stored ids carry, because an id is written out as a
@@ -50,7 +49,7 @@ const PREFIXES = {
     rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
     dct: 'http://purl.org/dc/terms/',
-    [NAMESPACE]: `${ONTOLOGY}#`,
+    [NAMESPACE]: `${ONTOLOGY_BASE}#`,
 };
 
 /** The blocks a document is written in, in the order they appear. */
@@ -126,7 +125,7 @@ export function skosTriples(resolution, projections) {
     // publishing the union of their triples, with every scheme keeping one identifier and one type.
     // What the union needs is a name and a statement of what it gathers, which is what OWL says
     // here without touching skos:Concept at all.
-    const ontology = resolution.view?.ontology ?? ONTOLOGY;
+    const ontology = ontologyFor(resolution.view);
     add(`<${ontology}>`, 'rdf:type', ref('owl:Ontology'), 'header');
     const viewLabel = prefLabel(resolution.view, language);
     if (viewLabel) add(`<${ontology}>`, 'rdfs:label', literal(viewLabel), 'header');

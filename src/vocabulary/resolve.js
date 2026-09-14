@@ -75,6 +75,7 @@ import {
     arrangementOf,
     DEFAULT_LANGUAGE, getTerms, getView, hasLabelOfType, labelOfType, listViews,
 } from './store/read.js';
+import { viewTagsOf } from './tags.js';
 
 /**
  * @typedef {object} PathEntry
@@ -684,11 +685,11 @@ export function placementsByTerm(resolution) {
 }
 
 /**
- * The view's tags for a term, as declared on the view.
+ * A term's tags in this view: those it carries that the view offers, as keys.
  *
  * @param {object} resolution
  * @param {string} termId
  * @returns {string[]}
  */
-export const tagsFor = ((resolution, termId) => resolution.view.tag?.[termId] ?? []);
+export const tagsFor = ((resolution, termId) => viewTagsOf(resolution.terms.get(termId), resolution.view));
 

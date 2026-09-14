@@ -10,6 +10,8 @@
  * @module vocabulary/store/read
  */
 
+import { tagKeys, withKnownTags } from '../tags.js';
+
 import {
     VOCAB_FACETS,
     VOCAB_TERMS,
@@ -165,17 +167,47 @@ export function localised(field, language = DEFAULT_LANGUAGE) {
     return field[language] ?? Object.values(field)[0] ?? '';
 }
 
-/** One view. */
-export const getView = ((id) => vocabCollection(VOCAB_VIEWS).findOne({ _id: id }));
+/** Every facet, for projection lookup and for the editor. */
+export const listFacets = (() => vocabCollection(VOCAB_FACETS).find({}).toArray());
 
-/** Every view, for the list route. */
-export const listViews = (() => vocabCollection(VOCAB_VIEWS).find({}).toArray());
+/** The keys of every tag in the list. */
+const currentTagKeys = (async () => tagKeys(
+    await vocabCollection(VOCAB_FACETS).find({ appliesTo: 'tag' }).toArray(),
+));
+
+/**
+ * One view.
+ *
+ * **Its `tags` are filtered against the tag list on every read**, so a tag removed from the list
+ * stops being offered, shown or published at once — and the next save of the view drops it for
+ * good. See `vocabulary/tags.js`.
+ *
+ * @param {string} id
+ * @returns {Promise<object|null>}
+ */
+export async function getView(id) {
+    const [view, known] = await Promise.all([
+        vocabCollection(VOCAB_VIEWS).findOne({ _id: id }),
+        currentTagKeys(),
+    ]);
+    return view ? withKnownTags(view, 'tags', known) : view;
+}
+
+/**
+ * Every view, for the list route, filtered as `getView` is.
+ *
+ * @returns {Promise<Array<object>>}
+ */
+export async function listViews() {
+    const [views, known] = await Promise.all([
+        vocabCollection(VOCAB_VIEWS).find({}).toArray(),
+        currentTagKeys(),
+    ]);
+    return views.map((view) => withKnownTags(view, 'tags', known));
+}
 
 /** One term. A term carrying a `member` array is what used to be a collection. */
 export const getTerm = ((id) => vocabCollection(VOCAB_TERMS).findOne({ _id: id }));
-
-/** Every facet, for projection lookup and for the editor. */
-export const listFacets = (() => vocabCollection(VOCAB_FACETS).find({}).toArray());
 
 /**
  * Terms by id, in one query.

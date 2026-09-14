@@ -296,9 +296,9 @@ paths:
                 term the way the view names it — then hands the result to a generator.
 
                 Problems found while resolving travel in the `X-Vocab-Problems` header rather than
-                the body, because a Turtle document has nowhere to put them. **The header is
-                truncated at 900 characters**, so it is frequently not valid JSON: a caller parsing
-                it must be allowed to fail without losing its result.
+                the body, because a Turtle document has nowhere to put them. **The header carries a
+                count per problem, not the problems themselves**, so it stays small and is always
+                valid JSON. `GET /views/{id}/problems?format=` says what each one is.
 
                 A format that splits its output ships a zip whatever format was asked for, and names
                 itself in `Content-Disposition`.
@@ -329,7 +329,7 @@ paths:
                     description: The rendered view
                     headers:
                         X-Vocab-Problems:
-                            description: What the resolver reported, as JSON. Truncated at 900 characters.
+                            description: 'A count per problem the resolver and generator reported, as JSON — e.g. {"missingArrangements":1,"hidden":2}'
                             schema:
                                 type: string
                         Content-Disposition:
@@ -361,7 +361,7 @@ paths:
             tags: [Views]
             summary: Create or replace a view
             description: |
-                **Replaces the whole document.** Anything not in the body is erased, the tag map and
+                **Replaces the whole document.** Anything not in the body is erased, the `tags` list and
                 the `arrange` block included — so load the record, spread it, and change what you
                 mean. To write an export profile use `PUT /views/{id}/export/{format}`, which sets
                 one key and leaves the rest alone.
@@ -390,7 +390,7 @@ paths:
             description: |
                 The record only. What it published, everything that reaches, and every term in it are
                 untouched — what goes is its ontology URI, how it names things, which statuses it
-                publishes, and its tag overlay.
+                publishes, and the tags it offers.
             parameters:
                 - $ref: '#/components/parameters/viewId'
             responses:
@@ -415,7 +415,7 @@ paths:
         get:
             tags: [Views]
             summary: One view's stored record, unresolved
-            description: Its settings, tag overlay and `arrange` block — what an editor needs, not what a consumer receives.
+            description: Its settings, offered tags and `arrange` block — what an editor needs, not what a consumer receives.
             parameters:
                 - $ref: '#/components/parameters/viewId'
             responses:
@@ -1120,6 +1120,12 @@ paths:
                 Refused when it would drop a value terms still carry, unless `?force=true`. Removing
                 a value leaves the terms already using it untouched, and an export reports those as
                 unknown rather than dropping them quietly.
+
+                **The tag list (`appliesTo: tag`) differs.** Each value is a single word, in
+                `label.en`; a value sent without a `tag` key is new and has one minted from its word,
+                and a value sent with one keeps it, so changing the word renames the tag. Removing a
+                tag is never refused: views stop offering it on their next read and terms drop it on
+                their next save.
             parameters:
                 - name: id
                   in: path
@@ -1382,6 +1388,13 @@ components:
                     type: array
                     items:
                         type: object
+                tag:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        The keys of the tags this term carries, whatever view it is seen in. A tag no
+                        longer in the tag list is dropped when the term is saved.
                 member:
                     type: array
                     items:
@@ -1479,13 +1492,14 @@ components:
                     items:
                         type: string
                     description: The formats this view offers. Absent means all of them.
-                tag:
-                    type: object
-                    additionalProperties:
-                        type: array
-                        items:
-                            type: string
-                    description: View tags, keyed by term identifier
+                tags:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        The keys of the tags this view offers — which of a term's tags are shown in
+                        it, and which can be given to a term in it. Filtered against the tag list
+                        on every read. Absent offers none.
                 arrange:
                     type: object
                     properties:

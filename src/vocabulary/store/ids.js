@@ -181,6 +181,29 @@ export function schemeIdFor(id, inView) {
     return `${SCHEME_PREFIX}${slug}${SCHEME_SEPARATOR}${hex}`;
 }
 
+/** Where this vocabulary is published, and what its CURIE prefix expands to with a `#` added. */
+export const ONTOLOGY_BASE = `https://mc.movielabs.com/${NAMESPACE}`;
+
+/**
+ * The ontology a view's artifact declares itself under — its *Published as*.
+ *
+ * **Derived per view, never shared.** A blank one used to fall back to the base alone, so every view
+ * that had not been given one declared `owl:Ontology` at the same subject: load two such documents
+ * together and they merge into one ontology carrying both labels and both sets of imports. The slug
+ * makes each its own subject, and it is what the editor's form has always offered as the default.
+ *
+ * Asked through here by every generator, so the JSON and the SKOS cannot name one view differently.
+ *
+ * @param {object} view
+ * @returns {string}
+ */
+export function ontologyFor(view) {
+    const stated = String(view?.ontology ?? '').trim();
+    if (stated) return stated;
+    const slug = viewSlug(view?._id);
+    return slug ? `${ONTOLOGY_BASE}/${slug}` : ONTOLOGY_BASE;
+}
+
 /**
  * The SKOS `Collection` identifier a view publishes as.
  *

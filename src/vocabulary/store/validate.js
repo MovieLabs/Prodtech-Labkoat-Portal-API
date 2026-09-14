@@ -80,8 +80,7 @@ export async function allowedFacetValues() {
     const allowed = new Map();
     facets.forEach((facet) => {
         const values = new Set((facet.values ?? []).map((value) => value[facet.key]));
-        // Several facets may target the same field — a view can tag from more than one scheme — so
-        // the sets union rather than replace.
+        // Several facets may target the same field, so the sets union rather than replace.
         const existing = allowed.get(facet.appliesTo) ?? new Set();
         values.forEach((value) => existing.add(value));
         allowed.set(facet.appliesTo, existing);
@@ -145,9 +144,27 @@ export function validateTerm(term, allowed) {
     checkTypes(term?.note, 'note', 'noteType');
     checkTypes(term?.example, 'example', 'exampleType');
 
+    // Shape only. A tag the list no longer holds is filtered out before this is reached, not
+    // refused — see `vocabulary/tags.js`.
+    checkTagList(term?.tag, 'A term’s tags', found);
+
     checkArrangement(term, found);
 
     return found;
+}
+
+/**
+ * Check that a tag field, where present, is a list of tag keys.
+ *
+ * @param {*} tags
+ * @param {string} what - Named in the message
+ * @param {ValidationResult} found - Accumulated into
+ */
+function checkTagList(tags, what, found) {
+    if (tags === undefined) return;
+    if (!Array.isArray(tags) || tags.some((tag) => typeof tag !== 'string' || !tag)) {
+        fail(found, `${what} must be a list of tag keys`);
+    }
 }
 
 /**
@@ -378,16 +395,9 @@ export function validateView(view, allowed) {
         fail(found, `"${view.labelType}" is not a known label type. Use one of: ${[...permittedLabels].join(', ')}`);
     }
 
-    // Tags are controlled for the reason the brief gave: an unmanaged tag set accumulates
-    // misspellings, and two spellings of one designation split the thing they were meant to group.
-    const permittedTags = allowed.get('tag');
-    Object.entries(view?.tag ?? {}).forEach(([termId, tags]) => {
-        (tags ?? []).forEach((tag) => {
-            if (permittedTags && !permittedTags.has(tag)) {
-                fail(found, `"${tag}" on ${termId} is not a known tag. Add it to a tag facet first.`);
-            }
-        });
-    });
+    // Which tags this view offers. Shape only, as on a term: one the list no longer holds is filtered
+    // out rather than refused.
+    checkTagList(view?.tags, 'The tags a view offers', found);
 
     checkArrange(view, found);
 
