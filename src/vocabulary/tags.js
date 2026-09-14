@@ -4,7 +4,9 @@
  * ## Three records, three jobs
  *
  * - **The list** is a facet with `appliesTo: 'tag'` — one store-wide set, edited under Controlled
- *   sets. Each value is `{ tag: <key>, label: { en: <word> } }`.
+ *   sets. Each value is `{ tag: <key>, label: { en: <word> }, colour: <swatch> }`. `colour` names a
+ *   swatch the editor draws the tag in, the same in every view; which swatches exist is the
+ *   editor's decision, so only its shape is checked here.
  * - **A term** carries the keys it has been given in `tag`, with no regard to any view.
  * - **A view** names the keys it offers in `tags`. It decides both which of a term's tags are shown
  *   with it there and which can be given to it there, and it is how one audience's tags stay out of
@@ -145,7 +147,12 @@ export function prepareTagValues(values = [], language = 'en') {
         if (keys.has(key)) errors.push(`Two tags share the key "${key}"`);
         keys.add(key);
 
-        return { tag: key, label: { ...value.label, [language]: word } };
+        const { colour } = value;
+        if (colour !== undefined && colour !== null && !/^[a-z][a-z0-9-]*$/.test(String(colour))) {
+            errors.push(`"${word}" has a colour that is not a swatch name`);
+        }
+
+        return { tag: key, label: { ...value.label, [language]: word }, ...(colour ? { colour } : {}) };
     });
 
     return { values: prepared, errors };

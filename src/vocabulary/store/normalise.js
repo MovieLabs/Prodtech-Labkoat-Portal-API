@@ -154,6 +154,7 @@ export function normaliseFacet(facet) {
                 : {}),
             ...(value.label ? { label: localisedField(value.label, oneLine) } : {}),
             ...(typeof value.skos === 'string' ? { skos: oneLine(value.skos) } : {}),
+            ...(typeof value.colour === 'string' ? { colour: oneLine(value.colour) } : {}),
         })),
     };
 }

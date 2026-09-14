@@ -1475,6 +1475,12 @@ components:
                 nodeWidth:
                     type: integer
                     description: How wide the graph draws a pill
+                perspective:
+                    type: string
+                    enum: [type, tag]
+                    description: |
+                        What the colour of a pill says when the editor opens this view — its node
+                        type, or the tags it carries. Absent is `type`. Read by no export.
                 ontology:
                     type: string
                     description: The identifier the published RDF declares itself under
@@ -1552,6 +1558,12 @@ components:
                                 type: string
                                 nullable: true
                                 description: The SKOS predicate this value degrades to, or null to leave it out
+                            colour:
+                                type: string
+                                description: |
+                                    Tag list only. The swatch the editor draws the tag in, the same in
+                                    every view. Its shape is checked; which swatches exist is the
+                                    editor's decision.
 
         FormatDescriptor:
             type: object

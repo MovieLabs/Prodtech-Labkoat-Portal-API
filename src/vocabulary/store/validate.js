@@ -355,6 +355,12 @@ export function validateView(view, allowed) {
         fail(found, 'labelStyle must be plain or dotted');
     }
 
+    // What the colour of a pill says when the editor opens this view. Presentation only: no export
+    // reads it.
+    if (view?.perspective !== undefined && !['type', 'tag'].includes(view.perspective)) {
+        fail(found, 'perspective must be type or tag');
+    }
+
     // Whether this view is offered to a reader rather than only to whoever maintains it. It governs
     // what the SKOS Explore tab lists and nothing else: a view is still resolved, exported and
     // reachable by identifier whatever this says, so it is a claim about where a view is *offered*
