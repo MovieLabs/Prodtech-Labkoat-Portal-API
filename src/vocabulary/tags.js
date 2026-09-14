@@ -27,7 +27,7 @@
  * @module vocabulary/tags
  */
 
-/** The one tag list. Named here for the seed and the migration; nothing else looks it up by id. */
+/** The one tag list. Named here for the seed; nothing else looks it up by id. */
 export const TAG_FACET_ID = 'facet:tag';
 
 /**

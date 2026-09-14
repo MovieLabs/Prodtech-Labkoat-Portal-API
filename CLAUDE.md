@@ -193,11 +193,6 @@ them if the reasoning is ever needed.
 transaction after writing the backup, and `--restore <file>` puts a backup back. Safe to repeat.
 Delete it once it has run.
 
-**`migrateTags.js` is one more, not yet run.** It moves tags from `view.tag` onto `term.tag`,
-gathers every tag facet into the one list `facet:tag`, sets each view's `tags`, and turns `tag:<set>`
-columns into `tags`. Dry run by default, `--write` to apply, safe to repeat. Delete it once it has
-run. The model it moves to is described in `src/vocabulary/tags.js`.
-
 **Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
 `seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
 without writing one. The data is kept for that reason; `skosProjectionIndex` in the same file is
