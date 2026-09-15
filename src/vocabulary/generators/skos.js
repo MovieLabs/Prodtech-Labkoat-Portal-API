@@ -38,6 +38,8 @@ import {
 } from '../store/ids.js';
 import { localised, otherLabels, prefLabel } from '../store/read.js';
 
+import { toJsonLd as serialiseJsonLd, toTurtle as serialiseTurtle } from './rdfSerialise.js';
+
 /**
  * The vocabulary's own prefix is the one its stored ids carry, because an id is written out as a
  * CURIE exactly as stored. Declared from the same constant, so the two cannot disagree.
@@ -259,99 +261,18 @@ export function skosTriples(resolution, projections) {
     return { triples, problems };
 }
 
-/** Escape a literal for Turtle. The old serializer did none of this. */
-const escapeTurtle = ((value) => String(value)
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t'));
-
 /**
- * Group triples by subject, keeping the order each subject was first seen.
- *
- * @param {Triple[]} triples
- * @returns {Map<string, Triple[]>}
- */
-function bySubject(triples) {
-    const grouped = new Map();
-    triples.forEach((triple) => {
-        if (!grouped.has(triple.subject)) grouped.set(triple.subject, []);
-        grouped.get(triple.subject).push(triple);
-    });
-    return grouped;
-}
-
-/**
- * The triples of each block, in the order the blocks are written, skipping any that is empty.
- *
- * @param {Triple[]} triples
- * @returns {Array<{title: string, triples: Triple[]}>}
- */
-const inBlocks = ((triples) => BLOCKS
-    .map(({ name, title }) => ({ title, triples: triples.filter((one) => one.block === name) }))
-    .filter((block) => block.triples.length));
-
-/**
- * Turtle.
+ * Turtle, grouped into the dictionary and the arrangement of it so the two are visibly two halves.
  *
  * @param {Triple[]} triples
  * @returns {string}
  */
-export function toTurtle(triples) {
-    const header = Object.entries(PREFIXES)
-        .map(([prefix, uri]) => `@prefix ${prefix}: <${uri}> .`)
-        .join('\n');
-
-    // Grouped by block, then by subject, so the output reads as a document rather than a triple
-    // dump — and so the dictionary and the arrangement of it are visibly two halves.
-    const sections = inBlocks(triples).map((block) => {
-        const banner = `#\n# ${block.title}\n#`;
-        const subjects = [...bySubject(block.triples).entries()].map(([subject, subjectTriples]) => {
-            const lines = subjectTriples.map((triple) => {
-                const object = triple.object.id
-                    ? triple.object.id
-                    : `"${escapeTurtle(triple.object.value)}"${triple.object.language ? `@${triple.object.language}` : ''}`;
-                return `    ${triple.predicate} ${object}`;
-            });
-            return `${subject}\n${lines.join(' ;\n')} .`;
-        });
-        return `${banner}\n\n${subjects.join('\n\n')}`;
-    });
-
-    return `${header}\n\n${sections.join('\n\n')}\n`;
-}
+export const toTurtle = ((triples) => serialiseTurtle(triples, { prefixes: PREFIXES, blocks: BLOCKS }));
 
 /**
- * JSON-LD.
- *
- * The same three blocks, in the same order, which means **a subject may appear in `@graph` more than
- * once** — once describing a term and once placing it. That is ordinary JSON-LD: a graph is a set of
- * statements, and two nodes with one `@id` merge on expansion. Worth knowing before it surprises a
- * reader who expects one object per subject.
+ * JSON-LD. A subject may appear in `@graph` twice — once describing a term and once placing it.
  *
  * @param {Triple[]} triples
  * @returns {object}
  */
-export function toJsonLd(triples) {
-    const graph = inBlocks(triples).flatMap((block) => (
-        [...bySubject(block.triples).entries()].map(([subject, subjectTriples]) => {
-            const node = { '@id': subject };
-            subjectTriples.forEach((triple) => {
-                if (triple.predicate === 'rdf:type') {
-                    node['@type'] = node['@type'] ?? [];
-                    node['@type'].push(triple.object.id);
-                    return;
-                }
-                node[triple.predicate] = node[triple.predicate] ?? [];
-                node[triple.predicate].push(
-                    triple.object.id
-                        ? { '@id': triple.object.id }
-                        : { '@value': triple.object.value, '@language': triple.object.language },
-                );
-            });
-            return node;
-        })
-    ));
-    return { '@context': { ...PREFIXES }, '@graph': graph };
-}
+export const toJsonLd = ((triples) => serialiseJsonLd(triples, { prefixes: PREFIXES, blocks: BLOCKS }));
