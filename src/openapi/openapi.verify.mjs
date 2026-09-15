@@ -28,7 +28,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const MOUNT = '/api/vocab/v1';
 
 const spec = YAML.parse(readFileSync(join(here, 'openapi.yaml'), 'utf8'));
-const router = readFileSync(join(here, '..', 'routes', 'vocab-v1-router.js'), 'utf8');
+/** Every router mounted at `MOUNT`, read as one text. */
+const ROUTERS = ['vocab-v1-router.js', 'vocab-edges-v1-router.js'];
+const router = ROUTERS.map((file) => readFileSync(join(here, '..', 'routes', file), 'utf8')).join('\n');
 
 const METHODS = ['get', 'post', 'put', 'delete', 'patch'];
 

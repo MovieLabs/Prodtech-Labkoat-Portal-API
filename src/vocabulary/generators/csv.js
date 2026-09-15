@@ -30,7 +30,7 @@ import { toZip } from './zip.js';
  * @param {*} value
  * @returns {string}
  */
-const cell = ((value) => `"${String(value ?? '').replace(/"/g, '""')}"`);
+export const cell = ((value) => `"${String(value ?? '').replace(/"/g, '""')}"`);
 
 /**
  * One table as a CSV document.
@@ -40,7 +40,7 @@ const cell = ((value) => `"${String(value ?? '').replace(/"/g, '""')}"`);
  * @param {string} delimiter
  * @returns {string}
  */
-function document(columns, rows, delimiter) {
+export function document(columns, rows, delimiter) {
     const lines = [
         columns.map((column) => cell(column.header)).join(delimiter),
         ...rows.map((row) => row.map(cell).join(delimiter)),

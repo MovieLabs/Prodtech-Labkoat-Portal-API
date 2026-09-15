@@ -59,9 +59,10 @@ export const SKOS_PREDICATES = [
 ];
 
 /** An empty result to accumulate into. */
-const result = (() => ({ ok: true, errors: [], warnings: [] }));
+export const result = (() => ({ ok: true, errors: [], warnings: [] }));
 
-const fail = ((into, message) => {
+/** Record an error, which refuses the write. */
+export const fail = ((into, message) => {
     into.errors.push(message);
     into.ok = false;
 });

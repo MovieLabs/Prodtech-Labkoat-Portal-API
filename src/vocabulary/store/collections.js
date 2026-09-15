@@ -37,12 +37,27 @@ export const VOCAB_FACETS = 'vocab_facets';
  */
 export const VOCAB_COUNTERS = 'vocab_counters';
 
+/**
+ * Edge definitions: one document per relationship between two entity classes, carrying both of its
+ * directions. The classes are terms, referred to by id only.
+ */
+export const VOCAB_EDGES = 'vocab_edges';
+
+/** Predicate pairs: each verb and its inverse, named once and chosen by every edge that uses them. */
+export const VOCAB_EDGE_PREDICATES = 'vocab_edge_predicates';
+
+/** Settings a tool keeps about how it reads the vocabulary, one document per tool. */
+export const VOCAB_SETTINGS = 'vocab_settings';
+
 /** Every collection this subsystem owns, for setup and for teardown in tests. */
 export const ALL_VOCAB_COLLECTIONS = [
     VOCAB_TERMS,
     VOCAB_VIEWS,
     VOCAB_FACETS,
     VOCAB_COUNTERS,
+    VOCAB_EDGES,
+    VOCAB_EDGE_PREDICATES,
+    VOCAB_SETTINGS,
 ];
 
 /** A handle for one of our collections. */
@@ -74,5 +89,14 @@ export async function createVocabIndexes() {
         vocabCollection(VOCAB_VIEWS).createIndex({ 'member.term': 1 }),
 
         vocabCollection(VOCAB_FACETS).createIndex({ appliesTo: 1 }),
+
+        // "Which edges touch this class" is asked for every class placed on the canvas, and before a
+        // term is deleted in the vocabulary editor.
+        vocabCollection(VOCAB_EDGES).createIndex({ 'domain.term': 1 }),
+        vocabCollection(VOCAB_EDGES).createIndex({ 'range.term': 1 }),
+        vocabCollection(VOCAB_EDGES).createIndex({ pair: 1 }),
+
+        vocabCollection(VOCAB_EDGE_PREDICATES).createIndex({ 'forward.verb': 1 }),
+        vocabCollection(VOCAB_EDGE_PREDICATES).createIndex({ 'reverse.verb': 1 }),
     ]);
 }

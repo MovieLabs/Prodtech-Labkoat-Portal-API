@@ -14,6 +14,7 @@ import ingestRouter from '../src/routes/ingest-router.js';
 import omcRouter from '../src/routes/omc-router.js';
 import pipelineRouter from '../src/routes/pipeline-router.js';
 import routeLog from '../src/routes/routeLog.js';
+import vocabEdgesV1Router from '../src/routes/vocab-edges-v1-router.js';
 import vocabV1Router from '../src/routes/vocab-v1-router.js';
 
 import config from './config.js';
@@ -141,6 +142,7 @@ export default async function apiServer() {
     app.use('/api/admin', adminRouter); // Add the route controllers for the Admin page
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab/v1', vocabV1Router); // The vocabulary: views, generators, usage
+    app.use('/api/vocab/v1', vocabEdgesV1Router); // Edge definitions beside it: pairs, edges, check, publish
     app.use('/api/greenlight', greenlightRouter);
     app.use('/api/pipeline/v1', pipelineRouter); // Select, feed and run an OMC processing pipeline
     app.use('/api/ingest/v1', ingestRouter); // Files as OMC assets; same modules, its own contract

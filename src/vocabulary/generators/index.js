@@ -57,7 +57,7 @@ const UNSAFE_IN_FILENAME = /[\\/:*?"'<>|]/g;
  * @param {string} extension
  * @returns {string}
  */
-function filenameFor(view, extension) {
+export function filenameFor(view, extension) {
     const chosen = String(view?.filename ?? '').trim();
     const stem = [...(chosen || String(view?._id ?? 'export').replace(/^view:/, ''))]
         .filter((character) => character.charCodeAt(0) > 31)

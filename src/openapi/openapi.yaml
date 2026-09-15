@@ -63,6 +63,10 @@ tags:
       description: The kinds of label, note, example and tag this vocabulary declares
     - name: Service
       description: What this service can produce, and what a column may hold
+    - name: Edges
+      description: |
+          Relationships between the entity classes a view defines — predicate pairs, edges, the
+          check against the vocabulary, and publishing them as OMC-JSON and RDF.
 
 paths:
     # ============================================================
@@ -1187,6 +1191,434 @@ paths:
                     $ref: '#/components/responses/Unauthorized'
                 '422':
                     $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/views/{id}/problems:
+        get:
+            tags: [Views]
+            summary: What is wrong with a view, in sentences
+            description: |
+                The same resolution an export runs, reported rather than rendered. `divergent` names the
+                placements that disagree; `details` says every other problem that names something.
+                `?format=` runs that format's generator as well, for the problems only it finds.
+            parameters:
+                - $ref: '#/components/parameters/viewId'
+                - name: format
+                  in: query
+                  description: Also run this format's generator
+                  schema:
+                      type: string
+                - name: status
+                  in: query
+                  description: Comma-separated statuses, overriding the view's own
+                  schema:
+                      type: string
+                - name: language
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: The problems
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    # ============================================================
+    # Edges
+    # ============================================================
+
+    /api/vocab/v1/edge-settings:
+        get:
+            tags: [Edges]
+            summary: How the edge definitions read the vocabulary
+            description: |
+                The view the entity classes come from, the tag word each class role is read from, the
+                OMC-JSON name of a class whose label does not give it, and the templates names are
+                generated from. Defaults fill anything not saved.
+            responses:
+                '200':
+                    description: The settings
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+        put:
+            tags: [Edges]
+            summary: Save the edge settings
+            parameters:
+                - name: If-Match
+                  in: header
+                  description: The `modified` of the copy being changed
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The settings as stored, and any warnings
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: Changed by somebody else since it was read; the current copy is returned
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/edge-classes:
+        get:
+            tags: [Edges]
+            summary: The classes an edge may join
+            description: |
+                Read from the configured view by the rules the RDF build uses: nesting is subclass, an
+                `Attached` placement is a relationship instead. Each class carries its role, its
+                superclasses and the OMC-JSON entityType it projects to. `structural` lists the
+                relationships the structure itself already gives.
+            responses:
+                '200':
+                    description: The classes, the structural relationships, and any problems reading them
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/edge-predicates:
+        get:
+            tags: [Edges]
+            summary: Every predicate pair, with how many edges use each
+            responses:
+                '200':
+                    description: The pairs
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+        post:
+            tags: [Edges]
+            summary: Create predicate pairs
+            description: A verb belongs to one pair only, so an inverse cannot be claimed twice.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            oneOf:
+                                - type: object
+                                - type: array
+                                  items:
+                                      type: object
+            responses:
+                '201':
+                    description: The pairs as stored
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/edge-predicates/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+              example: mlv:p-000001
+        get:
+            tags: [Edges]
+            summary: One predicate pair
+            responses:
+                '200':
+                    description: The pair
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Edges]
+            summary: Replace a predicate pair
+            description: Edges using it are not rewritten; their names drift, and the check says so.
+            parameters:
+                - name: If-Match
+                  in: header
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The pair as stored
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: Changed by somebody else since it was read
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Edges]
+            summary: Delete a predicate pair no edge uses
+            parameters:
+                - name: If-Match
+                  in: header
+                  schema:
+                      type: string
+            responses:
+                '204':
+                    description: Deleted
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: Changed by somebody else since it was read
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/edges:
+        get:
+            tags: [Edges]
+            summary: Edge definitions
+            parameters:
+                - name: term
+                  in: query
+                  description: Only edges starting or ending at this class
+                  schema:
+                      type: string
+                - name: status
+                  in: query
+                  description: Comma-separated statuses
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: The edges
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+        post:
+            tags: [Edges]
+            summary: Create edges
+            description: |
+                Names are generated here from the pair and the two classes; what a client sends for a
+                name is only ever an override.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            oneOf:
+                                - type: object
+                                - type: array
+                                  items:
+                                      type: object
+            responses:
+                '201':
+                    description: The edges as stored, and any warnings
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '422':
+                    $ref: '#/components/responses/Refused'
+
+    /api/vocab/v1/edges/preview:
+        post:
+            tags: [Edges]
+            summary: What an edge being drawn would be called
+            description: Generates the names and runs the checks a create would. Writes nothing.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The edge with its names, and the errors and warnings saving it would meet
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/edges/check:
+        get:
+            tags: [Edges]
+            summary: Which edges the vocabulary has moved out from under
+            description: |
+                A class deleted, untagged, moved or renamed; a pair changed; names that would now be
+                generated differently; two edges publishing one OMC-JSON path differently. Each problem
+                carries a sentence.
+            responses:
+                '200':
+                    description: The report, by edge and by class
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/edges/accept:
+        post:
+            tags: [Edges]
+            summary: Regenerate the names of several edges, keeping every override
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                ids:
+                                    type: array
+                                    items:
+                                        type: string
+            responses:
+                '200':
+                    description: The edges as stored
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: One was changed by somebody else since it was read
+
+    /api/vocab/v1/edges/formats:
+        get:
+            tags: [Edges]
+            summary: The formats the edge definitions can be published as
+            responses:
+                '200':
+                    description: The formats
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/edges/publish:
+        get:
+            tags: [Edges]
+            summary: Publish the edge definitions
+            description: |
+                `json` is omc-util's `edgeDefinitions`; `owl-ttl` declares the RDF properties and
+                `shacl-ttl` says where each may be used, beside the RDF build's package. What could not
+                be published is counted in `X-Vocab-Problems`.
+            parameters:
+                - name: format
+                  in: query
+                  description: Any format `GET /edges/formats` reports
+                  schema:
+                      type: string
+                - name: status
+                  in: query
+                  description: Only edges with one of these comma-separated statuses
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: The document, as an attachment
+                '400':
+                    description: No such format
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+
+    /api/vocab/v1/edges/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+              example: mlv:e-00002a
+        get:
+            tags: [Edges]
+            summary: One edge
+            responses:
+                '200':
+                    description: The edge
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        put:
+            tags: [Edges]
+            summary: Replace an edge, regenerating its names
+            parameters:
+                - name: If-Match
+                  in: header
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: The edge as stored, and any warnings
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: Changed by somebody else since it was read
+                '422':
+                    $ref: '#/components/responses/Refused'
+        delete:
+            tags: [Edges]
+            summary: Delete an edge
+            parameters:
+                - name: If-Match
+                  in: header
+                  schema:
+                      type: string
+            responses:
+                '204':
+                    description: Deleted
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '409':
+                    description: Changed by somebody else since it was read
+
+    /api/vocab/v1/edges/{id}/accept:
+        post:
+            tags: [Edges]
+            summary: Regenerate one edge's names, keeping every override
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: The edge as stored
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    description: Changed by somebody else since it was read
 
 components:
     securitySchemes:

@@ -10,6 +10,7 @@
     "verify:snippet": "node src/vocabulary/snippet.verify.mjs",
     "verify:openapi": "node src/openapi/openapi.verify.mjs",
     "verify:conflict": "node src/vocabulary/conflict.verify.mjs",
+    "verify:edges": "node src/vocabulary/edges/edges.verify.mjs",
     "link:local": "npm link data-pipeline omc-util",
     "unlink:local": "npm uninstall --no-save data-pipeline omc-util && npm install"
   },

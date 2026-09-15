@@ -74,18 +74,44 @@ async function nextBlock(name, count = 1) {
 }
 
 /**
+ * Mint a block of counted identifiers: a prefix and six lowercase hex digits.
+ *
+ * @param {string} counter - The counter to reserve from, e.g. `'term'`
+ * @param {string} prefix - e.g. `mlv:c-`
+ * @param {number} [count=1] - How many to mint
+ * @returns {Promise<string[]>}
+ */
+export async function mintIds(counter, prefix, count = 1) {
+    const start = await nextBlock(counter, count);
+    return Array.from(
+        { length: count },
+        (_, i) => `${prefix}${(start + i).toString(16).padStart(HEX_WIDTH, '0')}`,
+    );
+}
+
+/**
  * Mint identifiers for new terms.
  *
  * @param {number} [count=1] - How many to mint
  * @returns {Promise<string[]>} Ids in the form `mlv:c-0001a3`
  */
-export async function mintTermIds(count = 1) {
-    const start = await nextBlock('term', count);
-    return Array.from(
-        { length: count },
-        (_, i) => `${TERM_PREFIX}${(start + i).toString(16).padStart(HEX_WIDTH, '0')}`,
-    );
-}
+export const mintTermIds = ((count = 1) => mintIds('term', TERM_PREFIX, count));
+
+/**
+ * Mint identifiers for new edge definitions.
+ *
+ * @param {number} [count=1]
+ * @returns {Promise<string[]>} Ids in the form `mlv:e-00002a`
+ */
+export const mintEdgeIds = ((count = 1) => mintIds('edge', `${NAMESPACE}:e-`, count));
+
+/**
+ * Mint identifiers for new predicate pairs.
+ *
+ * @param {number} [count=1]
+ * @returns {Promise<string[]>} Ids in the form `mlv:p-000004`
+ */
+export const mintPredicateIds = ((count = 1) => mintIds('predicate', `${NAMESPACE}:p-`, count));
 
 /** Mint exactly one term id. */
 export async function mintTermId() {
