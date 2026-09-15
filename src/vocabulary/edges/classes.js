@@ -163,6 +163,8 @@ export function classIndex(doc, settings = {}) {
             label: node.term.label,
             name: className(node.term.label),
             role: roleOf(node),
+            // Asked here so a client never restates which roles an edge may join.
+            joinable: EDGE_ROLES.includes(roleOf(node)),
             tags: node.tags,
             supers: [],
             ancestors: [],
