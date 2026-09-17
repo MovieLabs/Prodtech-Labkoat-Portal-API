@@ -20,3 +20,7 @@ node_modules/
 
 # Captured generator output, for diffing a refactor against. Local only.
 .golden/
+
+# Reports, exports and one-off scripts written for a person to read rather than for the build.
+# In the repo so they can be found, out of git because they are output, not source.
+.scratchpad/

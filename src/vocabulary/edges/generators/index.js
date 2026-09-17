@@ -14,7 +14,9 @@ import { filenameFor } from '../../generators/index.js';
 import { listEdges, loadEdgeContext } from '../store.js';
 
 import { toEdgeCsv } from './csv.js';
-import { toEdgeDefinitions } from './json.js';
+import { toEdgeDocument } from './document.js';
+import { toEdgeMarkdown } from './markdown.js';
+import { toEdgeMatrix } from './matrix.js';
 import { toOwlTurtle, toShaclTurtle } from './owl.js';
 
 /**
@@ -25,11 +27,11 @@ import { toOwlTurtle, toShaclTurtle } from './owl.js';
  */
 const EDGE_GENERATORS = {
     'json': {
-        label: 'OMC-JSON edge definitions',
+        label: 'Edge definitions (JSON, for every build)',
         contentType: 'application/json',
         extension: 'json',
-        stem: 'omc-edge-definitions',
-        run: toEdgeDefinitions,
+        stem: 'omc-edges',
+        run: toEdgeDocument,
     },
     'owl-ttl': {
         label: 'RDF properties (Turtle)',
@@ -51,6 +53,20 @@ const EDGE_GENERATORS = {
         extension: 'csv',
         stem: 'omc-edges',
         run: toEdgeCsv,
+    },
+    'matrix-csv': {
+        label: 'Matrix (CSV)',
+        contentType: 'text/csv',
+        extension: 'csv',
+        stem: 'omc-edge-matrix',
+        run: toEdgeMatrix,
+    },
+    'markdown': {
+        label: 'Tables by class (Markdown)',
+        contentType: 'text/markdown',
+        extension: 'md',
+        stem: 'omc-edges',
+        run: toEdgeMarkdown,
     },
 };
 

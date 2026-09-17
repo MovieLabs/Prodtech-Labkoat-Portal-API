@@ -72,8 +72,10 @@ function checkSide(into, side, which) {
 /**
  * Check a predicate pair.
  *
- * **A verb belongs to one pair.** That is what keeps an inverse from drifting: two pairs cannot both
- * claim `usedIn` as the reverse of different verbs.
+ * **A verb may belong to several pairs**, warned about rather than refused. What must not happen is
+ * one published property acquiring two inverses, which is a fact about the edges drawn on those pairs
+ * — `checkEdges` reports it and the export says so, neither of them refusing an edit made on the way
+ * there.
  *
  * @param {object} pair - As it would be stored
  * @param {Array<object>} others - Every other pair
@@ -92,10 +94,17 @@ export function validatePair(pair, others) {
         fail(found, `A ${pair.kind} pair has no reverse verb`);
     }
 
+    // A verb may pair with more than one other — `usedBy` against `realizedBy` for a Realization and
+    // against `depictedBy` for a Depiction. The properties those publish are named for the class they
+    // point at, so they stay distinct; what cannot be shared is one property having two inverses, and
+    // that depends on the edges rather than the pairs. `checkEdges` reports it, and the RDF generator
+    // states the inverse between the specific properties instead of between the verbs.
     const verbs = [pair.forward?.verb, pair.reverse?.verb].filter(Boolean);
     others.filter((other) => other._id !== pair._id).forEach((other) => {
         [other.forward?.verb, other.reverse?.verb].filter(Boolean).forEach((verb) => {
-            if (verbs.includes(verb)) fail(found, `"${verb}" already belongs to another pair (${other._id})`);
+            if (verbs.includes(verb)) {
+                found.warnings.push(`"${verb}" also belongs to ${other._id}; their inverses are stated per property, not per verb`);
+            }
         });
     });
     return found;

@@ -91,13 +91,18 @@ export function generateNames({
  *
  * An override stands; everything else takes the generated value.
  *
+ * Typing the generated name is agreeing with it, not overriding it, so an override that matches is
+ * stored as none. Otherwise a form that offers the name in use for editing would turn every name
+ * anybody saved into a decision to differ, and the edge would stop following its pair.
+ *
  * @param {object} [stored] - The direction as stored, holding `{ value, override }` per name field
  * @param {object} generated - From `generateNames`
  * @returns {Object<string, {value: *, override: *}>}
  */
 export function applyNames(stored = {}, generated) {
     return Object.fromEntries(NAME_FIELDS.map((field) => {
-        const override = stored[field]?.override ?? null;
+        const typed = stored[field]?.override ?? null;
+        const override = typed === generated[field] ? null : typed;
         return [field, { value: override ?? generated[field], override }];
     }));
 }

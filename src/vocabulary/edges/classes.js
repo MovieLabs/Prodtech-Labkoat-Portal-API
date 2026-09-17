@@ -65,6 +65,7 @@ export const className = ((label) => String(label ?? '')
  * @typedef {object} EntityClass
  * @property {string} id - The term id
  * @property {string} label
+ * @property {string|null} definition - As the vocabulary states it
  * @property {string} name - RDF local name
  * @property {string|null} role - `entity` | `abstract` | `grouping` | `record`, or null when untagged
  * @property {string[]} tags - As published
@@ -161,6 +162,9 @@ export function classIndex(doc, settings = {}) {
         const entry = {
             id: node.term.id,
             label: node.term.label,
+            // What the vocabulary says this class is. Carried so a document naming a class can say
+            // what it means without a second read of the store.
+            definition: node.term.definition ?? null,
             name: className(node.term.label),
             role: roleOf(node),
             // Asked here so a client never restates which roles an edge may join.

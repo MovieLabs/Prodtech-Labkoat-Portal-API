@@ -24,6 +24,22 @@
  * RDF build uses for `has<Entity>Name` under `hasEntityName`. A verb property carries no usage hints,
  * so it needs no shape.
  *
+ * A verb may belong to several pairs — `usedBy` against `realizedBy` for one class and `depictedBy`
+ * for another. Its verb property then cannot carry the inverse, since two `owl:inverseOf` statements
+ * about one property say those two verbs are the same property. Such pairs point each specific
+ * property at an inverse **expression** instead:
+ *
+ * ```turtle
+ * omc:usedByCharacter rdfs:subPropertyOf [ owl:inverseOf omc:realizedByRealization ] .
+ * ```
+ *
+ * which entails the reverse triple without asserting that anything is equivalent — so one property
+ * may answer several others, and nothing about that is a defect to report.
+ *
+ * **An intrinsic pair states no inverse at all.** It names a property of an entity in OMC-JSON, and
+ * its reverse verb is a field name rather than a relationship RDF makes; pairing the two would put a
+ * JSON artefact in the ontology. Its properties are still declared and still carry their shapes.
+ *
  * @module vocabulary/edges/generators/owl
  */
 
@@ -54,21 +70,87 @@ export function edgeProperties({
     const verbs = new Map();
     const skipped = [];
 
+    const pairsPerVerb = new Map();
+    [...pairs.values()].forEach((pair) => {
+        ['forward', 'reverse'].forEach((direction) => {
+            const verb = sideOf(pair, direction)?.verb;
+            if (!verb) return;
+            const held = pairsPerVerb.get(lowerFirst(verb)) ?? new Set();
+            held.add(pair._id);
+            pairsPerVerb.set(lowerFirst(verb), held);
+        });
+    });
+    // A pair declaring no inverse has no reverse side, so the verb asked for is often absent — and a
+    // verb nothing names is not shared with anything.
+    const verbAlone = ((verb) => (verb ? (pairsPerVerb.get(lowerFirst(verb))?.size ?? 0) < 2 : true));
+
+    // Which pairs may state `owl:inverseOf` between their verbs.
+    //
+    // **A verb may appear in at most one such statement.** Two of them about one verb have a reasoner
+    // conclude its two partners are the same property: three pairs naming `usedBy` would collapse
+    // `realizedBy`, `depictedBy` and `portrayedBy` into one. Everything else states the entailment on
+    // the specific properties instead, which says the same thing without asserting equivalence.
+    //
+    // A verb commonly serves several pairs in different roles — `usedIn` is the reverse of `uses` and
+    // the forward of three more — and that reverse is the one genuine pair among them. So the question
+    // is asked per role, and then checked: any verb still named twice loses the statement everywhere,
+    // which is what keeps a crossed pair from slipping through.
+    const asserting = (() => {
+        const candidates = [...pairs.values()]
+            .filter((pair) => pair.kind === 'pair' && pair.forward?.verb && pair.reverse?.verb
+                && pair.forward?.json?.placement !== 'property')
+            .map((pair) => ({
+                id: pair._id,
+                forward: lowerFirst(pair.forward.verb),
+                reverse: lowerFirst(pair.reverse.verb),
+            }));
+
+        const tally = ((list) => list.reduce((held, verb) => held.set(verb, (held.get(verb) ?? 0) + 1), new Map()));
+        const asForward = tally(candidates.map((one) => one.forward));
+        const asReverse = tally(candidates.map((one) => one.reverse));
+
+        const inRole = candidates.filter((one) => asForward.get(one.forward) === 1 && asReverse.get(one.reverse) === 1);
+
+        // A verb still named twice here leads one pair and answers another — `usedIn` answering
+        // `uses` while leading `usedIn ↔ depictionOf`. The pair it answers is the reciprocal one, so
+        // that keeps the statement and the pair it leads gives it up.
+        const named = tally(inRole.flatMap((one) => [one.forward, one.reverse]));
+        const twice = new Set([...named.entries()].filter(([, count]) => count > 1).map(([verb]) => verb));
+        const kept = inRole.filter((one) => !twice.has(one.forward));
+
+        // Whatever survives, no verb may be named more than once: that is the whole safety condition.
+        const remaining = tally(kept.flatMap((one) => [one.forward, one.reverse]));
+        return new Set(kept
+            .filter((one) => remaining.get(one.forward) === 1 && remaining.get(one.reverse) === 1)
+            .map((one) => one.id));
+    })();
+
     const verbProperty = ((pair, direction) => {
         const side = sideOf(pair, direction);
         if (!side?.verb) return null;
         const id = `${prefix}:${lowerFirst(side.verb)}`;
         if (!verbs.has(id)) {
             const other = direction === 'forward' ? sideOf(pair, 'reverse') : pair.forward;
+            // An intrinsic pair names a property of an entity in OMC-JSON. Its reverse verb is a
+            // field name — `RealizationOf`, `AssetStructure` — not a relationship RDF states, so
+            // pairing the two here would put a JSON artefact in the ontology.
+            const intrinsic = pair.forward?.json?.placement === 'property';
             verbs.set(id, {
                 id,
                 name: lowerFirst(side.verb),
                 definition: side.definition?.en ?? null,
-                symmetric: pair.kind === 'symmetric',
-                inverse: pair.kind === 'pair' && other?.verb ? `${prefix}:${lowerFirst(other.verb)}` : null,
+                symmetric: pair.kind === 'symmetric' && verbAlone(side.verb) && !intrinsic,
+                inverse: asserting.has(pair._id) && other?.verb ? `${prefix}:${lowerFirst(other.verb)}` : null,
             });
         }
         return id;
+    });
+
+    /** The inverse each specific property takes, where its verb cannot carry one. */
+    const inverses = new Map();
+    const noteInverse = ((from, to) => {
+        if (!inverses.has(from)) inverses.set(from, new Set());
+        inverses.get(from).add(to);
     });
 
     edges.forEach((edge) => {
@@ -94,8 +176,25 @@ export function edgeProperties({
             property.ranges.add(`${prefix}:${range.name}`);
             const verb = verbProperty(pair, direction);
             if (verb) property.verbs.add(verb);
+
+            // Both directions of one edge are each other's inverse. Stated here only where the verbs
+            // cannot state it, and only between names that answer each other one to one.
+            const other = direction === 'forward' ? 'reverse' : 'forward';
+            const otherName = carries(edge, other) && edge[other]?.rdf?.include !== false
+                ? edge[other]?.names?.rdfName?.value
+                : null;
+            // Whatever the verbs could not state, the properties do.
+            const intrinsic = pair.forward?.json?.placement === 'property';
+            const stated = asserting.has(pair._id);
+            if (otherName && pair.kind === 'pair' && !stated && !intrinsic) noteInverse(id, `${prefix}:${otherName}`);
         });
     });
+
+    // A property may answer more than one other — `usedByCharacter` answering both `realizedBy` and
+    // `depictedBy` — and each is stated as its own inverse expression. Nothing is dropped, and there
+    // is nothing left to report: it is only `owl:inverseOf` that cannot be said twice.
+    const propertyInverses = [...inverses.entries()]
+        .flatMap(([from, to]) => sorted(to).map((one) => ({ from, to: one })));
 
     const verbConflicts = [...properties.values()]
         .filter((property) => property.verbs.size > 1)
@@ -104,6 +203,7 @@ export function edgeProperties({
     return {
         properties: [...properties.values()].sort((a, b) => a.name.localeCompare(b.name)),
         verbs: [...verbs.values()].sort((a, b) => a.name.localeCompare(b.name)),
+        propertyInverses: propertyInverses.sort((a, b) => a.from.localeCompare(b.from)),
         skipped,
         verbConflicts,
     };
@@ -170,6 +270,11 @@ export function toOwlTurtle(ctx) {
                 .map((verb) => add('rdfs:subPropertyOf', { id: verb })),
             ...sorted(property.domains).map((id) => add('schema:domainIncludes', { id })),
             ...sorted(property.ranges).map((id) => add('schema:rangeIncludes', { id })),
+            ...found.propertyInverses
+                .filter((one) => one.from === property.id)
+                .map((one) => add('rdfs:subPropertyOf', {
+                    node: [{ predicate: 'owl:inverseOf', object: { id: one.to } }],
+                })),
         ];
     });
 

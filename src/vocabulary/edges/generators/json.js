@@ -43,6 +43,25 @@ function mostCommon(values) {
 }
 
 /**
+ * The `rdf` token a row publishes: what edges.js held, or the edge's own RDF name in the edge
+ * namespace.
+ *
+ * A direction that does not publish to RDF must not name a property the published RDF never
+ * declares, so it takes the layer omc-util generates for itself instead — `intrinsic` for a named
+ * property, `tentative` for anything else.
+ *
+ * @param {object} stored - One direction of an edge
+ * @param {object} names - That direction's names
+ * @param {object} settings
+ * @returns {string}
+ */
+function rdfTokenOf(stored, names, settings) {
+    const held = stored.legacy?.rdf ?? `const:${settings.rdf.prefix}:${names.rdfName?.value}`;
+    if (stored.rdf?.include !== false || !held.startsWith('const:')) return held;
+    return (names.placement?.value ?? 'edges') === 'property' ? 'intrinsic' : 'tentative';
+}
+
+/**
  * Every direction published to OMC-JSON, as a row.
  *
  * @param {object} ctx
@@ -77,7 +96,7 @@ function rowsOf({ edges, index, settings }, problems) {
                 domain: domain.jsonType,
                 range: range.jsonType,
                 inverse,
-                rdf: stored.legacy?.rdf ?? `const:${settings.rdf.prefix}:${names.rdfName?.value}`,
+                rdf: rdfTokenOf(stored, names, settings),
                 cardinality: stored.legacy?.cardinality ?? 'array',
                 rdfMap: stored.rdfMap ?? [],
             });
