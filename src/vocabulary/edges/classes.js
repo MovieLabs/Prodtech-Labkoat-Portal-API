@@ -21,6 +21,10 @@
  *   such class on its superclass chain, which may be a grouping, and never across an attached
  *   placement.
  *
+ * A term's own structure can also be made of classes: Asset Function's members are the Asset
+ * Functions, and an edge end is narrowed by naming one. Those classes are not places an edge can
+ * start or finish, so they are read separately, as **qualifier trees**.
+ *
  * Tags arrive as the words the view publishes them under, which is what the RDF build matches.
  *
  * @module vocabulary/edges/classes
@@ -77,6 +81,16 @@ export const className = ((label) => String(label ?? '')
  */
 
 /**
+ * @typedef {object} QualifierTree
+ * @property {string} term - The term whose structure the classes are read from, e.g. Asset Function
+ * @property {string} label
+ * @property {string} name - RDF local name
+ * @property {string} path - The property carrying it, from the structure: `hasAssetFunction`
+ * @property {string[]} appliesTo - Term ids of the classes holding it; a subclass holds it too
+ * @property {Array<{id: string, label: string, definition: string|null, name: string, supers: string[], ancestors: string[]}>} values
+ */
+
+/**
  * @typedef {object} StructuralEdge
  * @property {string} domain - Term id of the class that has it
  * @property {string} range - Term id of the class it points at
@@ -122,11 +136,22 @@ export function classIndex(doc, settings = {}) {
     const has = ((node, role) => node.tags.includes(words[role]));
     const roleOf = ((node) => ROLES.find((role) => has(node, role)) ?? null);
     const isDatatype = ((node) => node.tags.some((tag) => DATATYPE_TAGS.includes(tag)));
+    // Which terms hold a structure of their own — read from where each placement was written, before
+    // any of them is read as a class.
     const owners = new Set(nodes
-        .filter((node) => node.kind === 'member')
+        .filter((node) => node.term.collection !== viewId)
         .map((node) => String(node.term.collection).replace(/#.*$/, '')));
     const owns = ((node) => owners.has(node.term.id));
     const kids = ((node) => node.term.children ?? []);
+
+    // A class role outranks where the term was written. Writing a branch inside another term is how
+    // one branch comes to sit under two parents at once, and the branch is still made of classes:
+    // the RDF build reads a member tagged entity or abstract as a class nested under its parent
+    // (`RDF-Testing/generate.js`, "a class role tag says what it is"). Read as members instead, the
+    // branch and everything under it are not classes at all.
+    nodes.forEach((node) => {
+        if (node.kind === 'member' && (has(node, 'entity') || has(node, 'abstract'))) node.kind = 'class';
+    });
 
     // A record placed only under entities (a grouping filing it aside) is attached without the tag.
     canonical.forEach((node) => {
@@ -208,12 +233,11 @@ export function classIndex(doc, settings = {}) {
             }
         });
 
+        // Several superclasses is the structure saying something it means — a class placed under two
+        // parents is one class with two of them, which the RDF build states as one `rdfs:subClassOf`
+        // each. Nothing is lost or guessed at, so there is nothing to report; where the two disagree
+        // about what the class projects to in OMC-JSON, `ambiguousProjection` says so below.
         entry.supers = [...supers];
-        if (entry.supers.length > 1) {
-            problems.push({
-                code: 'multipleSuperclasses', level: 'warning', termId: entry.id, supers: entry.supers,
-            });
-        }
         classes.set(entry.id, entry);
     });
 
@@ -261,7 +285,63 @@ export function classIndex(doc, settings = {}) {
         }
     });
 
-    return { classes, structural, problems };
+    // The qualifier trees: the classes an edge end may be narrowed to, which are not classes the
+    // view places and so cannot be edge ends themselves.
+    //
+    // A term's own structure is read by the rule the RDF build uses for one: a member carrying a
+    // role tag is a class, a member carrying a datatype is a field, and anything else is a
+    // controlled value. So Asset Function's record members are classes and Geometry Type's
+    // `Ctrl-Value` members are not.
+    //
+    // Which terms are read this way is configuration — `settings.qualifiers` names them. What each
+    // is called on an entity is not: that is the structural relationship the view already gives, so
+    // `hasAssetFunction` is read rather than spelled out here.
+    const isValueClass = ((tags) => tags.some((tag) => ROLES.some((role) => words[role] === tag))
+        && !tags.some((tag) => DATATYPE_TAGS.includes(tag)));
+
+    const qualifiers = (settings.qualifiers ?? []).map((rootId) => {
+        const root = canonical.get(rootId);
+        if (!root) {
+            problems.push({ code: 'qualifierMissing', level: 'warning', termId: rootId });
+            return null;
+        }
+        const values = new Map();
+        const walkValues = ((children, ancestors) => (children ?? []).forEach((term) => {
+            if (!isValueClass(term.tags ?? [])) return;
+            if (!values.has(term.id)) {
+                values.set(term.id, {
+                    id: term.id,
+                    label: term.label,
+                    definition: term.definition ?? null,
+                    name: className(term.label),
+                    supers: [ancestors[0]],
+                    ancestors: [...ancestors],
+                });
+            }
+            walkValues(term.children, [term.id, ...ancestors]);
+        }));
+        walkValues(root.term.children, [rootId]);
+
+        // Where an entity carries it, and under what name. An attached record gives one structural
+        // relationship per class holding it, every one of them under the same name.
+        const carried = structural.filter((edge) => edge.range === rootId);
+        if (!carried.length) {
+            problems.push({ code: 'qualifierUnattached', level: 'warning', termId: rootId });
+            return null;
+        }
+        return {
+            term: rootId,
+            label: root.term.label,
+            name: className(root.term.label),
+            path: carried[0].name,
+            appliesTo: [...new Set(carried.map((edge) => edge.domain))],
+            values: [...values.values()],
+        };
+    }).filter(Boolean);
+
+    return {
+        classes, structural, qualifiers, problems,
+    };
 }
 
 /**
@@ -271,3 +351,29 @@ export function classIndex(doc, settings = {}) {
  * @returns {boolean}
  */
 export const isEdgeClass = ((entry) => !!entry && EDGE_ROLES.includes(entry.role));
+
+/**
+ * The qualifier tree a narrowing names, and the class within it.
+ *
+ * @param {Array<QualifierTree>} qualifiers - From `classIndex`
+ * @param {string} [termId] - The class the end is narrowed to
+ * @returns {{tree: QualifierTree, value: object}|null}
+ */
+export function qualifierFor(qualifiers, termId) {
+    if (!termId) return null;
+    for (const tree of qualifiers ?? []) {
+        const value = tree.values.find((one) => one.id === termId);
+        if (value) return { tree, value };
+    }
+    return null;
+}
+
+/**
+ * Whether a class carries a qualifier tree — it holds the structure itself, or inherits it.
+ *
+ * @param {QualifierTree} tree
+ * @param {EntityClass} [entry]
+ * @returns {boolean}
+ */
+export const takesQualifier = ((tree, entry) => !!entry
+    && tree.appliesTo.some((id) => id === entry.id || entry.ancestors.includes(id)));

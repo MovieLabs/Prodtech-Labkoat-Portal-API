@@ -72,7 +72,7 @@ router.put('/edge-settings', authenticated, async (req, res, next) => {
 
 /**
  * The classes an edge may join, as the configured view reads now, with the relationships the
- * structure already gives them.
+ * structure already gives them and the trees an end may be narrowed to.
  */
 router.get('/edge-classes', authenticated, async (req, res, next) => {
     try {
@@ -81,6 +81,7 @@ router.get('/edge-classes', authenticated, async (req, res, next) => {
             viewId: settings.viewId,
             classes: [...index.classes.values()],
             structural: index.structural,
+            qualifiers: index.qualifiers,
             problems: index.problems,
         });
     } catch (err) {

@@ -38,6 +38,10 @@ export const DEFAULT_SETTINGS = {
     statuses: null,
     tagWords: DEFAULT_CLASS_TAGS,
     jsonNames: {},
+    // The terms whose own structure narrows an edge end: Asset Function, so an edge can point at an
+    // Asset(Script) rather than any Asset at all. A default in the same sense `viewId` is one — the
+    // vocabulary decides what these are, and this is where the first of them was found.
+    qualifiers: ['mlv:c-00004D'],
     json: {
         edgesTemplate: DEFAULT_TEMPLATES.edgesTemplate,
         propertyTemplate: DEFAULT_TEMPLATES.propertyTemplate,
@@ -93,6 +97,9 @@ export async function saveSettings(input, actor, expected) {
         jsonNames: Object.fromEntries(Object.entries(input.jsonNames ?? {})
             .map(([termId, name]) => [text(termId), text(name)])
             .filter(([termId, name]) => termId && name)),
+        qualifiers: Array.isArray(input.qualifiers)
+            ? [...new Set(input.qualifiers.map(text).filter(Boolean))]
+            : DEFAULT_SETTINGS.qualifiers,
         json: {
             edgesTemplate: text(input.json?.edgesTemplate) ?? DEFAULT_TEMPLATES.edgesTemplate,
             propertyTemplate: text(input.json?.propertyTemplate) ?? DEFAULT_TEMPLATES.propertyTemplate,
@@ -281,6 +288,20 @@ const normaliseDirection = ((input) => ({
 }));
 
 /**
+ * One end as a client sent it: the class it joins, and the class it is narrowed to.
+ *
+ * An end with no narrowing stores exactly what it always did, so nothing already written is rewritten
+ * by being saved again.
+ *
+ * @param {object} input
+ * @returns {object}
+ */
+const normaliseEnd = ((input) => ({
+    term: text(input?.term),
+    ...(text(input?.qualifier) ? { qualifier: text(input.qualifier) } : {}),
+}));
+
+/**
  * An edge as it would be stored, before its names are worked out.
  *
  * @param {object} input
@@ -288,8 +309,8 @@ const normaliseDirection = ((input) => ({
  */
 const normaliseEdge = ((input) => ({
     pair: text(input.pair),
-    domain: { term: text(input.domain?.term) },
-    range: { term: text(input.range?.term) },
+    domain: normaliseEnd(input.domain),
+    range: normaliseEnd(input.range),
     forward: { mode: input.forward?.mode === 'none' ? 'none' : 'owned', ...normaliseDirection(input.forward) },
     reverse: { mode: input.reverse?.mode === 'none' ? 'none' : 'owned', ...normaliseDirection(input.reverse) },
     status: text(input.status) ?? 'proposed',
@@ -310,11 +331,11 @@ export function withNames(edge, ctx) {
     ['forward', 'reverse'].forEach((direction) => {
         if (!carries(edge, direction)) return;
         const generated = namesNow({
-            edge, pair, direction, classes: ctx.index.classes, settings: ctx.settings,
+            edge, pair, direction, classes: ctx.index.classes, qualifiers: ctx.index.qualifiers, settings: ctx.settings,
         });
         if (generated) next[direction] = { ...edge[direction], names: applyNames(edge[direction].names, generated) };
     });
-    next.basis = basisOf(edge, pair, ctx.index.classes);
+    next.basis = basisOf(edge, pair, ctx.index.classes, ctx.index.qualifiers);
     return next;
 }
 
@@ -329,7 +350,7 @@ export async function previewEdge(input) {
     const context = await loadEdgeContext();
     const edge = withNames(normaliseEdge(input), context);
     const checked = validateEdge(edge, {
-        ...context, classes: context.index.classes, edges: await listEdges(),
+        ...context, classes: context.index.classes, qualifiers: context.index.qualifiers, edges: await listEdges(),
     });
     return { edge, errors: checked.errors, warnings: checked.warnings };
 }
@@ -363,7 +384,7 @@ export async function createEdges(inputs, actor, ctx = null) {
         _id: ids[at], ...withNames(normaliseEdge(input), context), created: now,
     }, actor));
     const results = prepared.map((edge, at) => validateEdge(edge, {
-        ...context, classes: context.index.classes, edges: [...stored, ...prepared.filter((_, other) => other !== at)],
+        ...context, classes: context.index.classes, qualifiers: context.index.qualifiers, edges: [...stored, ...prepared.filter((_, other) => other !== at)],
     }));
     refuseInvalid(prepared, results);
     await vocabCollection(VOCAB_EDGES).insertMany(prepared);
@@ -388,7 +409,7 @@ export async function replaceEdge(id, input, actor, expected) {
         _id: id, ...withNames(normaliseEdge(input), context), created: was.created,
     }, actor);
     const checked = validateEdge(next, {
-        ...context, classes: context.index.classes, edges: await listEdges(),
+        ...context, classes: context.index.classes, qualifiers: context.index.qualifiers, edges: await listEdges(),
     }, was);
     refuseInvalid([next], [checked]);
     await replaceUnchanged(VOCAB_EDGES, was, next, 'edge');

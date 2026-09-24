@@ -11,7 +11,7 @@
  * @module vocabulary/edges/check
  */
 
-import { isEdgeClass } from './classes.js';
+import { isEdgeClass, qualifierFor, takesQualifier } from './classes.js';
 import { generateNames, namesDrift } from './naming.js';
 
 /**
@@ -59,6 +59,27 @@ export const sideOf = ((pair, direction) => {
 export const carries = ((edge, direction) => (edge[direction]?.mode ?? (direction === 'forward' ? 'owned' : 'none')) === 'owned');
 
 /**
+ * One end of an edge, as everything downstream reads it: the class it joins, under the name its
+ * narrowing gives it.
+ *
+ * An end narrowed to `Asset(Script)` still joins the Asset — that is the class the edge connects and
+ * the one OMC-JSON projects — but it publishes under the narrow name, which is what makes the RDF
+ * property `hasScript` rather than `hasAsset`. Only the name moves.
+ *
+ * @param {object} edge
+ * @param {'domain'|'range'} end
+ * @param {Map<string, object>} classes - From `classIndex`
+ * @param {Array<object>} [qualifiers] - From `classIndex`
+ * @returns {object|null} The class entry, with `narrowedTo` where the end names a qualifier
+ */
+export function endOf(edge, end, classes, qualifiers) {
+    const entry = classes.get(edge[end]?.term);
+    if (!entry) return null;
+    const found = qualifierFor(qualifiers, edge[end]?.qualifier);
+    return found ? { ...entry, name: found.value.name, narrowedTo: found } : entry;
+}
+
+/**
  * What the names of one direction would be now.
  *
  * @param {object} params
@@ -66,16 +87,17 @@ export const carries = ((edge, direction) => (edge[direction]?.mode ?? (directio
  * @param {object} params.pair
  * @param {'forward'|'reverse'} params.direction
  * @param {Map<string, object>} params.classes - From `classIndex`
+ * @param {Array<object>} [params.qualifiers] - From `classIndex`
  * @param {object} params.settings
  * @returns {object|null} From `generateNames`, or null when a class or the pair is missing
  */
 export function namesNow({
-    edge, pair, direction, classes, settings,
+    edge, pair, direction, classes, qualifiers, settings,
 }) {
     const { from, to } = DIRECTIONS.find((entry) => entry.direction === direction);
     const side = sideOf(pair, direction);
-    const domain = classes.get(edge[from]?.term);
-    const range = classes.get(edge[to]?.term);
+    const domain = endOf(edge, from, classes, qualifiers);
+    const range = endOf(edge, to, classes, qualifiers);
     if (!side || !domain || !range) return null;
     return generateNames({
         side, domain, range, settings,
@@ -90,20 +112,27 @@ export function namesNow({
  * @param {object} edge
  * @param {object} pair
  * @param {Map<string, object>} classes
+ * @param {Array<object>} [qualifiers] - From `classIndex`
  * @returns {object}
  */
-export function basisOf(edge, pair, classes) {
-    const end = ((id) => {
-        const entry = classes.get(id);
-        return entry
-            ? {
-                label: entry.label, name: entry.name, jsonTerm: entry.jsonTerm, jsonType: entry.jsonType,
-            }
-            : null;
+export function basisOf(edge, pair, classes, qualifiers) {
+    const end = ((which) => {
+        const entry = classes.get(edge[which]?.term);
+        if (!entry) return null;
+        const narrowed = qualifierFor(qualifiers, edge[which]?.qualifier);
+        return {
+            label: entry.label,
+            name: entry.name,
+            jsonTerm: entry.jsonTerm,
+            jsonType: entry.jsonType,
+            // A narrowing names a class too, so a rename there moves a published name just as one on
+            // the end's own class does.
+            ...(narrowed ? { qualifier: { label: narrowed.value.label, name: narrowed.value.name } } : {}),
+        };
     });
     return {
-        domain: end(edge.domain?.term),
-        range: end(edge.range?.term),
+        domain: end('domain'),
+        range: end('range'),
         pairModified: pair?.modified ?? null,
     };
 }
@@ -115,7 +144,7 @@ export function basisOf(edge, pair, classes) {
  * @param {Array<object>} params.edges
  * @param {Map<string, object>} params.pairs - By id
  * @param {object} params.settings
- * @param {{classes: Map<string, object>, structural: Array<object>, problems: Array<object>}} params.index - From `classIndex`
+ * @param {{classes: Map<string, object>, structural: Array<object>, qualifiers: Array<object>, problems: Array<object>}} params.index - From `classIndex`
  * @param {Map<string, object>} params.terms - Every endpoint term the store holds, by id, whether or not the view places it
  * @returns {{summary: {error: number, warning: number, info: number}, byEdge: Object<string, EdgeProblem[]>,
  *   byTerm: Object<string, EdgeProblem[]>, classes: Array<object>}}
@@ -152,6 +181,19 @@ export function checkEdges({
                     ...base, code: 'untagged', level: 'error', role: entry.role,
                 });
             }
+            // A narrowing names a class in a qualifier tree. The tree is read from the vocabulary on
+            // every check, so a class taken out of it, or a qualifier dropped from the settings,
+            // leaves the edge naming nothing.
+            const narrowed = qualifierFor(index.qualifiers, edge[end]?.qualifier);
+            if (edge[end]?.qualifier && !narrowed) {
+                report({
+                    ...base, code: 'qualifierGone', level: 'error', qualifier: edge[end].qualifier,
+                });
+            } else if (narrowed && !takesQualifier(narrowed.tree, entry)) {
+                report({
+                    ...base, code: 'qualifierNotCarried', level: 'error', qualifier: narrowed.tree.label,
+                });
+            }
             const was = edge.basis?.[end];
             if (!was) return;
             if ((was.jsonTerm ?? null) !== (entry.jsonTerm ?? null)) {
@@ -162,6 +204,11 @@ export function checkEdges({
             if (was.label !== entry.label) {
                 report({
                     ...base, code: 'classRenamed', level: 'warning', was: was.label, now: entry.label,
+                });
+            }
+            if (was.qualifier && narrowed && was.qualifier.label !== narrowed.value.label) {
+                report({
+                    ...base, code: 'qualifierRenamed', level: 'warning', was: was.qualifier.label, now: narrowed.value.label,
                 });
             }
         });
@@ -192,7 +239,7 @@ export function checkEdges({
                 });
             }
             const generated = namesNow({
-                edge, pair, direction, classes, settings,
+                edge, pair, direction, classes, qualifiers: index.qualifiers, settings,
             });
             if (!generated) return;
             namesDrift(stored.names, generated).forEach((drift) => report({

@@ -51,6 +51,10 @@ const fill = ((template, values) => template.replace(/\{(\w+)\}/g, (whole, key) 
  * which is what lets `depictedBy` a Depiction and `realizedBy` a Realization be different properties
  * while both publish to OMC-JSON as a Realization.
  *
+ * **A narrowed end arrives under the name it is narrowed to** — `Script`, not `Asset` — which is the
+ * notation's own rule: `Asset(Script)` is `hasScript` in RDF. Only the name moves. `jsonType` is
+ * still the Asset, so OMC-JSON is untouched by a narrowing.
+ *
  * @param {object} params
  * @param {object} params.side - One direction of a predicate pair: `{ verb, json: { placement, pathTemplate }, rdf: { template } }`
  * @param {{name: string, jsonType: string|null}} params.domain

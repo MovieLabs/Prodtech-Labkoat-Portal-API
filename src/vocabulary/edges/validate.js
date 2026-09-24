@@ -12,7 +12,7 @@
 import { fail, result } from '../store/validate.js';
 
 import { carries } from './check.js';
-import { isEdgeClass } from './classes.js';
+import { isEdgeClass, qualifierFor, takesQualifier } from './classes.js';
 import { PLACEMENTS } from './naming.js';
 
 /** The kinds of predicate pair. */
@@ -125,6 +125,7 @@ const predicateOf = ((edge, direction) => (carries(edge, direction) ? edge[direc
  * @param {object} edge - As it would be stored, names generated
  * @param {object} ctx
  * @param {Map<string, object>} ctx.classes - From `classIndex`
+ * @param {Array<object>} ctx.qualifiers - From `classIndex`
  * @param {Map<string, object>} ctx.pairs - By id
  * @param {Array<object>} ctx.edges - Every stored edge
  * @param {Set<string>} ctx.statuses - Allowed status values
@@ -132,7 +133,7 @@ const predicateOf = ((edge, direction) => (carries(edge, direction) ? edge[direc
  * @returns {import('../store/validate.js').ValidationResult}
  */
 export function validateEdge(edge, {
-    classes, pairs, edges, statuses,
+    classes, qualifiers, pairs, edges, statuses,
 }, stored = null) {
     const found = result();
     // A problem the save does not introduce is reported, not refused.
@@ -148,6 +149,18 @@ export function validateEdge(edge, {
         const entry = classes.get(termId);
         if (!entry) refuseOrWarn(changed, `${termId} is not a class in the entity structure`);
         else if (!isEdgeClass(entry)) refuseOrWarn(changed, `"${entry.label}" is not tagged as an entity or an abstract class`);
+
+        // A narrowing is refused here rather than reported later: it reaches the published ontology
+        // as a class name, and a wrong one surfaces a long way from this form, as a dangling
+        // reference in another repository's build.
+        const narrowing = edge[end]?.qualifier;
+        if (!narrowing) return;
+        const narrowed = qualifierFor(qualifiers, narrowing);
+        const moved = stored?.[end]?.qualifier !== narrowing;
+        if (!narrowed) refuseOrWarn(moved, `${narrowing} is not a class in any of the entity structure's qualifiers`);
+        else if (entry && !takesQualifier(narrowed.tree, entry)) {
+            refuseOrWarn(moved, `"${entry.label}" carries no ${narrowed.tree.label}, so it cannot be narrowed to "${narrowed.value.label}"`);
+        }
     });
 
     ['forward', 'reverse'].forEach((direction) => {
@@ -176,8 +189,12 @@ export function validateEdge(edge, {
 
     // Two edges between the same classes may share a pair when they publish different predicates —
     // Slate `has` Participant, and Slate `Director`, which names that relationship more narrowly.
+    // A narrowing distinguishes them the same way: a Creative Work has an Asset(Script) and an
+    // Asset(Reference Material), which are one OMC-JSON row and two RDF properties.
+    const sameEnd = ((other, end) => other[end]?.term === edge[end]?.term
+        && (other[end]?.qualifier ?? null) === (edge[end]?.qualifier ?? null));
     const duplicate = edges.find((other) => other._id !== edge._id && other.pair === edge.pair
-        && other.domain?.term === edge.domain?.term && other.range?.term === edge.range?.term
+        && sameEnd(other, 'domain') && sameEnd(other, 'range')
         && predicateOf(other, 'forward') === predicateOf(edge, 'forward')
         && predicateOf(other, 'reverse') === predicateOf(edge, 'reverse'));
     if (duplicate) fail(found, `Edge ${duplicate._id} already joins these classes with these predicates`);

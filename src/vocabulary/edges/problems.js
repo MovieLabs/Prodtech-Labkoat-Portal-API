@@ -34,6 +34,12 @@ export function describeEdgeProblem(problem, labelOf) {
             return `${term} used to publish to OMC-JSON as ${problem.was ?? 'nothing'} and now publishes as ${problem.now ?? 'nothing'}.`;
         case 'classRenamed':
             return `"${problem.was}" has been renamed "${problem.now}".`;
+        case 'qualifierGone':
+            return `The ${end} of this edge is narrowed to ${problem.qualifier}, which the entity structure no longer offers.`;
+        case 'qualifierNotCarried':
+            return `${term} carries no ${problem.qualifier}, so the ${end} of this edge cannot be narrowed by one.`;
+        case 'qualifierRenamed':
+            return `The ${end} is narrowed to "${problem.was}", which has been renamed "${problem.now}".`;
         case 'namesDrifted':
             return `The ${problem.direction} ${problem.field} is ${JSON.stringify(problem.stored)}, but would now be generated as ${JSON.stringify(problem.generated)}.`;
         case 'overriddenName':

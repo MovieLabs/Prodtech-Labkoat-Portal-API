@@ -1,6 +1,6 @@
 /**
  * Checks on the edge modules that need no database: reading classes from a view document, naming,
- * the staleness check, and the OMC-JSON document built from edges.
+ * the staleness check, and the two projections the export document carries.
  *
  * ```
  * node src/vocabulary/edges/edges.verify.mjs
@@ -13,16 +13,15 @@
 
 import assert from 'node:assert/strict';
 
-import { checkEdges } from './check.js';
+import { checkEdges, namesNow } from './check.js';
 import { classIndex, className } from './classes.js';
 import { toEdgeDocument } from './generators/document.js';
 import { toEdgeDefinitions } from './generators/json.js';
 import { toEdgeMarkdown } from './generators/markdown.js';
 import { toEdgeMatrix } from './generators/matrix.js';
-import { edgeProperties, toOwlTurtle, toShaclTurtle } from './generators/owl.js';
-import { checkBundle, owlTurtle, shaclTurtle } from './handoff/omcEdgesToTurtle.mjs';
+import { edgeProperties, toRdfBundle } from './generators/rdfBundle.js';
 import { applyNames, generateNames, namesDrift } from './naming.js';
-import { validatePair } from './validate.js';
+import { validateEdge, validatePair } from './validate.js';
 
 let passed = 0;
 const check = ((name, run) => {
@@ -47,12 +46,28 @@ const doc = {
         term('c:asset', 'Asset', ['RDF-Entity', 'JSON-Entity'], [
             term('c:group', 'Asset Group', ['RDF-Entity']),
             term('c:prov', 'Provenance', ['RDF-Entity', 'Attached', 'JSON-Entity']),
-            term('c:function', 'Asset Function', [], [term('c:audio', 'Audio', ['Ctrl-Value'], [], 'c:function#f1')]),
+            term('c:function', 'Asset Function', ['Attached', 'RDF-Record'], [
+                term('c:audio', 'Audio', ['Ctrl-Value'], [], 'c:function#f1'),
+                term('c:script', 'Script', ['RDF-Record'], [], 'c:function#f1'),
+                term('c:prodobject', 'Production Object', ['RDF-Record'], [
+                    term('c:setdressing', 'Production Set Dressing', ['RDF-Record'], [], 'c:function#f1'),
+                ], 'c:function#f1'),
+            ]),
         ]),
         term('c:narr', 'Narrative Entity', ['RDF-Abstract'], [
             term('c:portrayable', 'Portrayable Narrative Entity', ['RDF-Grouping'], [
                 term('c:character', 'Character', ['RDF-Entity', 'JSON-Entity'], [term('c:extra', 'Extra', ['RDF-Entity'])]),
             ]),
+            // Written inside Narrative Styling, which is how one branch comes to be placed under two
+            // parents: the same class, the same children, in both places.
+            term('c:styling', 'Narrative Styling', ['RDF-Abstract', 'JSON-Entity'], [
+                term('c:hair', 'Narrative Hair', ['RDF-Entity'], [], 'c:styling'),
+            ]),
+        ]),
+        term('c:realizable', 'Realizable Narrative Entity', ['RDF-Abstract'], [
+            term('c:styling', 'Narrative Styling', ['RDF-Abstract', 'JSON-Entity'], [
+                term('c:hair', 'Narrative Hair', ['RDF-Entity'], [], 'c:styling'),
+            ], 'c:realizable'),
         ]),
         term('c:realization', 'Realization', ['RDF-Entity', 'JSON-Entity'], [
             term('c:depiction', 'Depiction', ['RDF-Entity'], [term('c:portrayal', 'Portrayal', ['RDF-Entity'])]),
@@ -67,7 +82,7 @@ const doc = {
     ],
 };
 
-const index = classIndex(doc);
+const index = classIndex(doc, { qualifiers: ['c:function'] });
 const cls = ((id) => index.classes.get(id));
 
 check('className matches the RDF build', () => {
@@ -94,6 +109,12 @@ check('a slot names the relationship', () => {
 
 check('members of a term\'s arrangement are not classes', () => {
     assert.equal(cls('c:audio'), undefined);
+});
+
+check('a class written inside another term is still a class, under each parent placing it', () => {
+    assert.deepEqual(cls('c:styling').supers, ['c:narr', 'c:realizable']);
+    assert.deepEqual(cls('c:hair').supers, ['c:styling']);
+    assert.equal(cls('c:hair').jsonType, 'NarrativeStyling');
 });
 
 check('OMC-JSON projection is the nearest marked superclass', () => {
@@ -313,9 +334,10 @@ check('one property may answer two others, each stated as its own inverse expres
     // Nothing to report: `owl:inverseOf` is what cannot be said twice, and this does not say it.
     assert.equal(found.inverseConflicts, undefined);
 
-    const { body } = toOwlTurtle(ctx);
-    assert.match(body, /rdfs:subPropertyOf \[ owl:inverseOf omc:realizedByRealization \]/);
-    assert.match(body, /rdfs:subPropertyOf \[ owl:inverseOf omc:depictedByDepiction \]/);
+    // Both reach the published bundle, gathered onto the property that answers them.
+    const { body } = toRdfBundle(ctx);
+    assert.deepEqual(body.properties.find((one) => one.id === 'omc:usedByCharacter').inverseOf,
+        ['omc:depictedByDepiction', 'omc:realizedByRealization']);
 });
 
 check('a verb shared on one side takes the inverse off both its verbs', () => {
@@ -334,9 +356,8 @@ check('a verb shared on one side takes the inverse off both its verbs', () => {
     ['usedBy', 'realizedBy', 'depictedBy'].forEach((name) => {
         assert.equal(found.verbs.find((verb) => verb.name === name)?.inverse, null, `${name} states an inverse`);
     });
-    // A verb-level statement is its own line; the blank-node form only ever appears inside brackets,
-    // so a substring test would match `[ owl:inverseOf omc:usedByParticipant ]` and prove nothing.
-    assert.ok(!/^\s+owl:inverseOf /m.test(toOwlTurtle(ctx).body));
+    // Published, no verb carries one either, so a consumer has none to write.
+    assert.deepEqual(toRdfBundle(ctx).body.verbs.filter((verb) => verb.inverse), []);
 });
 
 check('a genuine pair keeps its verb inverse though its reverse verb leads other pairs', () => {
@@ -379,7 +400,9 @@ check('an intrinsic pair states no inverse, its reverse verb being an OMC-JSON f
     const found = edgeProperties(ctx);
     assert.equal(found.verbs.find((verb) => verb.name === 'realizationOf')?.inverse, null);
     assert.deepEqual(found.propertyInverses, []);
-    assert.ok(!toOwlTurtle(ctx).body.includes('owl:inverseOf'));
+    const { body } = toRdfBundle(ctx);
+    assert.deepEqual(body.verbs.filter((verb) => verb.inverse), []);
+    assert.deepEqual(body.properties.flatMap((one) => one.inverseOf), []);
 });
 
 check('a pair declaring no inverse publishes RDF rather than throwing', () => {
@@ -396,11 +419,11 @@ check('a pair declaring no inverse publishes RDF rather than throwing', () => {
     assert.deepEqual(found.skipped, []);
     assert.equal(found.verbs.find((verb) => verb.name === 'assetStructure')?.inverse, null);
     assert.deepEqual(found.propertyInverses, []);
-    // The shapes read the same properties, and are what the export actually serves.
-    assert.match(toShaclTurtle(ctx).body, /sh:targetSubjectsOf/);
+    // It reaches the bundle, which is what the export actually serves.
+    assert.ok(toRdfBundle(ctx).body.properties.some((one) => one.name === 'assetStructureAssetStructure'));
 });
 
-check('the handoff script writes exactly what this service writes', () => {
+check('one document carries both projections, and the namespace to read them under', () => {
     const ctx = {
         edges: [
             sharedEdge('e:14', 'p:used', shared.used, 'c:character', 'c:realization'),
@@ -411,24 +434,14 @@ check('the handoff script writes exactly what this service writes', () => {
         index,
         settings: { viewId: VIEW, rdf: { prefix: 'omc', base: 'https://movielabs.com/omc/rdf/schema/v3.0#' } },
     };
-    // The script is a copy of this logic living in another repository, so the only thing that keeps
-    // the two honest is that one document produces the same bytes through both.
+    // Neither projection can be derived from the other, so a consumer of one must find the other
+    // beside it rather than in a second file that has to agree.
     const { body: document } = toEdgeDocument(ctx);
-    assert.equal(owlTurtle(document), toOwlTurtle(ctx).body);
-    assert.equal(shaclTurtle(document), toShaclTurtle(ctx).body);
-    assert.doesNotThrow(() => checkBundle(document));
-    // One document, both projections: the OMC-JSON table is in the same file the RDF came from.
     assert.ok(document.json.edgeDefinitions);
-});
-
-check('the handoff script refuses a document that is only the OMC-JSON table', () => {
-    const { body } = toEdgeDefinitions({
-        edges: [edgeOf('e:17', 'c:character', 'c:realization')],
-        pairs: new Map([[pair._id, pair]]),
-        index,
-        settings: { viewId: VIEW, rdf: { prefix: 'omc' } },
-    });
-    assert.throws(() => checkBundle(body), /omc-edge-definitions/);
+    assert.ok(document.rdf.properties.length);
+    assert.ok(document.rdf.verbs.length);
+    assert.deepEqual(document.namespace, { prefix: 'omc', base: 'https://movielabs.com/omc/rdf/schema/v3.0#' });
+    assert.equal(document.generated.format, 'omc-edges');
 });
 
 check('the matrix puts an edge in the cell for its two classes, and leaves the rest empty', () => {
@@ -456,6 +469,136 @@ check('the markdown lists a class\'s relationships with the inverse and what it 
     assert.match(body, /^## Character$/m);
     assert.match(body, /^## Realization$/m);
     assert.match(body, /\| realizedBy \/ realizedByRealization → \| ← realizes \/ realizesCharacter \| \*\*Realization\*\*/m);
+});
+
+// ---------------------------------------------------------------------------
+// Narrowing an edge end: Asset(Script)
+// ---------------------------------------------------------------------------
+
+const SETTINGS = { viewId: VIEW, rdf: { prefix: 'omc', base: 'https://movielabs.com/omc/rdf/schema/v3.0#' } };
+
+/** An edge whose ends may each name a class to narrow to, with its names generated accordingly. */
+const narrowedEdge = ((id, domain, range, { narrowDomain = null, narrowRange = null } = {}) => {
+    const edge = {
+        _id: id,
+        pair: 'p:uses',
+        domain: { term: domain, ...(narrowDomain ? { qualifier: narrowDomain } : {}) },
+        range: { term: range, ...(narrowRange ? { qualifier: narrowRange } : {}) },
+        forward: { mode: 'owned', json: { include: true }, rdf: { include: true } },
+        reverse: { mode: 'owned', json: { include: true }, rdf: { include: true } },
+    };
+    ['forward', 'reverse'].forEach((direction) => {
+        edge[direction].names = applyNames({}, namesNow({
+            edge, pair, direction, classes: index.classes, qualifiers: index.qualifiers, settings: {},
+        }));
+    });
+    return edge;
+});
+
+const ctxOf = ((edges) => ({
+    edges, pairs: new Map([[pair._id, pair]]), index, settings: SETTINGS,
+}));
+
+const validationCtx = ((edges) => ({
+    classes: index.classes,
+    qualifiers: index.qualifiers,
+    pairs: new Map([[pair._id, pair]]),
+    edges,
+    statuses: new Set(['proposed', 'review', 'published']),
+}));
+
+check('a qualifier tree is the classes in a term own structure, and nothing else in it', () => {
+    const [tree] = index.qualifiers;
+    assert.equal(tree.term, 'c:function');
+    assert.equal(tree.path, 'hasAssetFunction');
+    assert.deepEqual(tree.appliesTo, ['c:asset']);
+    // `Audio` is a controlled value, so it is not one of them; a nested record still is.
+    assert.deepEqual(tree.values.map((one) => one.name).sort(), ['ProductionObject', 'ProductionSetDressing', 'Script']);
+    assert.deepEqual(tree.values.find((one) => one.name === 'ProductionSetDressing').ancestors, ['c:prodobject', 'c:function']);
+    // And none of them is a class an edge could be drawn to.
+    assert.equal(index.classes.get('c:script'), undefined);
+});
+
+check('a narrowed end names the RDF property, and leaves OMC-JSON alone', () => {
+    const edge = narrowedEdge('n:1', 'c:character', 'c:asset', { narrowRange: 'c:script' });
+    assert.equal(edge.forward.names.rdfName.value, 'realizedByScript');
+    assert.equal(edge.forward.names.path.value, 'edges.realizedBy.Asset');
+    assert.equal(edge.forward.names.predicate.value, 'realizedBy');
+    // The reverse direction points at the Character, which is narrowed by nothing.
+    assert.equal(edge.reverse.names.rdfName.value, 'realizesCharacter');
+});
+
+check('the narrowing is carried beside the declared range, never written into it', () => {
+    const { body } = toRdfBundle(ctxOf([narrowedEdge('n:2', 'c:character', 'c:asset', { narrowRange: 'c:script' })]));
+    const property = body.properties.find((one) => one.id === 'omc:realizedByScript');
+    assert.deepEqual(property.ranges, ['omc:Asset']);
+    assert.deepEqual(property.rangeOf, [{
+        class: 'omc:Asset',
+        function: { path: 'omc:hasAssetFunction', class: 'omc:Script' },
+    }]);
+});
+
+check('a property narrowing nothing publishes exactly what it did before', () => {
+    const { body } = toRdfBundle(ctxOf([narrowedEdge('n:3', 'c:character', 'c:realization')]));
+    body.properties.forEach((property) => assert.ok(!Object.hasOwn(property, 'rangeOf'), `${property.id} gained a rangeOf`));
+});
+
+check('narrowing the domain end publishes as the reverse property rangeOf', () => {
+    // `Asset(Production Set Dressing) → Character` is qualified on the side the forward direction
+    // starts from, which is the side the reverse direction points at.
+    const { body } = toRdfBundle(ctxOf([narrowedEdge('n:4', 'c:asset', 'c:character', { narrowDomain: 'c:setdressing' })]));
+    const forward = body.properties.find((one) => one.id === 'omc:realizedByCharacter');
+    const reverse = body.properties.find((one) => one.id === 'omc:realizesProductionSetDressing');
+    assert.ok(!Object.hasOwn(forward, 'rangeOf'));
+    assert.deepEqual(reverse.rangeOf, [{
+        class: 'omc:Asset',
+        function: { path: 'omc:hasAssetFunction', class: 'omc:ProductionSetDressing' },
+    }]);
+});
+
+check('two edges narrowed the same way merge into one property, stating it once', () => {
+    const { body } = toRdfBundle(ctxOf([
+        narrowedEdge('n:6', 'c:character', 'c:asset', { narrowRange: 'c:script' }),
+        narrowedEdge('n:7', 'c:participant', 'c:asset', { narrowRange: 'c:script' }),
+    ]));
+    const property = body.properties.find((one) => one.id === 'omc:realizedByScript');
+    // Both domains reach it, because the narrowing is what names it and both edges narrow alike.
+    assert.deepEqual(property.domains, ['omc:Character', 'omc:Participant']);
+    assert.deepEqual(property.rangeOf, [{
+        class: 'omc:Asset',
+        function: { path: 'omc:hasAssetFunction', class: 'omc:Script' },
+    }]);
+});
+
+check('a narrowing is checked against the vocabulary before it is written', () => {
+    const good = narrowedEdge('n:10', 'c:character', 'c:asset', { narrowRange: 'c:script' });
+    assert.equal(validateEdge(good, validationCtx([])).ok, true);
+
+    const invented = narrowedEdge('n:11', 'c:character', 'c:asset', { narrowRange: 'c:screenplay' });
+    assert.equal(validateEdge(invented, validationCtx([])).ok, false);
+
+    // A Character carries no Asset Function, so it cannot be an Asset(Script).
+    const wrongEnd = narrowedEdge('n:12', 'c:asset', 'c:character', { narrowRange: 'c:script' });
+    assert.equal(validateEdge(wrongEnd, validationCtx([])).ok, false);
+});
+
+check('two edges differing only in their narrowing are not duplicates', () => {
+    const script = narrowedEdge('n:13', 'c:character', 'c:asset', { narrowRange: 'c:script' });
+    const object = narrowedEdge('n:14', 'c:character', 'c:asset', { narrowRange: 'c:prodobject' });
+    assert.equal(validateEdge(object, validationCtx([script])).ok, true);
+    // The same two ends with no narrowing on either still are.
+    const bare = narrowedEdge('n:15', 'c:character', 'c:asset');
+    assert.equal(validateEdge(narrowedEdge('n:16', 'c:character', 'c:asset'), validationCtx([bare])).ok, false);
+});
+
+check('a narrowing the vocabulary no longer offers is reported', () => {
+    const edge = narrowedEdge('n:17', 'c:character', 'c:asset', { narrowRange: 'c:script' });
+    edge.range.qualifier = 'c:retired';
+    const terms = new Map([...index.classes.keys()].map((id) => [id, { status: 'published' }]));
+    const report = checkEdges({
+        edges: [edge], pairs: new Map([[pair._id, pair]]), settings: {}, index, terms,
+    });
+    assert.ok(report.byEdge['n:17'].some((problem) => problem.code === 'qualifierGone'));
 });
 
 console.log(`edges.verify: ${passed} checks passed`);

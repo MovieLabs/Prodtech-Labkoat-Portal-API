@@ -17,7 +17,6 @@ import { toEdgeCsv } from './csv.js';
 import { toEdgeDocument } from './document.js';
 import { toEdgeMarkdown } from './markdown.js';
 import { toEdgeMatrix } from './matrix.js';
-import { toOwlTurtle, toShaclTurtle } from './owl.js';
 
 /**
  * Every format, by name. `run` takes `{ edges, pairs, index, settings }` and returns
@@ -27,25 +26,11 @@ import { toOwlTurtle, toShaclTurtle } from './owl.js';
  */
 const EDGE_GENERATORS = {
     'json': {
-        label: 'Edge definitions (JSON, for every build)',
+        label: 'JSON',
         contentType: 'application/json',
         extension: 'json',
         stem: 'omc-edges',
         run: toEdgeDocument,
-    },
-    'owl-ttl': {
-        label: 'RDF properties (Turtle)',
-        contentType: 'text/turtle',
-        extension: 'ttl',
-        stem: 'omc-edges',
-        run: toOwlTurtle,
-    },
-    'shacl-ttl': {
-        label: 'RDF usage shapes (SHACL Turtle)',
-        contentType: 'text/turtle',
-        extension: 'ttl',
-        stem: 'omc-edge-shapes',
-        run: toShaclTurtle,
     },
     'csv': {
         label: 'CSV',
@@ -62,7 +47,7 @@ const EDGE_GENERATORS = {
         run: toEdgeMatrix,
     },
     'markdown': {
-        label: 'Tables by class (Markdown)',
+        label: 'Markdown',
         contentType: 'text/markdown',
         extension: 'md',
         stem: 'omc-edges',

@@ -1521,9 +1521,9 @@ paths:
             tags: [Edges]
             summary: Publish the edge definitions
             description: |
-                `json` is omc-util's `edgeDefinitions`; `owl-ttl` declares the RDF properties and
-                `shacl-ttl` says where each may be used, beside the RDF build's package. What could not
-                be published is counted in `X-Vocab-Problems`.
+                `json` carries both projections of the edges: `json.edgeDefinitions` is omc-util's
+                edge table, and `rdf` is the properties and verbs an ontology build writes its own
+                Turtle from. What could not be published is counted in `X-Vocab-Problems`.
             parameters:
                 - name: format
                   in: query
