@@ -53,7 +53,7 @@ export function describeEdgeProblem(problem, labelOf) {
         case 'jsonCollision':
             return `Another edge writes the same OMC-JSON path (${problem.key.replace('|', ' ')}) with a different inverse.`;
         case 'rdfConflict':
-            return `The RDF property ${problem.rdfName} is also used by an edge meaning something else.`;
+            return `Two pairs publish ${problem.rdfName}, so the name cannot say which.`;
         case 'structuralDuplicate':
             return `The entity structure already relates these classes as ${problem.structural}.`;
         case 'redundantInherited':
