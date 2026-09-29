@@ -73,7 +73,8 @@ npm run link:local
 |---|---|---|
 | `/api/admin` | `admin-router` | projects (GET/POST/PATCH/DELETE), `DELETE /reset`, mapping templates |
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
-| `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo. The only vocabulary route |
+| `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo |
+| `/api/vocab/v1` | `vocab-edges-v1-router` | **The same mount**: `/edge-settings`, `/edge-classes`, `/edge-predicates`, `/edges`, plus the edges' own `/edges/check`, `/edges/accept`, `/edges/formats`, `/edges/publish` |
 | `/api/greenlight` | `greenlight-router` | approval / permitting workflow |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
@@ -170,11 +171,14 @@ vocabulary controllers, the hand-written `ttl.js`/`jsonld.js` serializers that
 were the only unauthenticated routes on this service.
 
 *The store:* `src/vocabulary/{store,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
-`drift.js`, `skosCheck.js` and `src/routes/vocab-v1-router.js`. The four top-level `.js` files with
-a usage block at the top are command-line tools, not modules the router imports. Four `vocab_`-prefixed collections in fMam's **`app_config`**
-database — no new database, no new credential (the gateway already loads `SECRET_ARN.FMAM`, which
-holds the Mongo user). **Every collection this subsystem creates is `vocab_`-prefixed**; the cluster
-is shared and users name their own.
+`drift.js`, `skosCheck.js` and `src/routes/vocab-v1-router.js`. The three top-level `.js` files with
+a usage block at the top — `generate.js`, `drift.js`, `skosCheck.js` — are command-line tools, not
+modules the router imports. Seven
+`vocab_`-prefixed collections in fMam's **`app_config`** database — `vocab_terms`, `vocab_views`,
+`vocab_facets`, `vocab_settings`, `vocab_counters`, and the edges' `vocab_edges` and
+`vocab_edge_predicates` — with no new database and no new credential (the gateway already loads
+`SECRET_ARN.FMAM`, which holds the Mongo user). **Every collection this subsystem creates is
+`vocab_`-prefixed**; the cluster is shared and users name their own.
 
 ```bash
 node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --out vocab.ttl
@@ -188,15 +192,59 @@ node src/vocabulary/skosCheck.js --view view:media-creation
 arrangement was a human decision, not a derivation, so there is no faithful port. Git history holds
 them if the reasoning is ever needed.
 
-**`migrateNamespace.js` is one more, not yet run.** It moves every stored id and IRI from `vmc` to the
-`NAMESPACE` in `store/ids.js`. Dry run by default; `--write --backup <file>` applies it in one
-transaction after writing the backup, and `--restore <file>` puts a backup back. Safe to repeat.
-Delete it once it has run.
+**The namespace migration has run too**, and `migrateNamespace.js` is deleted with the rest. Every
+stored id and IRI carries the `NAMESPACE` in `store/ids.js` — `mlv` — so a `vmc:` id anywhere is a
+pre-migration artifact, not live data.
 
 **Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
 `seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
 without writing one. The data is kept for that reason; `skosProjectionIndex` in the same file is
 live and used by the generators.
+
+### The edges — one stored edge, two projections
+
+`src/vocabulary/edges/` and `src/routes/vocab-edges-v1-router.js` author the relationships *between*
+classes, on the same `/api/vocab/v1` mount as the terms. Two collections: `vocab_edges` and
+`vocab_edge_predicates`, the registry of verbs an edge can use.
+
+**An edge is one record carrying two directions**, `forward` and `reverse`, and **OMC-JSON and RDF are
+two projections of it** — never two records. Each direction's names are generated from the pair and
+the ends (`naming.js`), and either may be overridden by hand; `check.js` reports the difference rather
+than silently preferring one.
+
+**`check.js` reports codes and facts; `problems.js` turns each into a sentence.** Kept apart
+deliberately, so the check stays a list of facts a test can compare — `npm run verify:edges` runs
+`edges.verify.mjs` against a fixture, and it is the only test this subsystem has.
+
+**RDF names are generated as `{verb}{Range}`, and two different pairs can therefore land on one
+name** — `Realization —usedBy→ Composition` and `Depiction —usedBy→ Composition` both become
+`omc:usedByComposition`. That is the `rdfConflict` problem. It is a **warning, not an error**: the
+data is publishable, but **nothing can declare `owl:inverseOf` on a name that answers two different
+reverses**, so the fix is a rename of one pair rather than anything the generator can do.
+
+**An end may be narrowed to a class in a qualifier tree.** A qualifier tree is a term's own
+arrangement, named in `settings.qualifiers` (`store.js`), whose members *qualify* an end but can never
+be an edge end themselves — Asset Function is the case it was built for, and the reason a range cannot
+simply be re-pointed at one. `classes.js` reads the trees out of the view; `qualifierFor` and
+`takesQualifier` answer which apply where.
+
+- **A narrowing is exported as `rangeOf` — `{ class, function: { path, class } }` — and never
+  rewrites `ranges`.** The range stays what the class model says; the narrowing is an extra
+  assertion beside it.
+- **The narrowing supplies `{Range}` in the generated name**, so moving it changes what the name would
+  be generated as. Anything holding a name in a form has to let go of it when the narrowing moves, or
+  it posts the old name back as a hand-set override — which is how the Portal's edit form briefly
+  reported a drift it had caused itself.
+- Duplicate detection counts the qualifier as **part of the end** (`validate.js`), so `Asset` and
+  `Asset(Script)` are different ends of otherwise identical edges.
+- Three problem codes cover a tree that moves underneath a stored narrowing: `qualifierGone`,
+  `qualifierNotCarried`, `qualifierRenamed`.
+
+**Turtle and SHACL are not generated here.** The four formats are `json`, `csv`, `matrix-csv` and
+`markdown`; the RDF is built outside this service from the published JSON, which is why
+`generators/owl.js` and `edges/handoff/` were deleted rather than kept as a second implementation to
+drift. See the parent `CLAUDE.md` and, for what the Portal's tab draws,
+`Labkoat-Portal/src/Components/Vocabulary/CLAUDE.md`.
 
 ### The OMC merge — two graphs became one term store
 
@@ -216,10 +264,19 @@ and collection ids, and the SKOS prefix map all read. Stored ids carry it and ar
 CURIEs exactly as stored, so changing it is a migration of the store, never just of that constant.
 
 - **A view can name which kind of label it publishes** (`view.labelType`, default `pref`).
-  `view:omc-controlled-values` uses `omcToken` with `labelStyle: 'dotted'`, so `capture` +
-  `witnessCamera` renders `capture.witnessCamera` — the string the schema actually holds. Every
-  substituted name is counted in `problems.untyped`; it must stay at zero for that view, because a
-  wrong controlled value looks exactly like a right one.
+  **`view:asset-function-values` is the only one that does** — `omcToken` with
+  `labelStyle: 'dotted'`, so `capture` + `witnessCamera` renders `capture.witnessCamera`, the string
+  the schema actually holds. (There is no `view:omc-controlled-values`; that name is what this view
+  used to be called, and the docs said it long after it stopped being true.)
+  - **Every substituted name is counted in `problems.untyped`, and a CSV column cannot show you
+    one.** Where a term carries no authored `omcToken`, `DERIVABLE` in `store/read.js` derives one
+    from the preferred label, so the exported column is filled either way — a derived guess and an
+    authored value are indistinguishable in the artifact. `problems.untyped` is the only thing that
+    tells them apart, which is why it is worth reading rather than the file.
+  - It should be zero for that view, because a wrong controlled value looks exactly like a right
+    one. **It is not, and has not been for a long time** — most of that view's tokens are derived
+    guesses rather than authored values. Check the count before trusting the view's output; do not
+    read a filled column as a settled one.
 - **`seedFacets` cannot add a value to a facet that already exists.** `$setOnInsert` writes a facet
   whole or not at all, so a new value in `FACET_SEEDS` never reaches a live store — it fails quietly
   and downstream, where the SKOS export drops labels using it and the validator refuses the next
