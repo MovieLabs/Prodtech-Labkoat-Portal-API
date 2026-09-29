@@ -98,7 +98,6 @@ function rowsOf({ edges, index, settings }, problems) {
                 inverse,
                 rdf: rdfTokenOf(stored, names, settings),
                 cardinality: stored.legacy?.cardinality ?? 'array',
-                rdfMap: stored.rdfMap ?? [],
             });
         }));
     return rows;
@@ -156,15 +155,17 @@ export function toEdgeDefinitions(ctx) {
             .forEach((row) => problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'cardinality', predicate }));
         const uniformSpec = new Set(def.rows.map((row) => keyOf(row.spec))).size === 1 ? def.rows[0].spec : null;
 
-        // Rows sharing an inverse, a path and an alignment form a group; within one, each domain
-        // keeps its ranges in the order they were created.
+        // Rows sharing an inverse and a path form a group; within one, each domain keeps its ranges
+        // in the order they were created. Alignment notes were part of this key while `rdfMap` was
+        // published: groups that differed only by their note stayed apart, which split a predicate
+        // into more groups than its modelling called for.
         const groups = new Map();
         def.rows.forEach((row) => {
             const spec = uniformSpec ? {} : row.spec;
-            const key = keyOf([row.inverse, spec, row.rdfMap]);
+            const key = keyOf([row.inverse, spec]);
             if (!groups.has(key)) {
                 groups.set(key, {
-                    inverse: row.inverse, spec, rdfMap: row.rdfMap, byDomain: new Map(),
+                    inverse: row.inverse, spec, byDomain: new Map(),
                 });
             }
             const ranges = groups.get(key).byDomain.get(row.domain) ?? [];
@@ -190,7 +191,6 @@ export function toEdgeDefinitions(ctx) {
                     range,
                     ...(keyOf(group.inverse) !== keyOf(inverse) ? { inverse: group.inverse } : {}),
                     ...group.spec,
-                    rdfMap: group.rdfMap,
                 });
             });
         });

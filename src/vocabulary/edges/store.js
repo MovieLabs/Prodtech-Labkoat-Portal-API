@@ -283,7 +283,10 @@ const normaliseDirection = ((input) => ({
     json: { include: input?.json?.include !== false },
     rdf: { include: input?.rdf?.include !== false },
     names: Object.fromEntries(NAME_FIELDS.map((field) => [field, { value: null, override: text(input?.names?.[field]?.override) }])),
-    rdfMap: Array.isArray(input?.rdfMap) ? input.rdfMap.map(text).filter(Boolean) : [],
+    // `rdfMap` used to be stored here: curated notes naming the v2.8 omc.ttl property that
+    // expressed the same relationship, seeded in from omcUtil's edges.js before this tool existed.
+    // The published `rdf` projection is the model now, so the notes are no longer normalised,
+    // published or displayed. A document written before this keeps its copy until it is saved again.
     ...(input?.legacy ? { legacy: input.legacy } : {}),
 }));
 
