@@ -6,7 +6,7 @@
  *
  * `buildEdgeTable` expands every group into the edge table each entityType carries, so this document
  * has to reproduce exactly what that function reads: `placement`, a def-level `inverse` with
- * group-level overrides, `path` or `pathTemplate`, `cardinality`, and an `rdf` that is a token here
+ * group-level overrides, `path` or `pathTemplate`, and an `rdf` that is a token here
  * because edges.js holds a function (`tentative`, `intrinsic`, or `const:<name>`). omc-util turns the
  * token back into the function when it bundles the document.
  *
@@ -97,7 +97,6 @@ function rowsOf({ edges, index, settings }, problems) {
                 range: range.jsonType,
                 inverse,
                 rdf: rdfTokenOf(stored, names, settings),
-                cardinality: stored.legacy?.cardinality ?? 'array',
             });
         }));
     return rows;
@@ -153,11 +152,8 @@ export function toEdgeDefinitions(ctx) {
     byPredicate.forEach((def, predicate) => {
         const inverse = mostCommon(def.rows.map((row) => row.inverse));
         const rdf = mostCommon(def.rows.map((row) => row.rdf));
-        const cardinality = mostCommon(def.rows.map((row) => row.cardinality));
         def.rows.filter((row) => row.rdf !== rdf)
             .forEach((row) => problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'rdf', predicate, rdf: row.rdf }));
-        def.rows.filter((row) => row.cardinality !== cardinality)
-            .forEach((row) => problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'cardinality', predicate }));
         // A spec is hoisted to the definition only when every row agrees about placement as well:
         // the two decide the path together, so a shared `{}` across mixed placements means two
         // different things and must not collapse into one statement.
@@ -212,7 +208,6 @@ export function toEdgeDefinitions(ctx) {
             predicate,
             ...(placement === 'property' ? { placement: 'property' } : {}),
             ...(uniformSpec ?? {}),
-            cardinality,
             inverse,
             rdf,
             connects,
