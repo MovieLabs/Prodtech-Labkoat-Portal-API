@@ -67,7 +67,11 @@ export function generateNames({
 }) {
     const verb = side?.verb ?? '';
     const placement = PLACEMENTS.includes(side?.json?.placement) ? side.json.placement : 'edges';
-    const predicate = placement === 'property' ? capitalise(verb) : verb;
+    // The verb, whichever placement it takes. An intrinsic relationship has no predicate in
+    // OMC-JSON — `Participant.ParticipantStructure` is a path and nothing else — so a capitalised
+    // predicate was never a thing the encoding has. The path does not need one either: the
+    // templates below fill `{Predicate}` from the verb directly.
+    const predicate = verb;
 
     const pathTemplate = side?.json?.pathTemplate
         || (placement === 'edges'

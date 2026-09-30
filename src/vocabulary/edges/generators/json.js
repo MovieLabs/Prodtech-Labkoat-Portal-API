@@ -120,6 +120,10 @@ function pathSpecOf(row, problems) {
     }
     if (!row.path || row.path === row.predicate) return {};
     if (row.path.endsWith(`.${row.range}`)) return { pathTemplate: `${row.path.slice(0, -row.range.length)}{range}` };
+    // The property is named after the range: `Participant.ParticipantStructure`. Stated as a template
+    // rather than a path so one group covers every range the relationship admits, instead of one
+    // group per range each repeating the same rule.
+    if (row.path === row.range) return { pathTemplate: '{range}' };
     return { path: row.path };
 }
 
@@ -133,14 +137,15 @@ export function toEdgeDefinitions(ctx) {
     const problems = { skipped: [], unrepresentable: [] };
     const byPredicate = new Map();
 
+    // Placement belongs to the pairing, not to the verb. `has` reaches a Slate through
+    // `edges.has.Slate` and a ParticipantStructure through the property `ParticipantStructure`, and
+    // both are the same verb. A predicate used to carry one placement and any row disagreeing was
+    // dropped here and never published, which is what forced a second, capitalised predicate into
+    // existence to get an intrinsic path out at all. Placement now rides on the group, exactly as
+    // `path` and `pathTemplate` already do.
     rowsOf(ctx, problems).forEach((row) => {
-        if (!byPredicate.has(row.predicate)) byPredicate.set(row.predicate, { placement: row.placement, rows: [] });
-        const def = byPredicate.get(row.predicate);
-        if (def.placement !== row.placement) {
-            problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'placement', predicate: row.predicate });
-            return;
-        }
-        def.rows.push({ ...row, spec: pathSpecOf(row, problems) });
+        if (!byPredicate.has(row.predicate)) byPredicate.set(row.predicate, { rows: [] });
+        byPredicate.get(row.predicate).rows.push({ ...row, spec: pathSpecOf(row, problems) });
     });
 
     const edgeDefinitions = {};
@@ -153,19 +158,26 @@ export function toEdgeDefinitions(ctx) {
             .forEach((row) => problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'rdf', predicate, rdf: row.rdf }));
         def.rows.filter((row) => row.cardinality !== cardinality)
             .forEach((row) => problems.unrepresentable.push({ edgeId: row.edgeId, reason: 'cardinality', predicate }));
-        const uniformSpec = new Set(def.rows.map((row) => keyOf(row.spec))).size === 1 ? def.rows[0].spec : null;
+        // A spec is hoisted to the definition only when every row agrees about placement as well:
+        // the two decide the path together, so a shared `{}` across mixed placements means two
+        // different things and must not collapse into one statement.
+        const placement = mostCommon(def.rows.map((row) => row.placement));
+        const uniformPlacement = def.rows.every((row) => row.placement === placement);
+        const uniformSpec = uniformPlacement && new Set(def.rows.map((row) => keyOf(row.spec))).size === 1
+            ? def.rows[0].spec
+            : null;
 
-        // Rows sharing an inverse and a path form a group; within one, each domain keeps its ranges
-        // in the order they were created. Alignment notes were part of this key while `rdfMap` was
-        // published: groups that differed only by their note stayed apart, which split a predicate
-        // into more groups than its modelling called for.
+        // Rows sharing a placement, an inverse and a path form a group; within one, each domain keeps
+        // its ranges in the order they were created. Alignment notes were part of this key while
+        // `rdfMap` was published: groups that differed only by their note stayed apart, which split a
+        // predicate into more groups than its modelling called for.
         const groups = new Map();
         def.rows.forEach((row) => {
             const spec = uniformSpec ? {} : row.spec;
-            const key = keyOf([row.inverse, spec]);
+            const key = keyOf([row.inverse, row.placement, spec]);
             if (!groups.has(key)) {
                 groups.set(key, {
-                    inverse: row.inverse, spec, byDomain: new Map(),
+                    inverse: row.inverse, placement: row.placement, spec, byDomain: new Map(),
                 });
             }
             const ranges = groups.get(key).byDomain.get(row.domain) ?? [];
@@ -190,6 +202,7 @@ export function toEdgeDefinitions(ctx) {
                     domain,
                     range,
                     ...(keyOf(group.inverse) !== keyOf(inverse) ? { inverse: group.inverse } : {}),
+                    ...(group.placement !== placement ? { placement: group.placement } : {}),
                     ...group.spec,
                 });
             });
@@ -197,7 +210,7 @@ export function toEdgeDefinitions(ctx) {
 
         edgeDefinitions[predicate] = {
             predicate,
-            ...(def.placement === 'property' ? { placement: 'property' } : {}),
+            ...(placement === 'property' ? { placement: 'property' } : {}),
             ...(uniformSpec ?? {}),
             cardinality,
             inverse,
