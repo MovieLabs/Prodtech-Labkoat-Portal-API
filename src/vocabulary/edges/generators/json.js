@@ -136,12 +136,10 @@ export function toEdgeDefinitions(ctx) {
     const problems = { skipped: [], unrepresentable: [] };
     const byPredicate = new Map();
 
-    // Placement belongs to the pairing, not to the verb. `has` reaches a Slate through
+    // Placement belongs to the pairing, not to the verb: `has` reaches a Slate through
     // `edges.has.Slate` and a ParticipantStructure through the property `ParticipantStructure`, and
-    // both are the same verb. A predicate used to carry one placement and any row disagreeing was
-    // dropped here and never published, which is what forced a second, capitalised predicate into
-    // existence to get an intrinsic path out at all. Placement now rides on the group, exactly as
-    // `path` and `pathTemplate` already do.
+    // both are the same verb. So a row keeps its own placement here and it rides on the group below,
+    // exactly as `path` and `pathTemplate` do.
     rowsOf(ctx, problems).forEach((row) => {
         if (!byPredicate.has(row.predicate)) byPredicate.set(row.predicate, { rows: [] });
         byPredicate.get(row.predicate).rows.push({ ...row, spec: pathSpecOf(row, problems) });

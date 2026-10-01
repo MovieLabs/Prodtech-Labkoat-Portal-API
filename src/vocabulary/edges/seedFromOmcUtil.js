@@ -1,6 +1,10 @@
 /**
  * Seed the edge definitions from omc-util's hand-written edges.js.
  *
+ * **Spent.** The edges it seeded from were deleted in omc-util once the published document became
+ * the edge table, so this cannot run without recovering that file from git history. Kept as the
+ * provenance of the authored edges, not as a path anybody takes.
+ *
  * ```
  * node src/vocabulary/edges/seedFromOmcUtil.js --edges ../omcUtil/src/templates/v3-0/edges.js
  *     [--json-name mlv:c-000002=Context]...   # a class whose label is not its OMC-JSON name
