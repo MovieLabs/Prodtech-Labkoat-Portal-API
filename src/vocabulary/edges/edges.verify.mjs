@@ -138,8 +138,9 @@ check('names come from the verb, the projected range and the actual class', () =
     assert.deepEqual(names, {
         placement: 'edges', predicate: 'realizedBy', path: 'edges.realizedBy.Realization', rdfName: 'realizedByPortrayal',
     });
+    // The predicate is the verb as written; only the path capitalises it, through `{Predicate}`.
     const property = generateNames({ side: { verb: 'director', json: { placement: 'property' } }, domain: cls('c:asset'), range: cls('c:participant') });
-    assert.equal(property.predicate, 'Director');
+    assert.equal(property.predicate, 'director');
     assert.equal(property.path, 'Director');
 });
 
@@ -442,6 +443,19 @@ check('one document carries both projections, and the namespace to read them und
     assert.ok(document.rdf.verbs.length);
     assert.deepEqual(document.namespace, { prefix: 'omc', base: 'https://movielabs.com/omc/rdf/schema/v3.0#' });
     assert.equal(document.generated.format, 'omc-edges');
+
+    // The classes are what joins the two: an RDF end names a class, and only the class says which
+    // entityType the OMC-JSON end for the same relationship carries.
+    const portrayal = document.classes.find((one) => one.id === 'omc:Portrayal');
+    assert.equal(portrayal.name, 'Portrayal');
+    assert.ok(portrayal.joinable);
+    // Its superclass is Depiction, and the entityType it publishes as is further up again: the
+    // projection is not something a reader can work out from the hierarchy it is given.
+    assert.deepEqual(portrayal.supers, ['omc:Depiction']);
+    assert.equal(portrayal.jsonType, 'Realization');
+    assert.equal(document.generated.classes, document.classes.length);
+    // A term with no role is a field or a controlled value, not a class.
+    assert.ok(document.classes.every((one) => one.role));
 });
 
 check('the matrix puts an edge in the cell for its two classes, and leaves the rest empty', () => {
