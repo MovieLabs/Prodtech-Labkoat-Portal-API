@@ -91,8 +91,6 @@ entity. `DELETE /edge` is a separate route from `DELETE /update`.
 - `admin/` — `projects.js`, `templates.js`
 - `omc/omc-controller.js`, `fMamFetch.js` — the fMam proxy
 - `pipeline/` — `pipeline-controller.js`, `ingest-controller.js`
-- `directory/query/` — GraphQL query modules mapping directory records onto OMC. Nothing imports
-  them since the Okta directory integration was deleted; see below.
 - `greenlight/greenlight-controller.js`
 
 ### The pipeline runner (`src/pipeline/`)
@@ -343,7 +341,10 @@ It could not have run. Nothing imported `auth0Interface.js`; `@auth0/fga` was no
 dependency; the `LABKOAT_FGA_*` keys were gone from `config.js`; and the mapper was CommonJS in an
 ESM package, reached by an extensionless import. Any one of those would have stopped it.
 
-`directory/query/` is still here and still orphaned — five GraphQL query modules nothing imports.
+`src/controllers/directory/` went with it, the whole tree: five GraphQL query documents
+(`allCharacters`, `allParticipants`, `allStoryboards`, `getAsset`, `mutationPerson`) that nothing
+imported and that imported nothing. They were the queries the directory integration issued against
+fMam.
 
 ---
 
