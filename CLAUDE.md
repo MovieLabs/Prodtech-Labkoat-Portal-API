@@ -12,8 +12,7 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 **Labkoat-API** is the Express REST gateway (port 8080) that the Portal talks to. Everything the
 browser needs goes through here: it proxies OMC reads and writes to fMam, serves the vocabulary out
-of MongoDB, brokers directory calls to Auth0, and **runs the processing
-pipelines in worker threads**.
+of MongoDB, and **runs the processing pipelines in worker threads**.
 
 The directory was renamed from `Prodtech-Labkoat-Portal-API-2` on 2026-07-29, but nothing else was:
 the package is named `service`, the GitHub remote is still `Prodtech-Labkoat-Portal-API`, and the
@@ -92,10 +91,9 @@ entity. `DELETE /edge` is a separate route from `DELETE /update`.
 - `admin/` — `projects.js`, `templates.js`
 - `omc/omc-controller.js`, `fMamFetch.js` — the fMam proxy
 - `pipeline/` — `pipeline-controller.js`, `ingest-controller.js`
-- `directory/` — the `auth0/` and `query/` sub-trees mapping directory records onto OMC. Nothing
-  imports them since the Okta directory integration was deleted; see below.
+- `directory/query/` — GraphQL query modules mapping directory records onto OMC. Nothing imports
+  them since the Okta directory integration was deleted; see below.
 - `greenlight/greenlight-controller.js`
-- `auth0Interface.js`
 
 ### The pipeline runner (`src/pipeline/`)
 
@@ -336,8 +334,16 @@ bearer validator) and the `@okta/*`, `express-jwt` and `jwks-rsa` packages. None
 reachable — `directory-router` was never mounted and several of those modules used extensionless
 CommonJS imports that cannot load in an ESM package.
 
-**This orphaned `auth0Interface.js` and the `directory/auth0/` and `directory/query/` sub-trees.**
-They are left in place deliberately, pending a decision on the Auth0 FGA work they belong to.
+**Auth0 FGA went the same way, on 2026-10-02.** `auth0Interface.js` and `directory/auth0/` are
+deleted, with the `jsonata` dependency they were the only consumer of. The mapper projected a
+Participant's `Person` and `Role` onto FGA relationship tuples (`user:<id> hasRole role:<type>`),
+keyed on an `okta`-scoped identifier.
+
+It could not have run. Nothing imported `auth0Interface.js`; `@auth0/fga` was no longer a declared
+dependency; the `LABKOAT_FGA_*` keys were gone from `config.js`; and the mapper was CommonJS in an
+ESM package, reached by an extensionless import. Any one of those would have stopped it.
+
+`directory/query/` is still here and still orphaned — five GraphQL query modules nothing imports.
 
 ---
 
