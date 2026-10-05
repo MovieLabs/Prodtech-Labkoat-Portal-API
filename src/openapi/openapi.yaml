@@ -20,7 +20,7 @@ info:
         | `/api/omc/v1` | OMC entities and GraphQL, proxied to fMam |
         | `/api/pipeline/v1` | Processing pipelines — catalogue, upload, run, cancel |
         | `/api/ingest/v1` | Files as OMC assets |
-        | `/api/greenlight` | Greenlight workflow |
+        | `/api/greenlight` | Internal test bench for the Portal's Greenlight tab |
 
         `/api/pipeline/v1` and `/api/ingest/v1` have written contracts of their own, in
         `Labkoat-Portal/src/Components/Omc/Import/{Pipeline,Ingest}/CONTRACTS.md`.

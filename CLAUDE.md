@@ -74,7 +74,7 @@ npm run link:local
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
 | `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo |
 | `/api/vocab/v1` | `vocab-edges-v1-router` | **The same mount**: `/edge-settings`, `/edge-classes`, `/edge-predicates`, `/edges`, plus the edges' own `/edges/check`, `/edges/accept`, `/edges/formats`, `/edges/publish` |
-| `/api/greenlight` | `greenlight-router` | approval / permitting workflow |
+| `/api/greenlight` | `greenlight-router` | internal test bench for the Portal's Greenlight tab — `POST /ping` echoes the body and the caller |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
 
