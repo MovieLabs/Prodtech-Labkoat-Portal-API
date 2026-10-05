@@ -143,7 +143,7 @@ export default async function apiServer() {
     app.use('/api/omc/v1', omcRouter); // Add the route controllers for the OPA policy tests using Aserto
     app.use('/api/vocab/v1', vocabV1Router); // The vocabulary: views, generators, usage
     app.use('/api/vocab/v1', vocabEdgesV1Router); // Edge definitions beside it: pairs, edges, check, publish
-    app.use('/api/greenlight', greenlightRouter);
+    app.use('/api/greenlight', greenlightRouter); // Internal test bench for the Portal's Greenlight tab
     app.use('/api/pipeline/v1', pipelineRouter); // Select, feed and run an OMC processing pipeline
     app.use('/api/ingest/v1', ingestRouter); // Files as OMC assets; same modules, its own contract
 
