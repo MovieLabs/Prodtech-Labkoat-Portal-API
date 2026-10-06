@@ -26,7 +26,7 @@
 
 import './types.js'; // Type definitions, resolved globally by JSDoc
 
-export * as catalog from './catalog/index.js';
+export * as pipelines from './catalog/index.js';
 export * as omc from './omc/index.js';
 export * as sources from './sources/index.js';
 export * as lib from './lib/index.js';

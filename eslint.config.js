@@ -99,12 +99,16 @@ export default [
                 'error',
                 {
                     'groups': ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+                    'pathGroups': [{ pattern: '#pipelines{,/**}', group: 'internal' }],
                     'newlines-between': 'always',
                     'alphabetize': { order: 'asc', caseInsensitive: true },
                 },
             ],
             'import/no-duplicates': 'error',
-            'import/no-unresolved': 'error',
+            // eslint-plugin-import's resolver reads neither package.json `imports` nor a dependency's
+            // `exports` map; Node reads both. The boundary below says which `#pipelines` names may be
+            // used, and omc-util's subpaths are its own published entry points.
+            'import/no-unresolved': ['error', { ignore: ['^#pipelines', '^omc-util/'] }],
 
             // React rules
             'react/self-closing-comp': 'error',
@@ -119,6 +123,45 @@ export default [
             // Accessibility
             'jsx-a11y/anchor-is-valid': 'error',
             'jsx-a11y/alt-text': 'error',
+        },
+    },
+
+    // The boundary between the gateway and the pipelines, both ways. The service reaches pipelines
+    // only through their two entry points, so a pipeline can be deleted with its folder and its
+    // registry line; a pipeline knows nothing of the service that hosts it.
+    {
+        files: ['src/**', 'app.js'],
+        rules: {
+            'no-restricted-imports': ['error', {
+                patterns: [
+                    {
+                        group: ['**/pipelines/**', '**/pipelines'],
+                        message: 'Reach pipelines through #pipelines or #pipelines/catalog, never by path.',
+                    },
+                    {
+                        regex: '^#pipelines/(?!catalog$)',
+                        message: 'Only #pipelines and #pipelines/catalog are entry points.',
+                    },
+                ],
+            }],
+        },
+    },
+    {
+        files: ['pipelines/**'],
+        rules: {
+            'no-restricted-imports': ['error', {
+                paths: ['express', 'mlHelpers'],
+                patterns: [
+                    {
+                        group: ['**/src/**', '**/src', 'mlHelpers/*'],
+                        message: 'Pipelines know nothing of the service that hosts them.',
+                    },
+                    {
+                        regex: '^#pipelines',
+                        message: 'Inside pipelines/, import by relative path.',
+                    },
+                ],
+            }],
         },
     },
 ];

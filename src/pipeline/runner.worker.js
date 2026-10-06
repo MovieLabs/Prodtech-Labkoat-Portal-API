@@ -1,13 +1,13 @@
 import { parentPort, workerData } from 'node:worker_threads';
 
-import { createContext, runPipeline } from 'data-pipeline';
+import { createContext, runPipeline } from '#pipelines';
 
 import { readObject } from './storage.js';
 
 /**
  * The worker that actually runs a pipeline.
  *
- * **`data-pipeline` is imported here and nowhere else in this service.** That is the point of the
+ * **`#pipelines` (the code in `pipelines/`) is imported here and nowhere else in this service.** That is the point of the
  * worker: its dependency graph — pdfjs, exceljs, fast-xml-parser — is loaded into this isolate's
  * heap and never into the gateway's, and parsing a filming day's PDFs runs on this thread rather
  * than blocking auth and proxy traffic on the main one.

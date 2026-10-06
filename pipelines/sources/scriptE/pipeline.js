@@ -1,8 +1,8 @@
+import { inputsForRole } from '../../catalog/request.js';
 import { buildEntities } from '../../omc/build.js';
 import { sealBundle, validationFailureMessage } from '../../omc/bundle.js';
 import { checkMappings } from '../../omc/checkMapping.js';
 import { renderOmcReport } from '../../omc/report.js';
-import { inputsForRole } from '../../catalog/request.js';
 import '../../types.js'; // Type definitions, resolved globally by JSDoc
 
 import { analyseInputs } from './documents.js';

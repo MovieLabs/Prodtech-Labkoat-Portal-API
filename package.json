@@ -3,16 +3,23 @@
   "version": "1.0.0",
   "main": "app.js",
   "type": "module",
+  "imports": {
+    "#pipelines": "./pipelines/index.js",
+    "#pipelines/catalog": "./pipelines/catalog/index.js"
+  },
   "license": "MIT",
   "scripts": {
     "start": "node app.js",
-    "lint": "eslint src app.js",
+    "lint": "eslint src pipelines app.js",
+    "test": "node --test --test-reporter=spec \"pipelines/test/**/*.test.js\"",
+    "pipeline": "node pipelines/cli.js",
     "verify:snippet": "node src/vocabulary/snippet.verify.mjs",
     "verify:openapi": "node src/openapi/openapi.verify.mjs",
     "verify:conflict": "node src/vocabulary/conflict.verify.mjs",
     "verify:edges": "node src/vocabulary/edges/edges.verify.mjs",
-    "link:local": "npm link data-pipeline omc-util",
-    "unlink:local": "npm uninstall --no-save data-pipeline omc-util && npm install"
+    "verify:frameio": "node pipelines/sources/frameio/frameio.verify.mjs",
+    "link:local": "npm link omc-util",
+    "unlink:local": "npm uninstall --no-save omc-util && npm install"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
@@ -31,15 +38,17 @@
     "busboy": "^1.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "data-pipeline": "git+https://github.com/MovieLabs/omc-data-pipeline.git#semver:^1.1.0",
     "dotenv": "^16.0.3",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
+    "fast-xml-parser": "^5.2.5",
     "jszip": "^3.10.1",
     "mlHelpers": "file:./mlHelpers",
     "mongodb": "^6.21.0",
     "node-fetch": "^2.6.9",
     "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.11.0",
+    "papaparse": "^5.5.3",
+    "pdfjs-dist": "^6.1.200",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.9.0"
   }

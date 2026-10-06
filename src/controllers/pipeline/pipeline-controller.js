@@ -17,7 +17,7 @@ import { cancel, submit } from '../../pipeline/workerPool.js';
  *
  * The service's job here is dispatch, not processing: authorize, put the bytes somewhere the
  * worker can read them, hand the request to a pipeline, and report back. Every decision about what
- * a pipeline needs and what it produces belongs to Data-Pipeline.
+ * a pipeline needs and what it produces belongs to `pipelines/`.
  *
  * Responses use the house envelope — `{ data, errors, warnings }` on success — and failures are
  * thrown to the global handler as one of `src/errors/*` rather than serialised here.
@@ -33,30 +33,29 @@ import { cancel, submit } from '../../pipeline/workerPool.js';
 const ok = (res, data) => res.status(200).json({ data, errors: null, warnings: null }).end();
 
 /**
- * Load `data-pipeline` on first use rather than at import time.
+ * Load the pipeline catalogue on first use rather than at import time.
  *
  * Importing it compiles the OMC JSON Schemas through omc-util, which is a second of work and
  * several hundred lines of ajv strict-mode warnings on stdout. A gateway that mostly proxies fMam
  * should not pay that at boot, and a startup log buried under schema warnings is a startup log
- * nobody reads. The subpath, not the package root: the root also exports `lib`, which would pull
- * ExcelJS in as well.
+ * nobody reads. `#pipelines/catalog`, not `#pipelines`: the root also exports `lib`, which would
+ * pull ExcelJS in as well.
  *
  * @returns {Promise<{catalog: Function, getPipeline: Function}>} The pipeline registry
  */
 let registry = null;
 const pipelineRegistry = () => {
-    // eslint-disable-next-line import/no-unresolved
-    registry = registry ?? import('data-pipeline/pipelines');
+    registry = registry ?? import('#pipelines/catalog');
     return registry;
 };
 
 /**
  * The catalogue: what pipelines exist, and what each takes.
  *
- * Reading it from `data-pipeline` rather than restating it is what makes a pipeline added there
+ * Reading it from `pipelines/` rather than restating it is what makes a pipeline added there
  * appear in the Portal with no change to this service or the frontend.
  *
- * Each entry is decorated with `credentials`, which `data-pipeline` cannot answer: a pipeline
+ * Each entry is decorated with `credentials`, which the pipelines cannot answer: a pipeline
  * declares only the *name* of what it needs, and whether that name is satisfied by a service
  * secret or by the user logging in is this service's decision. Sending it means a client can offer
  * the login step for a pipeline it has never seen. Only names are sent — never a value.

@@ -16,7 +16,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-import { buildCommentRows, buildRows, commentCount } from '../../src/sources/frameio/rows.js';
+import { buildCommentRows, buildRows, commentCount } from '../../sources/frameio/rows.js';
 
 const T = process.env.FRAMEIO_TOKEN;
 // `fileURLToPath`, not `.pathname`: on Windows the latter yields `/C:/…`, which node then resolves

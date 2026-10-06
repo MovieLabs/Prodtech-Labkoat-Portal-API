@@ -2,8 +2,8 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { dayPaths, fixturesRoot, omcPath } from './lib/paths.js';
 import { catalog, createContext, fsContext, runPipeline } from './catalog/index.js';
+import { dayPaths, fixturesRoot, omcPath } from './lib/paths.js';
 import * as scriptE from './sources/scriptE/index.js';
 
 /** Source adapters, keyed by the `--source` value, which is also the directory name. */
