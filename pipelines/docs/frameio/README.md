@@ -147,7 +147,7 @@ Every V4 path is **account-scoped** — there is no `/v4/projects/{id}`, only
 `/v4/accounts/{account}/projects/{id}` — so a run needs an account id as well as a project id.
 
 **Every response is enveloped in `data`, single resources included.** Reading a field off the body
-of `GET …/projects/{id}` yields `undefined`; see `frameioResource` in `src/sources/frameio/client.js`.
+of `GET …/projects/{id}` yields `undefined`; see `frameioResource` in `sources/frameio/client.js`.
 
 A 401 saying *"Your Frame user is not linked to an Adobe ID"* is an account-linking problem, not a
 token or entitlement one: Frame.io → Account Settings → Profile → Authentication → Connect, with the

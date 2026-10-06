@@ -1,7 +1,9 @@
-# Data-Pipeline
+# Pipelines
 
 Tools that read heterogeneous production data sources — PDFs, XML, spreadsheets — and
-prepare them for ingestion into OMC-JSON workflows.
+prepare them for ingestion into OMC-JSON workflows. Labkoat-API runs them in worker threads;
+this directory was the separate `Data-Pipeline` repository until 2026-10-06. Commands below run
+from the repository root.
 
 ## Layers
 
@@ -10,13 +12,13 @@ tabular data needs only the OMC layer; a tool ingesting a specific supplier's de
 that source's adapter; a tool doing its own I/O can use `lib` alone.
 
 ```
-src/pipelines/          the uniform way in. A registry of self-describing pipelines, and the
+catalog/                the uniform way in. A registry of self-describing pipelines, and the
                         context through which they read. Knows no sources and no formats.
-src/sources/<source>/   one adapter per supplier. Reads a delivery, emits tables in OMC
+sources/<source>/       one adapter per supplier. Reads a delivery, emits tables in OMC
                         terminology, and declares its mapping as data. No OMC construction.
-src/omc/                generic. Turns tables + declarative mappings into validated OMC
+omc/                    generic. Turns tables + declarative mappings into validated OMC
                         entities. Knows no sources.
-src/lib/                xml, csv, pdf, tabular, paths. Knows neither.
+lib/                    xml, csv, pdf, tabular, paths, http. Knows neither.
 ```
 
 The interim tabular format is the spine, not a side-output: a source produces it, and the
@@ -25,7 +27,7 @@ diffable — and it already uses OMC terminology, so a second source maps into t
 shape rather than into a Script-E-shaped one.
 
 **A new source needs a parser that emits tables and a mapping that is data. It needs no OMC
-code.** See `src/sources/scriptE/omcMapping.js` for what a mapping looks like.
+code.** See `sources/scriptE/omcMapping.js` for what a mapping looks like.
 
 ```
 <production>/sourceData/<source>/Filming Day <n>/     inputs, as delivered
@@ -34,7 +36,7 @@ code.** See `src/sources/scriptE/omcMapping.js` for what a mapping looks like.
 ```
 
 Paths are derived from `--production`, `--source` and `--day`, so a new filming day needs
-no code change and a new source is a new folder under `src/sources/`.
+no code change and a new source is a new folder under `sources/`.
 
 ## Running a pipeline
 
@@ -43,7 +45,7 @@ nothing about it. `catalog()` says what exists and what each one takes; `runPipe
 one. Nothing is written to disk: the result is the OMC, the notes and a report.
 
 ```js
-import { catalog, runPipeline, createContext } from 'data-pipeline';
+import { catalog, runPipeline, createContext } from '#pipelines';
 
 catalog();   // [{ pipelineId: 'script-e', label, inputs: { roles: [...] }, options: [...] }]
 
@@ -72,11 +74,11 @@ or an unknown role is reported before any bytes are read.
 
 ### Writing a new pipeline
 
-1. Add `src/sources/<source>/` with a parser that emits a `TableSet` and an `omcMapping.js`
+1. Add `sources/<source>/` with a parser that emits a `TableSet` and an `omcMapping.js`
    declaring how those tables become entities. Both are data; neither builds OMC.
 2. Add `pipeline.js` declaring a `PipelineDefinition` — id, label, the roles it accepts, the
    options it takes — with a `run(request, context)` that reads through the context.
-3. Register it in `src/pipelines/registry.js`.
+3. Register it in `catalog/registry.js`.
 
 It then appears in `catalog()`, in the CLI, and in any UI driven by the catalogue, with no
 change to any of them.
@@ -86,8 +88,9 @@ change to any of them.
 The generic OMC layer can be used directly by a caller that already has tabular data.
 
 ```js
-import { buildEntities, writeBundle } from 'data-pipeline';
-import { scriptEMappings } from 'data-pipeline/sources';
+import { buildEntities, writeBundle, sources } from '#pipelines';
+
+const { scriptEMappings } = sources;
 
 const result = buildEntities({
     tables,                       // { takes: [...], narrativeScenes: [...] }
@@ -101,8 +104,9 @@ await writeBundle({ entitiesByType: result.entitiesByType, outDir });
 validation, the edge check and the per-type counts, so a service can seal a bundle it never
 intends to store.
 
-Subpath exports: `data-pipeline/pipelines`, `data-pipeline/omc`, `data-pipeline/sources`,
-`data-pipeline/lib`.
+The root also exports each layer as a namespace: `pipelines` (the catalogue), `omc`,
+`sources`, `lib`. The service may import only `#pipelines` and `#pipelines/catalog`; see
+`CLAUDE.md`.
 
 Every public method takes an `options` object rather than reading module state, so one
 process can build entities for several projects at once:
@@ -117,30 +121,26 @@ The CLI exposes the first two as `--identifier-scope` and `--schema-version`.
 
 ## Documentation
 
-JSDoc throughout, following the omcUtil conventions: types live in `src/types.js` and are
+JSDoc throughout, following the omcUtil conventions: types live in `types.js` and are
 resolved globally, so no `@typedef {import(...)}` — that is TypeScript-only syntax and
 breaks standard JSDoc.
-
-```bash
-npm run jsdoc         # docs/jsdoc
-npm run build:types   # types/*.d.ts for IDE resolution
-```
 
 ## Usage
 
 ```bash
-npm install
+export PIPELINE_FIXTURES=..     # the directory holding production folders
 
-node src/cli.js extract  --production WWDOAT --source Script-E --day 1
-node src/cli.js validate --production WWDOAT --source Script-E --day 1
-node src/cli.js all      --day 1,2,3,4
-node src/cli.js omc      --day 1,2,3,4
+npm run pipeline -- extract  --production WWDOAT --source Script-E --day 1
+npm run pipeline -- validate --production WWDOAT --source Script-E --day 1
+npm run pipeline -- all      --day 1,2,3,4
+npm run pipeline -- omc      --day 1,2,3,4
 
-node src/cli.js pipelines
-node src/cli.js run --pipeline script-e --dir "WWDOAT/sourceData/Script-E/Filming Day 1"
+npm run pipeline -- pipelines
+npm run pipeline -- run --pipeline script-e --dir "../WWDOAT/sourceData/Script-E/Filming Day 1"
 ```
 
-`--production WWDOAT --source Script-E --day 1` are the defaults.
+`--production WWDOAT --source Script-E --day 1` are the defaults. Productions resolve under
+`PIPELINE_FIXTURES`; `--dir` resolves against the current directory.
 
 - **extract** — parse the day's authoritative export into `day<n>.model.json`, one CSV per
   table, and a `day<n>.xlsx` workbook with a sheet per table.
@@ -153,35 +153,16 @@ node src/cli.js run --pipeline script-e --dir "WWDOAT/sourceData/Script-E/Filmin
   patterns exactly as a UI would, and print the OMC (or write it with `--out`). This is the
   same code path a service takes, so it is a rehearsal rather than a second implementation.
 
-## Reference host
-
-`server.js` serves the same JSON over HTTP, with no dependencies beyond Node, so the contract
-can be exercised without a backend:
-
-```bash
-node server.js --root "WWDOAT/sourceData/Script-E/Filming Day 1" --port 4100
-
-curl localhost:4100/api/pipeline/v1/catalog
-curl -X POST localhost:4100/api/pipeline/v1/run -H 'Content-Type: application/json' \
-  -d '{"pipelineId":"script-e","inputs":[{"role":"sim","fileName":"…SIM Metabanq Day 1.xml","ref":"…SIM Metabanq Day 1.xml"}]}'
-```
-
-Success is `{ data, errors, warnings }`; failure is
-`{ data: [], error: { status, title, details } }` with the HTTP status matching `error.status`.
-A request that does not fit the pipeline it names is a 400 listing every problem at once.
-
-It is a reference, not a deployment: refs resolve against a local directory and runs are
-synchronous. A real host stores bytes elsewhere and runs pipelines off the request thread.
-
 ## Tests
 
 ```bash
-npm test
+PIPELINE_FIXTURES=.. npm test
 ```
 
-Each pipeline has a harness under `test/<pipelineId>/` that runs it over the committed
-fixtures in `WWDOAT/sourceData/` and compares the result against the committed bundle in
-`WWDOAT/omc/`. Identifiers are deterministic hashes of the source data, so the same delivery
+Each pipeline has a harness under `test/<pipelineId>/` that runs it over the fixtures in
+`WWDOAT/sourceData/` and compares the result against the bundle in `WWDOAT/omc/`. The
+fixtures are production data kept outside every repository; without `PIPELINE_FIXTURES` the
+tests that read them are skipped and the rest still run. Identifiers are deterministic hashes of the source data, so the same delivery
 always produces the same entities and the comparison is exact rather than approximate.
 
 Two properties are excluded from that comparison, and both are facts about the run rather than
@@ -203,7 +184,7 @@ Tables produced: `shootDay`, `narrativeScenes`, `narrativeSceneCharacters`, `tak
 The `assets` table describes the delivered files themselves — each PDF, XML, CSV and clip
 bin. Its document type comes from the file's **content**, not its name: every Script-E PDF
 prints its report name as a page-one heading, and the other formats open with an
-unambiguous structural marker (`src/sources/scriptE/documentTypes.js`). Filenames here are
+unambiguous structural marker (`sources/scriptE/documentTypes.js`). Filenames here are
 inconsistent (`detailed editor_s log D3 WWD of ALL TIME.pdf`), so they are not used for
 typing. A file matching no signature is still listed, typed `unknown`, and reported.
 
@@ -219,7 +200,7 @@ Column names lean toward OMC terminology rather than Script-E's:
 | `recordingFPS` | Script-E's `script_frame_rate` / `FrameRate` / `FPS`, named as OMC v3.0 names it. |
 | `takeAnnotation` | The non-numeric part of a take label — `PU` in `6 PU`. The raw label stays in `take`; no parsed take number is emitted, because take labels are not reliably numeric. |
 
-`src/sources/scriptE/fieldMap.js` is the single declarative correspondence between the
+`sources/scriptE/fieldMap.js` is the single declarative correspondence between the
 three machine-readable exports — every take-level field appears there once, with the tag or
 column each source uses and any normalizer needed to compare them. Adding a field to both
 the extractor and the fidelity check is one edit in that file.
@@ -232,7 +213,7 @@ PDF).
 
 ## OMC mapping
 
-`node src/cli.js omc` generates **OMC-JSON v3.0** into `<production>/omc/`:
+`npm run pipeline -- omc` generates **OMC-JSON v3.0** into `<production>/omc/`:
 
 | File | Entities | Grain |
 |---|---|---|
@@ -248,7 +229,7 @@ An Asset carries its `AssetStructure` intrinsically (schema maxItems 1) and its 
 via `edges.has.Provenance`. `Provenance.createdOn` is the date the report was printed, read
 from its header — which is what tells apart the two Detailed Editor's Logs some days carry.
 
-`src/omc/` is a thin, source-agnostic layer — entity construction, references, bundle
+`omc/` is a thin, source-agnostic layer — entity construction, references, bundle
 validation and writing. Every OMC fact comes from `omc-util`: `omcTemplate` for shapes,
 edges and id prefixes, `omcIdentifier` for identifiers, `omcEdges` for edges, `omcValidate`
 for validation. Per the repo-wide rule this project maintains no tables of OMC entity types,
@@ -261,7 +242,7 @@ prefixes and validation are all asked of `omc-util` per call, for whichever `sch
 the caller passes — so building against a different version is an option, not a code change:
 
 ```bash
-node src/cli.js omc --schema-version https://movielabs.com/omc/json/schema/v2.8
+npm run pipeline -- omc --schema-version https://movielabs.com/omc/json/schema/v2.8
 ```
 
 For v2.8 and v3.0 omcUtil derives the shape from the bundled JSON Schema at build time
@@ -272,7 +253,7 @@ thing a schema change can invalidate. `checkMappings()` runs before any data is 
 names every property and edge the target version does not accept:
 
 ```
-$ node src/cli.js omc --schema-version .../v2.8
+$ npm run pipeline -- omc --schema-version .../v2.8
 Mappings do not fit https://movielabs.com/omc/json/schema/v2.8:
   unknownProperty: ProductionScene.label — no such property in v2.8
   unknownProperty: ProductionScene.productionSceneName.fullName — no such property in v2.8
@@ -295,5 +276,5 @@ Two further consequences worth knowing:
   schema lacks required properties"* — and carries Script-E's key/value pairs as an object
   under domain `Script-E`, keyed by the spreadsheet's own column names, so nothing the
   script supervisor recorded is lost. Comments and notes go to `annotation[]`.
-  `src/omc/entity.js` rejects an out-of-shape property at construction time so a mapping
+  `omc/entity.js` rejects an out-of-shape property at construction time so a mapping
   mistake names itself instead of surfacing as a schema error later.

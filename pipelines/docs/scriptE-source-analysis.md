@@ -86,7 +86,7 @@ scene section, no shoot-day section.
 `StripBoardDay`→`script_shootDay`, `OriginalRoll`→`script_camera_roll`, …). SIM adds
 `script_unit`, `script_tail_slate`, `related_scenes/episode` and `characters_in_scenes` —
 a per-take character list the Editor Log does not carry at all. The full correspondence,
-including the SilverStack columns, is `src/sources/scriptE/fieldMap.js`; that file is the
+including the SilverStack columns, is `sources/scriptE/fieldMap.js`; that file is the
 authority, this document is the narrative.
 
 Both XMLs share the same export `UUID` and `Created` timestamp, so they are two
@@ -202,7 +202,7 @@ PDF footers and nowhere in the XML.
 
 ## The deliverables as assets
 
-Every file in a filming-day folder is itself a production asset. `src/sources/scriptE/documents.js`
+Every file in a filming-day folder is itself a production asset. `sources/scriptE/documents.js`
 classifies each by content — the page-one heading for PDFs, the root element for XML, the
 header row for the CSV, the opening marker for the Avid clip bin — never by filename, which
 here is inconsistent. The result is the `assets` table, and from it three OMC entities per

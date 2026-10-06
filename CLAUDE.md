@@ -2,8 +2,8 @@
 
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
-> Cross-repo context — the OMC record, how omc-util and data-pipeline are shared, pipeline
-> credentials, deployment topology — is in the parent `MovieLabs-POC/CLAUDE.md`, which loads
+> Cross-repo context — the OMC record, how omc-util is shared, pipeline credentials, deployment
+> topology — is in the parent `MovieLabs-POC/CLAUDE.md`, which loads
 > alongside this file.
 
 ---
@@ -28,31 +28,31 @@ ES modules (`"type": "module"`), plain `.js` throughout.
 npm install
 npm start                # === node app.js — port 8080
 node app.js
-npm run lint             # eslint src app.js
+npm run lint             # eslint src pipelines app.js
+npm test                 # the pipeline tests — PIPELINE_FIXTURES=.. to include the fixture ones
+npm run pipeline -- <cmd>  # the pipeline CLI (pipelines/cli.js)
 
-npm run link:local       # links BOTH data-pipeline and omc-util
+npm run link:local       # links omc-util
 npm run unlink:local
 ```
 
-There is **no test script and no tests**.
+`npm test` covers `pipelines/` only; the service code has no tests, beyond the `verify:*` scripts
+that check single subsystems. See `pipelines/CLAUDE.md` for the fixtures.
 
 `app.js` is the entry point; it imports `src/api-server.js`.
 
 ### Linking, and the lockfile trap
 
-This repo consumes two sibling working copies. `data-pipeline` in particular **has no git remote and
-no tags**, so its declared spec
-(`git+https://github.com/MovieLabs/omc-data-pipeline.git#semver:^1.0.0`) resolves to nothing — a
-pipeline added to `Data-Pipeline` will not appear in the Portal until it is linked:
+The one sibling working copy this repo links is omc-util. The pipelines used to be a second, the
+`data-pipeline` package, until they moved into `pipelines/` (see below):
 
 ```bash
-cd ../Data-Pipeline && npm link     # once per machine
-cd ../omcUtil        && npm link    # once per machine
+cd ../omcUtil && npm link    # once per machine
 npm run link:local
 ```
 
-- **Any `npm install` here destroys both links** and silently restores whatever was vendored. Re-run
-  `link:local`.
+- **Any `npm install` here destroys the link** and silently restores whatever the lockfile pins.
+  Re-run `link:local`.
 - **This repo carries both a `package-lock.json` and a `yarn.lock`.** npm maintains the former and
   also rewrites the latter when linking. **Check `git status` after any link and do not commit
   lockfile churn that is only an artefact of linking.**
@@ -96,7 +96,16 @@ entity. `DELETE /edge` is a separate route from `DELETE /update`.
 ### The pipeline runner (`src/pipeline/`)
 
 This is the part of the repo with the most design in it. Pipelines themselves live in
-**Data-Pipeline**; this directory is the machinery that runs them.
+**`pipelines/`**, at the top level and not under `src/` (one letter from this directory). This
+directory is the machinery that runs them.
+
+**`pipelines/` was the separate `Data-Pipeline` repository until 2026-10-06.** It moved in because
+this service was its only consumer, and every change had to be tagged, published as a snapshot and
+pulled in with a lockfile bump before an image carried it, which was forgotten. It is still kept
+apart: the service reaches it only through the `package.json` aliases `#pipelines` (the worker) and
+`#pipelines/catalog` (the controller, lazily), a pipeline imports nothing from `src/`, and ESLint
+enforces both. Pipelines resolve this repo's omc-util, so there is one version, not two. See
+`pipelines/CLAUDE.md`.
 
 | Module | Role |
 |---|---|
@@ -384,6 +393,12 @@ Push to `main` triggers `.github/workflows/node-app.yml`: Docker build → push 
 `ml-prodtech-portal-api` at `113736696237.dkr.ecr.us-west-2.amazonaws.com` → repository dispatch
 (`event-type: new-image`) to `MovieLabs/Prodtech-ServiceMesh` for Kubernetes deployment.
 
-**A deployed image cannot use a linked working copy.** Until `Data-Pipeline` is pushed to a remote
-and tagged, the `data-pipeline` dependency does not resolve in a Docker build — that is the blocker
-on shipping any pipeline work.
+**The workflow lints and tests before it builds**: `npm install` (not `npm ci`, because omc-util is
+locked as `git+ssh` and the runner has no key), `npm run lint`, `npm test`. `PIPELINE_FIXTURES` is
+unset there, so the fixture tests skip: a green run does not cover the golden comparison.
+
+**`.dockerignore` shapes the image**: no `node_modules` (so a local `npm link` cannot leak in), no
+`.env`, and no `pipelines/test` or `pipelines/docs`.
+
+**A deployed image cannot use a linked working copy.** omc-util reaches the image only as the commit
+the lockfile pins.

@@ -2,7 +2,7 @@
  * Flatten a Frame.io project to one row per file, for eyeballing values and authoring a mapping
  * template against real columns.
  *
- * **The rows are the pipeline's own** — `buildRows` from `src/sources/frameio/rows.js`, the same
+ * **The rows are the pipeline's own** — `buildRows` from `sources/frameio/rows.js`, the same
  * function a run uses. That is the point: a template authored against this CSV names columns the
  * pipeline actually produces, and `SlateId` cannot mean one thing here and another there. Only the
  * walk is local, because this script samples with hardcoded ids and a request budget rather than
