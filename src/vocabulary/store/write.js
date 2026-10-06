@@ -209,20 +209,23 @@ export async function deleteTerm(id, force = false, actor) {
         [VOCAB_VIEWS, fromViews],
     ].map(async ([store, ids]) => {
         if (!ids.length) return;
+        // Stamped as well as pulled: these are somebody else's containers, and a container that
+        // lost a row has changed, whoever asked for it.
         await vocabCollection(store).updateMany(
             { _id: { $in: ids } },
-            // **Both places a row can sit.** A term's forks hold members too, and a row left inside
-            // one names a term that no longer exists — the same hole this whole step exists to
-            // prevent, in the one container a `member` pull does not reach.
-            // Stamped as well as pulled: these are somebody else's containers, and a container
-            // that lost a row has changed, whoever asked for it.
-            store === VOCAB_TERMS
-                ? {
-                    $pull: { 'member': { term: id }, 'fork.$[].member': { term: id } },
-                    $set: stampFields(actor),
-                }
-                : { $pull: { member: { term: id } }, $set: stampFields(actor) },
+            { $pull: { member: { term: id } }, $set: stampFields(actor) },
         );
+        // **Both places a row can sit.** A term's forks hold members too, and a row left inside one
+        // names a term that no longer exists — the same hole this whole step exists to prevent, in
+        // the one container a `member` pull does not reach. A separate update, and only on
+        // documents carrying `fork`: `$[]` is refused outright on a document without the array,
+        // which is most terms.
+        if (store === VOCAB_TERMS) {
+            await vocabCollection(store).updateMany(
+                { _id: { $in: ids }, fork: { $type: 'array' } },
+                { $pull: { 'fork.$[].member': { term: id } } },
+            );
+        }
         // A member whose parent was one of the removed rows is now orphaned. Re-parenting them is
         // the same promotion the resolver does for a filtered term, and keeps the document valid
         // rather than leaving it to fail validation later.
