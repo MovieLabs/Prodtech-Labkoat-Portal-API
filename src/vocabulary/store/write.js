@@ -150,11 +150,14 @@ export async function replaceTerm(id, term, actor, expected) {
 
     // A tag since removed from the list leaves the term here, on its next save.
     //
-    // **An empty arrangement is not an arrangement.** Carrying `member: []` puts a term in a state
-    // that is neither: the palette leaves it out, because a collection with nothing in it is not
-    // something to place, while `unarrangeSubtree` refuses it as carrying no arrangement — so a term
-    // emptied row by row could not be reverted and could not be used. Dropped on write instead, so
-    // taking the last row out of an arrangement is the same act as reverting it. The same for forks.
+    // **An empty default arrangement is not an arrangement.** Carrying `member: []` puts a term in a
+    // state that is neither: the palette leaves it out, because a collection with nothing in it is
+    // not something to place, while `unarrangeSubtree` refuses it as carrying no arrangement — so a
+    // term emptied row by row could not be reverted and could not be used. Dropped on write instead,
+    // so taking the last row out of the default arrangement is the same act as reverting it.
+    //
+    // **An empty fork is kept**, on purpose: `createFork` makes one to be filled, and it stays listed
+    // (`arrangementsOf`). Only an empty `fork` *list* is dropped.
     const tidied = withKnownTags(normaliseTerm({ ...term }), 'tag', knownTags);
     if (Array.isArray(tidied.member) && !tidied.member.length) delete tidied.member;
     if (Array.isArray(tidied.fork) && !tidied.fork.length) delete tidied.fork;
