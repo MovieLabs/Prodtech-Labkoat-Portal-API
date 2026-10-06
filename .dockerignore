@@ -1,0 +1,16 @@
+# The build context. The image installs its own dependencies, so nothing local is copied in: not
+# node_modules (which may hold `npm link` symlinks to working copies), not secrets, not output.
+**/node_modules
+.git
+.idea
+.env
+.env.*
+.clinic
+.scratchpad
+.golden
+.pipeline-local
+
+# Pipeline development only: the tests need production fixtures the image never has, and docs/
+# holds scripts that sample live Frame.io data.
+pipelines/test
+pipelines/docs

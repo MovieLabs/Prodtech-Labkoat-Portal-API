@@ -25,6 +25,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      # Lint and test before an image exists, so a broken import fails the push rather than the
+      # deploy. `npm install`, not `npm ci`, as in the Dockerfile and fMam's: the lockfile records
+      # omc-util as git+ssh, there is no key here, and npm install falls back to HTTPS for a public
+      # repo. The pipeline tests that need production fixtures skip; PIPELINE_FIXTURES is unset here.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --quiet
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
       - name: Build container
         run: docker build --tag ${{ env.IMAGE_NAME }} .
       - name: Configure AWS Credentials
