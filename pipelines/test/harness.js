@@ -1,11 +1,18 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { fsContext, getPipeline, runPipeline } from '../src/pipelines/index.js';
+import { fsContext, getPipeline, runPipeline } from '../catalog/index.js';
+import { fixturesRoot } from '../lib/paths.js';
 
-/** The repository root, so fixtures are addressed the same way from every test. */
-export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/**
+ * The WWDOAT production, under `PIPELINE_FIXTURES`. Its sources and golden bundle are production
+ * data and live outside every repository. When the variable is unset this names a directory that
+ * does not exist, so a test refused before reading anything still runs; one that reads is skipped.
+ */
+export const wwdoat = path.join(fixturesRoot ?? path.resolve('PIPELINE_FIXTURES-unset'), 'WWDOAT');
+
+/** Test options for a test that reads the fixtures: skipped, saying why, when they are absent. */
+export const needsFixtures = fixturesRoot ? {} : { skip: 'PIPELINE_FIXTURES is not set' };
 
 /**
  * Assign every file in a directory to a role, using the pipeline's own `match` patterns.
@@ -37,7 +44,7 @@ export async function inputsFromDir(definition, dir) {
  *
  * @param {Object} params
  * @param {string} params.pipelineId - The pipeline to run
- * @param {string} params.dir - Fixture directory, relative to the repository root
+ * @param {string} params.dir - Fixture directory, relative to the fixtures root
  * @param {DataPipeline.OmcOptions} [params.omcOptions] - Scope, schema version and namespace
  * @returns {Promise<DataPipeline.PipelineRunResult>} The run result
  */
@@ -45,7 +52,7 @@ export async function runFixture({ pipelineId, dir, omcOptions = {} }) {
     const definition = getPipeline(pipelineId);
     if (!definition) throw new Error(`Unknown pipeline "${pipelineId}"`);
 
-    const full = path.resolve(repoRoot, dir);
+    const full = path.resolve(fixturesRoot ?? '', dir);
     const inputs = await inputsFromDir(definition, full);
     const context = fsContext({ baseDir: full, options: omcOptions });
 

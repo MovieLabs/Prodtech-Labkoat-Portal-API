@@ -24,3 +24,7 @@ node_modules/
 # Reports, exports and one-off scripts written for a person to read rather than for the build.
 # In the repo so they can be found, out of git because they are output, not source.
 .scratchpad/
+
+# Sampled Frame.io data — live production content and signed media URLs. The scripts that fetch it
+# are committed; the data is not. See pipelines/docs/frameio/README.md.
+pipelines/docs/frameio/data/

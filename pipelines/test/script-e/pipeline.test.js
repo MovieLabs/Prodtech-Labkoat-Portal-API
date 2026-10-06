@@ -3,12 +3,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import { fsContext, getPipeline, runPipeline } from '../../src/pipelines/index.js';
-import { indexByIdentity, repoRoot } from '../harness.js';
+import { fsContext, getPipeline, runPipeline } from '../../catalog/index.js';
+import { indexByIdentity, needsFixtures, wwdoat } from '../harness.js';
 
 const PIPELINE_ID = 'script-e';
-const SOURCE_ROOT = path.join(repoRoot, 'WWDOAT/sourceData/Script-E');
-const GOLDEN_DIR = path.join(repoRoot, 'WWDOAT/omc');
+const SOURCE_ROOT = path.join(wwdoat, 'sourceData/Script-E');
+const GOLDEN_DIR = path.join(wwdoat, 'omc');
 const GOLDEN_FILES = [
     'productionScene', 'slate', 'narrativeScene', 'asset', 'assetStructure', 'provenance',
 ];
@@ -81,7 +81,7 @@ async function goldenEntities() {
     return bundles.flat();
 }
 
-test('script-e builds the committed bundle from the committed sources', async (t) => {
+test('script-e builds the committed bundle from the committed sources', needsFixtures, async (t) => {
     const definition = getPipeline(PIPELINE_ID);
     assert.ok(definition, 'the script-e pipeline is registered');
 
@@ -127,7 +127,7 @@ test('script-e builds the committed bundle from the committed sources', async (t
     });
 });
 
-test('the fallback shoot day is taken from the SIM export, not the request', async (t) => {
+test('the fallback shoot day is taken from the SIM export, not the request', needsFixtures, async (t) => {
     const definition = getPipeline(PIPELINE_ID);
     const dir = path.join(SOURCE_ROOT, 'Filming Day 2');
     const names = (await readdir(dir, { withFileTypes: true }))

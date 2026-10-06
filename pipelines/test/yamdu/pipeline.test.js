@@ -3,11 +3,11 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import { createContext, getPipeline, runPipeline } from '../../src/pipelines/index.js';
-import { repoRoot } from '../harness.js';
+import { createContext, getPipeline, runPipeline } from '../../catalog/index.js';
+import { needsFixtures, wwdoat } from '../harness.js';
 
 const PIPELINE_ID = 'yamdu';
-const FIXTURES = path.join(repoRoot, 'WWDOAT/sourceData/Yamdu');
+const FIXTURES = path.join(wwdoat, 'sourceData/Yamdu');
 const V3 = 'https://movielabs.com/omc/json/schema/v3.0';
 
 /**
@@ -80,7 +80,7 @@ test('yamdu is registered and takes no files', () => {
     assert.deepEqual(definition.secrets, ['yamdu']);
 });
 
-test('yamdu reads the API and delivers the project schema version', async (t) => {
+test('yamdu reads the API and delivers the project schema version', needsFixtures, async (t) => {
     const { result, calls } = await runYamdu();
 
     await t.test('every in-project fixture entity arrives', () => {
@@ -192,7 +192,7 @@ test('creative works from other productions are discarded', async () => {
     // productions. Two identifier shapes have to be told apart, which is why this is not a
     // substring match: a project names itself in its own identifier, while an episode carries its
     // own id and names the project through Season.
-    const { default: scopeToProject } = await import('../../src/sources/yamdu/projectScope.js');
+    const { default: scopeToProject } = await import('../../sources/yamdu/projectScope.js');
     const cw = (identifierValue, extra = {}) => ({
         entityType: 'CreativeWork',
         identifier: [{ identifierScope: 'com.yamdu.app', identifierValue }],
@@ -223,7 +223,7 @@ test('creative works from other productions are discarded', async () => {
     );
 });
 
-test('the real pull is scoped to one production', async () => {
+test('the real pull is scoped to one production', needsFixtures, async () => {
     const { result } = await runYamdu();
     const works = result.omc.filter((e) => e.entityType === 'CreativeWork');
     assert.equal(works.length, 1, 'the sample pull spans 21 productions; one is ours');
@@ -232,7 +232,7 @@ test('the real pull is scoped to one production', async () => {
         'the discarded works are reported rather than silently dropped');
 });
 
-test('migrating an already-migrated Context does not bury its properties deeper', async () => {
+test('migrating an already-migrated Context does not bury its properties deeper', needsFixtures, async () => {
     // Migration has to be safe to run twice: the Portal offers a Migrate control the user can press
     // again, and without a guard each press would add another wrapper.
     const { omcMigrate } = await import('omc-util');
@@ -247,21 +247,21 @@ test('migrating an already-migrated Context does not bury its properties deeper'
     assert.deepEqual(twice[0].contextProperties, once[0].contextProperties);
 });
 
-test('a run with no Yamdu project configured says what to do about it', async () => {
+test('a run with no Yamdu project configured says what to do about it', needsFixtures, async () => {
     await assert.rejects(
         () => runYamdu({ settings: {} }),
         /No Yamdu project configured.*yamduProjectId/s,
     );
 });
 
-test('a run with no credential names the one it wanted', async () => {
+test('a run with no credential names the one it wanted', needsFixtures, async () => {
     await assert.rejects(
         () => runYamdu({ secrets: {} }),
         /No secret named "yamdu"/,
     );
 });
 
-test('a schema version the pipeline does not deliver is refused', async () => {
+test('a schema version the pipeline does not deliver is refused', needsFixtures, async () => {
     await assert.rejects(
         () => runYamdu({ schemaVersion: 'https://movielabs.com/omc/json/schema/v2.1' }),
         /schemaVersionNotSupported/,

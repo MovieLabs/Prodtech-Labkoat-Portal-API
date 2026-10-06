@@ -24,21 +24,21 @@
  * @namespace DataPipeline
  */
 
-import './src/types.js'; // Type definitions, resolved globally by JSDoc
+import './types.js'; // Type definitions, resolved globally by JSDoc
 
-export * as pipelines from './src/pipelines/index.js';
-export * as omc from './src/omc/index.js';
-export * as sources from './src/sources/index.js';
-export * as lib from './src/lib/index.js';
+export * as catalog from './catalog/index.js';
+export * as omc from './omc/index.js';
+export * as sources from './sources/index.js';
+export * as lib from './lib/index.js';
 
 // The most commonly used entry points, re-exported flat for convenience.
 export {
     catalog, getPipeline, runPipeline, createContext, fsContext,
-} from './src/pipelines/index.js';
-export { buildEntities } from './src/omc/build.js';
-export { checkMappings } from './src/omc/checkMapping.js';
-export { createEntity, entityRef, DEFAULT_OPTIONS } from './src/omc/entity.js';
+} from './catalog/index.js';
+export { buildEntities } from './omc/build.js';
+export { checkMappings } from './omc/checkMapping.js';
+export { createEntity, entityRef, DEFAULT_OPTIONS } from './omc/entity.js';
 export {
     writeBundle, sealBundle, validateEntities, checkEdgeTargets,
-} from './src/omc/bundle.js';
-export { renderOmcReport } from './src/omc/report.js';
+} from './omc/bundle.js';
+export { renderOmcReport } from './omc/report.js';
