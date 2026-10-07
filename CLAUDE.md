@@ -32,6 +32,7 @@ npm run lint             # eslint src pipelines app.js
 npm test                 # the pipeline tests — PIPELINE_FIXTURES=.. to include the fixture ones
 npm run pipeline -- <cmd>  # the pipeline CLI (pipelines/cli.js)
 npm run greenlight -- post <file.json> | list | publish <id>  # SRP login, then the submission routes
+npm run greenlight -- peek [--delete]  # read the workflow SQS queue, leaving messages in place unless --delete
 
 npm run link:local       # links omc-util
 npm run unlink:local

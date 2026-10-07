@@ -4,6 +4,7 @@
  *   npm run greenlight -- post <file.json> [--api <url>]
  *   npm run greenlight -- list             [--api <url>]
  *   npm run greenlight -- publish <id>     [--api <url>]
+ *   npm run greenlight -- peek [--delete]
  *
  * It signs in exactly as a real caller does: Cognito's USER_SRP_AUTH flow, which proves the
  * password without sending it, against the same user pool and app client the Portal uses. So the
@@ -15,6 +16,11 @@
  * A bare file name for `post` is looked for in `tools/greenlight/data/`.
  *
  * `--api` defaults to http://localhost:8080; https://service.labkoat.media is production.
+ *
+ * `peek` reads the workflow queue directly, to confirm what an approval sent, as the Python example
+ * `sqs_test.py` did. It assumes the queue owner's role with the developer's own AWS credentials, not
+ * the Cognito login, and receives with a visibility timeout of 0, so the messages stay where the
+ * real consumer will find them. `--delete` removes what it read instead: only on a test queue.
  */
 
 import 'dotenv/config';
@@ -22,6 +28,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { DeleteMessageCommand, ReceiveMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
+import { fromTemporaryCredentials } from '@aws-sdk/credential-providers';
 import cognito from 'amazon-cognito-identity-js';
 
 import config from '../../src/config.js';
@@ -89,16 +97,66 @@ function readSubmission(file) {
     return text;
 }
 
+/**
+ * Read up to ten messages off the workflow queue, and say what each is.
+ *
+ * @param {Object} params
+ * @param {boolean} params.remove - Delete what was read, rather than leave it for the consumer
+ */
+async function peek({ remove }) {
+    const sqs = new SQSClient({
+        region: config.AWS_REGION,
+        credentials: fromTemporaryCredentials({
+            params: { RoleArn: config.GREENLIGHT_QUEUE_ROLE_ARN, RoleSessionName: 'labkoat-greenlight-peek' },
+            clientConfig: { region: config.AWS_REGION },
+        }),
+    });
+    const { Messages: messages = [] } = await sqs.send(new ReceiveMessageCommand({
+        QueueUrl: config.GREENLIGHT_QUEUE_URL,
+        MaxNumberOfMessages: 10,
+        WaitTimeSeconds: 5,
+        VisibilityTimeout: remove ? 30 : 0, // 0: still there for the real consumer the moment we look
+        MessageAttributeNames: ['All'],
+    }));
+    if (!messages.length) console.log('No messages on the queue');
+
+    for (const message of messages) {
+        const body = (() => {
+            try {
+                return JSON.parse(message.Body);
+            } catch {
+                return null;
+            }
+        })();
+        const jobId = message.MessageAttributes?.jobId?.StringValue ?? '(no jobId)';
+        const kind = body?.header?.messageType ?? '(no header)';
+        const pull = body?.body?.contents?.pullData;
+        console.log(`${message.MessageId}  job ${jobId}  ${kind}  pullData: ${pull ? `${JSON.stringify(pull).length} bytes` : 'absent'}`);
+        if (remove) {
+            await sqs.send(new DeleteMessageCommand({ QueueUrl: config.GREENLIGHT_QUEUE_URL, ReceiptHandle: message.ReceiptHandle }));
+            console.log('  deleted');
+        }
+    }
+}
+
 async function main() {
     const { values, positionals } = parseArgs({
         allowPositionals: true,
-        options: { api: { type: 'string', default: 'http://localhost:8080' } },
+        options: {
+            api: { type: 'string', default: 'http://localhost:8080' },
+            delete: { type: 'boolean', default: false },
+        },
     });
     const [command, arg] = positionals;
+
+    if (command === 'peek') {
+        await peek({ remove: values.delete });
+        return;
+    }
     const base = `${values.api.replace(/\/$/, '')}/api/greenlight/submissions`;
 
     if (!['post', 'list', 'publish'].includes(command) || (command !== 'list' && !arg)) {
-        console.log('Usage: npm run greenlight -- post <file.json> | list | publish <id> [--api <url>]');
+        console.log('Usage: npm run greenlight -- post <file.json> | list | publish <id> [--api <url>] | peek [--delete]');
         process.exitCode = 1;
         return;
     }
