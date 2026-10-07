@@ -53,9 +53,8 @@ npm run link:local
 
 - **Any `npm install` here destroys the link** and silently restores whatever the lockfile pins.
   Re-run `link:local`.
-- **This repo carries both a `package-lock.json` and a `yarn.lock`.** npm maintains the former and
-  also rewrites the latter when linking. **Check `git status` after any link and do not commit
-  lockfile churn that is only an artefact of linking.**
+- **Check `git status` after any link** and do not commit lockfile churn that is only an artefact
+  of linking.
 
 ---
 
