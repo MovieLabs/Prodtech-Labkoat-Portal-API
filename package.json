@@ -13,6 +13,7 @@
     "lint": "eslint src pipelines app.js",
     "test": "node --test --test-reporter=spec \"pipelines/test/**/*.test.js\"",
     "pipeline": "node pipelines/cli.js",
+    "fixtures:record": "node pipelines/test/golden.js record",
     "verify:snippet": "node src/vocabulary/snippet.verify.mjs",
     "verify:openapi": "node src/openapi/openapi.verify.mjs",
     "verify:conflict": "node src/vocabulary/conflict.verify.mjs",

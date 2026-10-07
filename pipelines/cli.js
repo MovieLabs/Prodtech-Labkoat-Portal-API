@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { catalog, createContext, fsContext, runPipeline } from './catalog/index.js';
-import { dayPaths, fixturesRoot, omcPath } from './lib/paths.js';
+import { dayPaths, omcPath } from './lib/paths.js';
 import * as scriptE from './sources/scriptE/index.js';
 
 /** Source adapters, keyed by the `--source` value, which is also the directory name. */
@@ -19,6 +19,10 @@ Commands:
   validate   Cross-check the day's exports against each other and write a fidelity report
   all        extract, then validate
   omc        Map the given days onto an OMC-JSON bundle in <production>/omc
+
+Sources are read from PIPELINE_FIXTURES. extract, validate, all and omc write under
+.scratchpad/pipeline/ in the current directory, never into the fixtures, unless
+--write-fixtures says to. The fixtures hold the golden bundle the tests compare against.
   pipelines  List the pipelines this package offers
   run        Run a pipeline over a directory and print the OMC it produces
 
@@ -33,6 +37,8 @@ Options:
   --setting k=v         Project setting, repeatable             (run only)
   --option k=v          Pipeline option, repeatable             (run only)
   --out <path>          Write the OMC here instead of stdout    (run only)
+  --write-fixtures      Write into PIPELINE_FIXTURES, e.g. to regenerate the golden bundle;
+                        then run \`npm run fixtures:record\` to accept it
 
 A pipeline that reads an API takes no files, so --dir is omitted for those. It needs its
 credential in the environment instead — see SECRET_ENV in this file — and usually a setting:
@@ -98,8 +104,11 @@ function secretsFromEnv(names = []) {
     return secrets;
 }
 
-/** Print paths relative to the fixtures root — absolute Windows paths swamp the output. */
-const rel = (p) => path.relative(fixturesRoot ?? process.cwd(), p);
+/** Print paths relative to the current directory — absolute Windows paths swamp the output. */
+const rel = (p) => path.relative(process.cwd(), p);
+
+/** Where extract, validate and omc write: scratch, unless the caller asked for the fixtures. */
+const outRootFor = (values) => (values['write-fixtures'] ? undefined : path.resolve('.scratchpad', 'pipeline'));
 
 async function main() {
     const { values, positionals } = parseArgs({
@@ -115,6 +124,7 @@ async function main() {
             'setting': { type: 'string', multiple: true },
             'option': { type: 'string', multiple: true },
             'out': { type: 'string' },
+            'write-fixtures': { type: 'boolean', default: false },
         },
     });
 
@@ -151,13 +161,14 @@ async function main() {
 
     // `omc` spans every requested day in one bundle, so it runs outside the per-day loop.
     if (command === 'omc') {
-        const omcDir = omcPath(values);
+        const outRoot = outRootFor(values);
+        const omcDir = omcPath({ ...values, outRoot });
         console.log(`\n=== ${values.production} / ${values.source} / OMC-JSON from day(s) ${days.join(', ')} ===`);
 
         const { result, bundle, written } = await adapter.omc({
             // `day` travels alongside the paths: `dayPaths` returns only directories, and the
             // adapter needs the day itself for files that do not state their own.
-            days: days.map((day) => ({ day, ...dayPaths({ ...values, day }) })),
+            days: days.map((day) => ({ day, ...dayPaths({ ...values, day, outRoot }) })),
             omcDir,
             options: omcOptions,
         });
@@ -174,7 +185,7 @@ async function main() {
     let failed = 0;
     for (const day of days) {
         const selection = { production: values.production, source: values.source, day };
-        const opts = { ...selection, ...dayPaths(selection) };
+        const opts = { ...selection, ...dayPaths({ ...selection, outRoot: outRootFor(values) }) };
         console.log(`\n=== ${values.production} / ${values.source} / Day ${day} ===`);
 
         try {

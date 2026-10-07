@@ -23,7 +23,11 @@ function requireFixturesRoot() {
  *
  * Layout is by convention, so new days and new sources need no code change:
  *   <fixtures>/<production>/sourceData/<source>/Filming Day <day>/
- *   <fixtures>/<production>/processedData/<source>/Day <day>/
+ *   <outRoot>/<production>/processedData/<source>/Day <day>/
+ *
+ * Inputs always come from the fixtures. Outputs go to `outRoot`, which defaults to the fixtures
+ * too; the CLI passes a scratch directory instead, because the fixtures hold the golden bundle the
+ * tests compare against and are in no repository, so an overwrite there leaves nothing to diff.
  *
  * @memberof namespace:DataPipeline
  * @function dayPaths
@@ -31,13 +35,16 @@ function requireFixturesRoot() {
  * @param {string} opts.production - Production folder name
  * @param {string} opts.source - Source folder name
  * @param {(string|number)} opts.day - Filming day number
+ * @param {string} [opts.outRoot] - Where outputs go, in place of the fixtures root
  * @returns {DataPipeline.DayPaths} The resolved directories
  */
-export function dayPaths({ production, source, day }) {
+export function dayPaths({
+    production, source, day, outRoot,
+}) {
     const root = requireFixturesRoot();
     return {
         sourceDir: path.join(root, production, 'sourceData', source, `Filming Day ${day}`),
-        outDir: path.join(root, production, 'processedData', source, `Day ${day}`),
+        outDir: path.join(outRoot ?? root, production, 'processedData', source, `Day ${day}`),
     };
 }
 
@@ -49,10 +56,11 @@ export function dayPaths({ production, source, day }) {
  * @function omcPath
  * @param {Object} opts - The selection
  * @param {string} opts.production - Production folder name
+ * @param {string} [opts.outRoot] - Where outputs go, in place of the fixtures root
  * @returns {string} The OMC output directory
  */
-export function omcPath({ production }) {
-    return path.join(requireFixturesRoot(), production, 'omc');
+export function omcPath({ production, outRoot }) {
+    return path.join(outRoot ?? requireFixturesRoot(), production, 'omc');
 }
 
 /**

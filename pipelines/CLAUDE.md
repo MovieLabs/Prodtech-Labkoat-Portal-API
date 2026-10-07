@@ -74,9 +74,12 @@ PIPELINE_FIXTURES=.. npm run pipeline -- omc --day 1,2,3,4
 - **`lib/paths.js` exports `fixturesRoot`** (null when unset). `dayPaths` and `omcPath`, which the
   `extract`/`validate`/`omc` commands use, throw a message naming the variable rather than guessing.
   `run --dir` takes a path relative to the current directory and does not use it.
-- **The CLI writes into the fixtures.** `extract`, `validate` and `omc` write `processedData/` and
-  `omc/` under the production, and the golden bundle the tests compare against is `WWDOAT/omc/`.
-  Running `omc` regenerates the golden. That is how it is meant to be updated, but do it deliberately.
+- **The golden bundle (`WWDOAT/omc/`) is guarded by checksums, not by git.** It is in no
+  repository, so `test/golden.sha256.json` records it and `golden.test.js` fails when it changes.
+  `extract`, `validate` and `omc` write under `.scratchpad/pipeline/` by default; only
+  `--write-fixtures` writes into the fixtures. To regenerate the golden on purpose: run `omc` with
+  `--write-fixtures`, then `npm run fixtures:record`, and commit the manifest with the change that
+  caused it.
 
 ---
 

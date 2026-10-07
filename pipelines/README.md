@@ -140,7 +140,9 @@ npm run pipeline -- run --pipeline script-e --dir "../WWDOAT/sourceData/Script-E
 ```
 
 `--production WWDOAT --source Script-E --day 1` are the defaults. Productions resolve under
-`PIPELINE_FIXTURES`; `--dir` resolves against the current directory.
+`PIPELINE_FIXTURES`; `--dir` resolves against the current directory. Output goes under
+`.scratchpad/pipeline/<production>/` unless `--write-fixtures` sends it into the fixtures, which
+is how the golden bundle is regenerated (then `npm run fixtures:record`).
 
 - **extract** — parse the day's authoritative export into `day<n>.model.json`, one CSV per
   table, and a `day<n>.xlsx` workbook with a sheet per table.
@@ -162,8 +164,11 @@ PIPELINE_FIXTURES=.. npm test
 Each pipeline has a harness under `test/<pipelineId>/` that runs it over the fixtures in
 `WWDOAT/sourceData/` and compares the result against the bundle in `WWDOAT/omc/`. The
 fixtures are production data kept outside every repository; without `PIPELINE_FIXTURES` the
-tests that read them are skipped and the rest still run. Identifiers are deterministic hashes of the source data, so the same delivery
-always produces the same entities and the comparison is exact rather than approximate.
+tests that read them are skipped and the rest still run. Because the bundle is in no repository,
+`test/golden.sha256.json` records its checksums and a test fails when it changes.
+
+Identifiers are deterministic hashes of the source data, so the same delivery always produces
+the same entities and the comparison is exact rather than approximate.
 
 Two properties are excluded from that comparison, and both are facts about the run rather than
 about the delivery: where a file lives (a repository path here, a storage URL in a service),
