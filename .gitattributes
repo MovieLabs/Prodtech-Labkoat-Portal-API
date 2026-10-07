@@ -1,0 +1,4 @@
+# LF in the repository and in the working tree, whatever core.autocrlf says. Tools on Windows
+# write either ending (Python's text mode CRLF, sed LF), and without this the same file flips
+# between them depending on which tool touched it last.
+* text=auto eol=lf
