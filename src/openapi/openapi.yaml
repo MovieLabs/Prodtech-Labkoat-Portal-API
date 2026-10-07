@@ -42,7 +42,7 @@ info:
 servers:
     - url: http://localhost:8080
       description: Local development
-    - url: https://api.labkoat.media
+    - url: https://service.labkoat.media
       description: Production
 
 tags:

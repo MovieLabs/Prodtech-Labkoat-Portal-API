@@ -14,7 +14,7 @@
  * GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD, set for the command or in the gitignored `.env`.
  * A bare file name for `post` is looked for in `tools/greenlight/data/`.
  *
- * `--api` defaults to http://localhost:8080; https://api.labkoat.media is production.
+ * `--api` defaults to http://localhost:8080; https://service.labkoat.media is production.
  */
 
 import 'dotenv/config';
