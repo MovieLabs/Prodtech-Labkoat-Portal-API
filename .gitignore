@@ -28,3 +28,6 @@ node_modules/
 # Sampled Frame.io data — live production content and signed media URLs. The scripts that fetch it
 # are committed; the data is not. See pipelines/docs/frameio/README.md.
 pipelines/docs/frameio/data/
+
+# Greenlight harness payloads — may carry real production data. See tools/greenlight/data/README.md.
+tools/greenlight/data/*.json

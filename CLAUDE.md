@@ -31,6 +31,7 @@ node app.js
 npm run lint             # eslint src pipelines app.js
 npm test                 # the pipeline tests — PIPELINE_FIXTURES=.. to include the fixture ones
 npm run pipeline -- <cmd>  # the pipeline CLI (pipelines/cli.js)
+npm run greenlight -- post <file.json> | list | publish <id>  # SRP login, then the submission routes
 
 npm run link:local       # links omc-util
 npm run unlink:local
@@ -72,7 +73,7 @@ npm run link:local
 | `/api/omc/v1` | `omc-router` | OMC entities + GraphQL — mostly a proxy to fMam |
 | `/api/vocab/v1` | `vocab-v1-router` | Terms, collections, views, facets, generators and usage — read *and write*, backed by Mongo |
 | `/api/vocab/v1` | `vocab-edges-v1-router` | **The same mount**: `/edge-settings`, `/edge-classes`, `/edge-predicates`, `/edges`, plus the edges' own `/edges/check`, `/edges/accept`, `/edges/formats`, `/edges/publish` |
-| `/api/greenlight` | `greenlight-router` | internal test bench for the Portal's Greenlight tab — `POST /ping` echoes the body and the caller |
+| `/api/greenlight` | `greenlight-router` | the Portal's Greenlight tab: `POST /ping` echoes the body and the caller; `/submissions` holds JSON a script posts until its sender publishes it from the Portal |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
 
@@ -133,6 +134,22 @@ no work.
 **The upload route bypasses `express.json`** because it is `multipart/form-data` — that middleware
 only claims `application/json`, so the raw stream reaches busboy untouched, which is what lets a
 multi-gigabyte delivery stream to S3 rather than buffer in memory.
+
+### Greenlight submissions (`src/greenlight/`)
+
+A person posts JSON blocks from a script and publishes each one later from the Portal's Greenlight
+tab. The contract is `Labkoat-Portal/docs/greenlight-contract.md`.
+
+- **One user, two logins, joined by `sub`.** The script signs in with Cognito's `USER_SRP_AUTH`
+  (`tools/greenlight/greenlight.mjs` is the harness and the example to hand over), and the Portal
+  with PKCE. Both use the Portal's app client, so both tokens carry the same `sub`, and every
+  submission is held, listed and published under it.
+- **The gate is a group named `greenlight` under any organisation** (`GREENLIGHT_GROUP` in
+  `access.js`), checked with `cognitoValidator`, not `awsJwtValidator`, which would demand a
+  `labkoat` group and shut other organisations out.
+- **In memory, like pipeline runs**: lost on restart, correct only on a single replica, swept after
+  `GREENLIGHT_TTL_MS`. Publishing removes a submission; `publish.js` is where its action goes.
+- `npm run verify:greenlight` checks the gate, the store and the controllers without a token.
 
 ### Credentials
 

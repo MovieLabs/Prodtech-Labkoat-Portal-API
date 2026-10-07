@@ -32,6 +32,11 @@ const configEnv = {
         // What keeps them apart is that each app client is allowed to request only its own scope.
         COGNITO_VOCAB_SCOPE: 'labkoat/vocab.read',
         COGNITO_VOCAB_CLIENT_ID: '', // app client 'api.vocab.labkoat' — set once it exists
+
+        // Greenlight submissions: held in memory until published, or until they expire unread
+        GREENLIGHT_TTL_MS: 24 * 60 * 60 * 1000,
+        GREENLIGHT_MAX_PER_USER: 100,
+
         // Who a caller is, in words. An access token carries `sub` and `username` and no email, and
         // where a pool signs people in by an email alias those two are the same opaque uuid -- so a
         // record stamped from the token alone reads `58011380-e091-...` and names nobody. This

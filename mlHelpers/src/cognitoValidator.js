@@ -16,9 +16,6 @@
  */
 
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
-// eslint-plugin-import has no resolver configured in this repo, so it cannot follow a package
-// `exports` subpath. The import itself is valid.
-// eslint-disable-next-line import/no-unresolved
 import { CognitoJwtInvalidGroupError, JwtInvalidScopeError } from 'aws-jwt-verify/error';
 
 import AuthenticationError from './errors/AuthenticationError.js';
@@ -46,7 +43,8 @@ function bearerFrom(req) {
  * @param {Object} params
  * @param {string} params.userPoolId - The Cognito user pool, e.g. 'us-west-2_EW6OVSs8M'
  * @param {Object} [params.machine] - Accept service tokens: { clientId, scope }
- * @param {Object} [params.user] - Accept user tokens: { clientId, group }
+ * @param {Object} [params.user] - Accept user tokens: { clientId, group }. `group` is a string any
+ *   group name must contain (`'labkoat'`), or a RegExp a group name must match
  * @returns {Function} Express middleware
  */
 function cognitoValidator({ userPoolId, machine = null, user = null }) {
@@ -79,7 +77,9 @@ function cognitoValidator({ userPoolId, machine = null, user = null }) {
             // members are in one of those and not in bare `labkoat`, so an exact match locks them
             // out. Membership of any scoped group implies membership of the organisation.
             check: (payload) => (payload['cognito:groups'] || [])
-                .some((group) => group.includes(user.group)),
+                .some((group) => (user.group instanceof RegExp
+                    ? user.group.test(group)
+                    : group.includes(user.group))),
         });
     }
 

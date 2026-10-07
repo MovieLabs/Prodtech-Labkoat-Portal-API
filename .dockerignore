@@ -14,3 +14,6 @@
 # holds scripts that sample live Frame.io data.
 pipelines/test
 pipelines/docs
+
+# Developer tools: the Greenlight harness needs dev dependencies the image does not install.
+tools
