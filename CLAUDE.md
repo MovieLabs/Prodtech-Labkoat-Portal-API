@@ -77,9 +77,8 @@ npm run link:local
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
 
-Almost every route is guarded by `awsJwtValidator` (Cognito) from `mlHelpers`. Two deliberate
-exceptions: `POST /api/omc/v1/identifier` and the SKOS download routes (`/skos/json`, `/skos/ttl`)
-are unauthenticated.
+Every route is guarded by `awsJwtValidator` (Cognito) from `mlHelpers` except one, deliberately:
+`POST /api/omc/v1/identifier` is unauthenticated.
 
 `omc-router` mirrors fMam's write verbs, and the distinction matters:
 `POST /update` **merges** into what fMam holds; `PUT /update` **replaces** — the payload *is* the
@@ -168,12 +167,6 @@ collection store**: a collection is a `member` array on the term that carries it
 `vocab_collections` is gone and an arrangement has no identifier of its own. See the Portal's
 `src/Components/Vocabulary/CLAUDE.md`.
 
-**Neo4j is gone from this repo** (2026-08-25), and with it `/api/vocab`, `src/neo4J/`, the two
-vocabulary controllers, the hand-written `ttl.js`/`jsonld.js` serializers that
-`generators/skos.js` replaced, `src/vocabulary/migrate/` and the `neo4j-driver` dependency. Removing
-`/api/vocab` also closed the anomaly noted in `vocab-v1-router.js`: `/skos/ttl` and `/skos/json`
-were the only unauthenticated routes on this service.
-
 *The store:* `src/vocabulary/{store,generators}/`, `resolve.js`, `generate.js`, `driftReport.js`,
 `drift.js`, `skosCheck.js` and `src/routes/vocab-v1-router.js`. The three top-level `.js` files with
 a usage block at the top — `generate.js`, `drift.js`, `skosCheck.js` — are command-line tools, not
@@ -190,15 +183,9 @@ node src/vocabulary/drift.js --schema ../omcUtil/src/omc/validation/schema/OMC-J
 node src/vocabulary/skosCheck.js --view view:media-creation
 ```
 
-**The migration has run and its scripts are deleted.** Three of them mattered: `collapse.mjs`
-(collections onto terms), `omcNamespace.mjs` (`omc:` ids into the vocabulary's own namespace) and
-`pruneTokens.mjs`. Nothing can re-run them and nothing should — choosing which term heads each
-arrangement was a human decision, not a derivation, so there is no faithful port. Git history holds
-them if the reasoning is ever needed.
-
-**The namespace migration has run too**, and `migrateNamespace.js` is deleted with the rest. Every
-stored id and IRI carries the `NAMESPACE` in `store/ids.js` — `mlv` — so a `vmc:` id anywhere is a
-pre-migration artifact, not live data.
+**The store's migrations have all run and their scripts are deleted**; git history holds them.
+Nothing should re-run them: choosing which term heads each arrangement was a human decision, not a
+derivation. A `vmc:` or `omc:` id anywhere is a pre-migration artifact, not live data.
 
 **Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
 `seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
@@ -250,18 +237,10 @@ simply be re-pointed at one. `classes.js` reads the trees out of the view; `qual
 drift. See the parent `CLAUDE.md` and, for what the Portal's tab draws,
 `Labkoat-Portal/src/Components/Vocabulary/CLAUDE.md`.
 
-### The OMC merge — two graphs became one term store
+### Ids and labels
 
-The old Neo4j store held two disjoint graphs joined by a `hasSkosDefinition` edge with **no
-integrity behind it**. The merge dissolved that: a controlled value with such an edge became a
-*placement of a term the vocabulary already held*; one without became a term of its own. Measured on
-the live data at the time: 293 controlled values, 125 placements onto 107 existing terms, 183 terms
-minted. That is why the store looks as it does.
-
-**Those 183 kept an `omc:` identifier, and no longer do.** Two namespaces for one kind of thing meant
-a term in the second was indistinguishable from a term in the first until it reached an export —
-where `omc:` was not even in the Turtle's prefix map, so it emitted an undeclared CURIE.
-The move kept the number where it was free (`omc:002A0` → `c-0002a0`) and minted where it was not.
+OMC's controlled values are terms in this store: a value that matched an existing term became a
+*placement* of it, and the rest became terms of their own.
 
 **Every id carries one namespace, `mlv:`** — `NAMESPACE` in `store/ids.js`, which minting, the scheme
 and collection ids, and the SKOS prefix map all read. Stored ids carry it and are written out as
@@ -296,10 +275,8 @@ Schema tables are matched to collections by **value overlap, never by name**: `a
 the graph's `functionalType (Asset)`, and six schema tables correspond to properties all called
 `narrativeType`. A name mapping would be one more copy of the same knowledge, drifting alongside it.
 
-Live result after the merge: **268 of 307 distinct schema values are defined by a term, from 49
-before** — 39 still undefined, 30 vocabulary values the schema has no place for, 72 of 86 dotted
-values reproduced exactly. `x-controlledValues` is advisory (Ajv ignores `x-` keywords), which is
-why the drift was invisible without this.
+`x-controlledValues` is advisory (Ajv ignores `x-` keywords), so without this report the drift is
+invisible. Run it rather than trusting a remembered count.
 
 Things that will bite:
 
@@ -327,32 +304,11 @@ Things that will bite:
   a self-inclusion, so the *intermediate* states of an ordinary rearrangement would each be rejected
   — which is why the editor holds the arrangement locally and writes once.
 
-### Okta has been removed
+### Auth
 
-As of 2026-09-01 there is no Okta left in this service. Cognito issues both the user tokens the
-Portal presents and the machine token this service presents to fMam (a client_credentials grant;
-see `serviceToken.setup` in `api-server.js`).
-
-Deleted with it: `oktaInterface.js`, `directory/okta/`, `directory/directory.js`,
-`directory/securityController.js`, `directory/user.js`, `routes/directory-router.js`,
-`controllers/token-exchange/`, `routes/test-router.js`, `mlHelpers/src/jwtValidator.js` (the Okta
-bearer validator) and the `@okta/*`, `express-jwt` and `jwks-rsa` packages. None was
-reachable — `directory-router` was never mounted and several of those modules used extensionless
-CommonJS imports that cannot load in an ESM package.
-
-**Auth0 FGA went the same way, on 2026-10-02.** `auth0Interface.js` and `directory/auth0/` are
-deleted, with the `jsonata` dependency they were the only consumer of. The mapper projected a
-Participant's `Person` and `Role` onto FGA relationship tuples (`user:<id> hasRole role:<type>`),
-keyed on an `okta`-scoped identifier.
-
-It could not have run. Nothing imported `auth0Interface.js`; `@auth0/fga` was no longer a declared
-dependency; the `LABKOAT_FGA_*` keys were gone from `config.js`; and the mapper was CommonJS in an
-ESM package, reached by an extensionless import. Any one of those would have stopped it.
-
-`src/controllers/directory/` went with it, the whole tree: five GraphQL query documents
-(`allCharacters`, `allParticipants`, `allStoryboards`, `getAsset`, `mutationPerson`) that nothing
-imported and that imported nothing. They were the queries the directory integration issued against
-fMam.
+Cognito issues every token: the user tokens the Portal presents, and the machine token this service
+presents to fMam (a client_credentials grant; `serviceToken.setup` in `api-server.js`). There is no
+Okta, Auth0 FGA or directory integration left here; git history has them.
 
 ---
 
