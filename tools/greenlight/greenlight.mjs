@@ -118,7 +118,8 @@ async function main() {
         held.forEach((s) => console.log(`${s.id}  received ${s.receivedAt}  ${JSON.stringify(s.data).length} bytes`));
     } else {
         const done = await api(`${base}/${encodeURIComponent(arg)}/publish`, token, { method: 'POST' });
-        console.log(`Published ${done.id} at ${done.publishedAt}`);
+        const sent = done.messageId ? `, sent as message ${done.messageId}` : ', but the API reported no message (is it running the queue code?)';
+        console.log(`Published ${done.id} at ${done.publishedAt}${sent}`);
     }
 }
 
