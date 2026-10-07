@@ -14,9 +14,22 @@ import {
 } from '../controllers/greenlight/greenlight-controller.js';
 
 import { GREENLIGHT_GROUP } from './access.js';
+import { useSender } from './publish.js';
 import { addSubmission, listSubmissions, takeSubmission } from './submissionStore.js';
 
 let checked = 0;
+
+// Nothing here reaches SQS: the sender records what it was handed, or fails when told to.
+const sent = [];
+let failNext = false;
+useSender(async (message) => {
+    if (failNext) {
+        failNext = false;
+        throw new Error('queue unreachable');
+    }
+    sent.push(message);
+    return `msg-${sent.length}`;
+});
 
 /**
  * @param {string} what
@@ -98,6 +111,14 @@ const published = await call(publishSubmissionController, request(alice, { param
 is('publishing is a 200', published.status, 200);
 is('publishing answers with the id', published.body.data.id, first.body.data.id);
 is('a published submission is gone', listSubmissions(alice).map((s) => s.data.shot), [2]);
+is('publishing sends the posted JSON', sent[0].submission.data, block(1));
+is('and the job id with it', sent[0].submission.id, first.body.data.id);
+is('and answers with the message id', published.body.data.messageId, 'msg-1');
+
+failNext = true;
+const refused = await call(publishSubmissionController, request(alice, { params: { id: second.body.data.id } }));
+is('a failed send is an error', refused.error.message, 'queue unreachable');
+is('and the submission stays, to approve again', listSubmissions(alice).map((s) => s.id), [second.body.data.id]);
 
 const again = await call(publishSubmissionController, request(alice, { params: { id: first.body.data.id } }));
 is('publishing it twice is a 404', again.error.status, 404);

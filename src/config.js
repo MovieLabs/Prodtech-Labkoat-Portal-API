@@ -36,6 +36,14 @@ const configEnv = {
         // Greenlight submissions: held in memory until published, or until they expire unread
         GREENLIGHT_TTL_MS: 24 * 60 * 60 * 1000,
         GREENLIGHT_MAX_PER_USER: 100,
+        // Where an approved submission is sent: a FIFO SQS queue in another organisation's account,
+        // reached by assuming their role. Whatever identity this process already has (the pod's
+        // service-account role, or a developer's own credentials locally) must be trusted by it.
+        GREENLIGHT_QUEUE_URL: process.env.GREENLIGHT_QUEUE_URL
+            || 'https://sqs.us-west-2.amazonaws.com/792207722107/workflow-test.fifo',
+        GREENLIGHT_QUEUE_ROLE_ARN: process.env.GREENLIGHT_QUEUE_ROLE_ARN
+            || 'arn:aws:iam::792207722107:role/LaunchApp',
+        GREENLIGHT_MESSAGE_GROUP: 'workflow', // FIFO: messages in one group are delivered in order
 
         // Who a caller is, in words. An access token carries `sub` and `username` and no email, and
         // where a pool signs people in by an email alias those two are the same opaque uuid -- so a

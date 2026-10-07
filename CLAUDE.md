@@ -148,7 +148,12 @@ tab. The contract is `Labkoat-Portal/docs/greenlight-contract.md`.
   `access.js`), checked with `cognitoValidator`, not `awsJwtValidator`, which would demand a
   `labkoat` group and shut other organisations out.
 - **In memory, like pipeline runs**: lost on restart, correct only on a single replica, swept after
-  `GREENLIGHT_TTL_MS`. Publishing removes a submission; `publish.js` is where its action goes.
+  `GREENLIGHT_TTL_MS`.
+- **Publishing sends the JSON to another organisation's FIFO SQS queue** (`queue.js`), by assuming
+  their role with whatever identity the process has: the pod's service-account role in the
+  cluster, a developer's own credentials locally. **Both sides must allow it**: their role's trust
+  policy names each identity, and on ours the identity needs `sts:AssumeRole` on their role ARN.
+  The job id is the deduplication id, so a retried approval is not delivered twice.
 - `npm run verify:greenlight` checks the gate, the store and the controllers without a token.
 
 ### Credentials

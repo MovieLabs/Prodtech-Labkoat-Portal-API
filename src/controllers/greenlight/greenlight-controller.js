@@ -75,8 +75,9 @@ export function listSubmissionsController(req, res) {
 /**
  * Publish one of the caller's submissions, which removes it from the store.
  *
- * An id that is unknown, expired, already published or someone else's is a 404 either way. If the
- * publish action throws, the submission is put back so it can be tried again.
+ * Publishing sends the block to the workflow queue (`greenlight/publish.js`). An id that is unknown,
+ * expired, already published or someone else's is a 404 either way. If the send throws, the
+ * submission is put back so it can be approved again.
  *
  * @param req
  * @param res
@@ -91,8 +92,8 @@ export async function publishSubmissionController(req, res, next) {
         return;
     }
     try {
-        const { publishedAt } = await publishSubmission({ submission, caller: claimedActor(req) });
-        ok(res, { id: submission.id, publishedAt });
+        const { publishedAt, messageId } = await publishSubmission({ submission, caller: claimedActor(req) });
+        ok(res, { id: submission.id, publishedAt, messageId });
     } catch (err) {
         restoreSubmission({ sub, submission });
         next(err);
