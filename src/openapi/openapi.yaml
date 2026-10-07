@@ -27,10 +27,10 @@ info:
 
         ## Authentication
 
-        Every route below requires a bearer token, and **two kinds are accepted**: an AWS Cognito
-        user token, which is what the Portal holds, and an Okta service token, which is what a build
-        script or another service holds. Each is verified against its own issuer, audience and
-        signature; a token from neither is refused.
+        Every route below requires a bearer token from the AWS Cognito pool, and **two kinds are
+        accepted**: a user token, which is what the Portal holds, and a machine token
+        (client_credentials), which is what a build script or another service holds. They are told
+        apart by their claims; a token the pool did not sign is refused.
 
         That is what lets a documentation build call `/terms/{id}/markdown` on a schedule without a
         person being signed in.
@@ -1627,8 +1627,8 @@ components:
             scheme: bearer
             bearerFormat: JWT
             description: |
-                An AWS Cognito user token, or an Okta service token. Each is verified against its own
-                issuer, audience and signature; a token from neither is refused.
+                An AWS Cognito user token or machine (client_credentials) token, verified against the
+                pool's issuer and signature; any other token is refused.
 
     parameters:
         viewId:

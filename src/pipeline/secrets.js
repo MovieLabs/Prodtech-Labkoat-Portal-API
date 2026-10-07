@@ -20,8 +20,8 @@
  * rest of a pipeline run already has.
  *
  * A run is given only the names its pipeline declared. The alternative — handing the worker
- * everything — would put the Okta client secret and the Neo4j password in the same object as a
- * third-party API token, for no reason.
+ * everything — would put this service's own secrets in the same object as a third-party API token,
+ * for no reason.
  *
  * @namespace namespace:LabkoatApi.pipelineSecrets
  */

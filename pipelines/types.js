@@ -1,5 +1,5 @@
 /**
- * Type definitions for the Data-Pipeline.
+ * Type definitions for the pipelines.
  *
  * The pipeline has three layers, and the types below follow them:
  *

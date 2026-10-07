@@ -1,9 +1,8 @@
 # Pipelines
 
 Tools that read heterogeneous production data sources — PDFs, XML, spreadsheets — and
-prepare them for ingestion into OMC-JSON workflows. Labkoat-API runs them in worker threads;
-this directory was the separate `Data-Pipeline` repository until 2026-10-06. Commands below run
-from the repository root.
+prepare them for ingestion into OMC-JSON workflows. Labkoat-API runs them in worker threads.
+Commands below run from the repository root.
 
 ## Layers
 

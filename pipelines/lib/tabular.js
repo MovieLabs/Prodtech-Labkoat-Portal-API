@@ -29,7 +29,7 @@ export async function writeTables(tables, outDir, workbookName) {
     for (const file of stale) await unlink(path.join(outDir, file));
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'MovieLabs Data-Pipeline';
+    workbook.creator = 'MovieLabs Labkoat pipelines';
 
     for (const [name, rows] of Object.entries(tables)) {
         const csvPath = path.join(outDir, `${name}.csv`);

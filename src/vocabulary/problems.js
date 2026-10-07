@@ -2,7 +2,7 @@
  * What went wrong resolving or rendering a view, in sentences a person can act on.
  *
  * The resolver records each problem by identifier — a container, a member row, a term — because that
- * is what the walk has in hand. An identifier tells the person reading it nothing: `vmc:c-00004D#f1`
+ * is what the walk has in hand. An identifier tells the person reading it nothing: `mlv:c-00004D#f1`
  * does not say "Asset Function's arrangement v30", and a count says less still. This names the term,
  * the arrangement holding the row, where the view reaches it, and what it cost the output.
  *

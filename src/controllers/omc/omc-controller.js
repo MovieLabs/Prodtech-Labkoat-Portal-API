@@ -1,5 +1,5 @@
 /**
- * Controllers for managing the Okta directory for the Labkoat portal
+ * Controllers for the OMC routes: a proxy to fMam's REST and GraphQL APIs
  * @module
  */
 

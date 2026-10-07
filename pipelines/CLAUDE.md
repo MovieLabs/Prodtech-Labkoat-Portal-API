@@ -13,11 +13,7 @@ The processing pipelines. Each reads a heterogeneous production source (PDFs, XM
 a third-party API) and turns it into OMC-JSON. **This is code the service runs, not a service**:
 Labkoat-API loads it in worker threads (`src/pipeline/runner.worker.js`).
 
-**Until 2026-10-06 this was a separate repository, `Data-Pipeline`**, published as snapshot tags to
-`MovieLabs/omc-data-pipeline` and consumed as a git dependency. That repository is retired. Its
-history stops at 1.1.0, which is the code this directory was imported from (`d30014a`). The move
-was made because the only consumer was this service, and every change needed a tag, a publish and
-a lockfile bump, a step that was forgotten.
+It ships with every push to this repository's `main`; there is no separate release.
 
 **`README.md` is the real documentation.** It covers the layer model, running a pipeline, writing a
 new one, the Script-E source in detail, the OMC mapping and schema versions. Read it before changing

@@ -5,10 +5,8 @@
  * and inventing a dozen speculative ones would be inventing requirements. What has to exist is the
  * view that replaces today's single SKOS export, and the union it is published under.
  *
- * **`view:omc-controlled-values` was one of these and is gone**, along with the 33 collections it
- * read. That arrangement was a parallel copy of terms Media Creation already held, taken from the
- * OMC graph during the move off Neo4j, and it is replaced by one composed from the Media Creation
- * hierarchy itself. What it published on the day it went is kept under `snapshots/`.
+ * The controlled-values view is composed from the Media Creation hierarchy itself. What its
+ * predecessor published is kept under `snapshots/`, for checking a rebuild against.
  *
  * ## `ontology` is what makes a union expressible
  *

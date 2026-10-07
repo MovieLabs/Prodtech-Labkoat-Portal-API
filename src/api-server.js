@@ -154,7 +154,6 @@ export default async function apiServer() {
         ? `Pipeline storage: PIPELINE_STORAGE=local, writing to ${localRoot}`
         : `Pipeline storage: PIPELINE_STORAGE=s3, bucket ${config.PIPELINE_BUCKET}, `
             + 'one prefix per project');
-    // app.use('/api/token-exchange', token-exchange); // Route and controllers for testing the token-exchange token
 
     // **Unauthenticated, deliberately.** It serves the shape of the API, never any vocabulary: a
     // consumer writing a client needs to read it before they have a token, and every route it

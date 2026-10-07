@@ -1,8 +1,7 @@
 /**
  * The vocabulary's connection to MongoDB.
  *
- * The vocabulary used to live in Neo4j, reached only from this service. It still is reached only
- * from here — what changes is the store beneath it. Nothing about that is visible to a caller.
+ * The vocabulary is reached only from this service.
  *
  * **No new credentials.** `config.SECRET_ARN.FMAM` is already declared in this service and already
  * loaded by `awsSecrets` at boot, because the gateway holds the fMam secret for other reasons. The
@@ -32,7 +31,7 @@ import config from '../../config.js';
 //
 // The blast radius is smaller than it looks: `setServers` governs the `dns.resolve*` family, which
 // is what the driver uses for SRV. Ordinary hostname lookups go through `dns.lookup` and the OS
-// resolver, so the gateway's other outbound calls — Okta, AWS, fMam, Neo4j — are unaffected.
+// resolver, so the gateway's other outbound calls — Cognito, AWS, fMam — are unaffected.
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 

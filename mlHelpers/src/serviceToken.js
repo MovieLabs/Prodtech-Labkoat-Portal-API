@@ -1,9 +1,8 @@
 /**
  * Mints and caches a client_credentials access token for this service.
  *
- * Provider-agnostic: the token endpoint is supplied by the caller, because it is not derivable from
- * the issuer in the same way across providers. Okta puts it at `{issuer}/v1/token`; Cognito puts it
- * on the user pool's hosted domain, which is a different host from the issuer entirely.
+ * The token endpoint is supplied by the caller: Cognito serves it on the user pool's hosted domain,
+ * a different host from the issuer, so it cannot be derived.
  *
  * @module serviceToken
  */
@@ -22,7 +21,7 @@ const EXPIRY_SKEW_SECONDS = 60;
  * @function setup
  * @param {Object} params
  * @param {string} params.issuer
- * @param {string} [params.tokenUrl] - The token endpoint; defaults to the Okta convention
+ * @param {string} params.tokenUrl - The token endpoint
  * @param {string} params.scope
  * @param {string} params.clientId
  * @param {string} params.clientSecret
@@ -30,7 +29,8 @@ const EXPIRY_SKEW_SECONDS = 60;
  */
 export async function setup(params) {
     tokenService.issuer = params.issuer;
-    tokenService.tokenUrl = params.tokenUrl || `${params.issuer}/v1/token`;
+    if (!params.tokenUrl) throw new Error('serviceToken.setup needs a tokenUrl');
+    tokenService.tokenUrl = params.tokenUrl;
     tokenService.scope = params.scope;
     tokenService.clientId = params.clientId;
     tokenService.clientSecret = params.clientSecret;

@@ -43,8 +43,7 @@ that check single subsystems. See `pipelines/CLAUDE.md` for the fixtures.
 
 ### Linking, and the lockfile trap
 
-The one sibling working copy this repo links is omc-util. The pipelines used to be a second, the
-`data-pipeline` package, until they moved into `pipelines/` (see below):
+The one sibling working copy this repo links is omc-util:
 
 ```bash
 cd ../omcUtil && npm link    # once per machine
@@ -77,8 +76,9 @@ npm run link:local
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
 
-Every route is guarded by `awsJwtValidator` (Cognito) from `mlHelpers` except one, deliberately:
-`POST /api/omc/v1/identifier` is unauthenticated.
+Every route is guarded by `awsJwtValidator` (Cognito) from `mlHelpers` except two, deliberately:
+`POST /api/omc/v1/identifier`, and `/api-docs`, which serves the OpenAPI description a client needs
+before it has a token.
 
 `omc-router` mirrors fMam's write verbs, and the distinction matters:
 `POST /update` **merges** into what fMam holds; `PUT /update` **replaces** — the payload *is* the
@@ -97,12 +97,9 @@ This is the part of the repo with the most design in it. Pipelines themselves li
 **`pipelines/`**, at the top level and not under `src/` (one letter from this directory). This
 directory is the machinery that runs them.
 
-**`pipelines/` was the separate `Data-Pipeline` repository until 2026-10-06.** It moved in because
-this service was its only consumer, and every change had to be tagged, published as a snapshot and
-pulled in with a lockfile bump before an image carried it, which was forgotten. It is still kept
-apart: the service reaches it only through the `package.json` aliases `#pipelines` (the worker) and
-`#pipelines/catalog` (the controller, lazily), a pipeline imports nothing from `src/`, and ESLint
-enforces both. Pipelines resolve this repo's omc-util, so there is one version, not two. See
+**`pipelines/` is kept apart from the service code:** the service reaches it only through the
+`package.json` aliases `#pipelines` (the worker) and `#pipelines/catalog` (the controller, lazily),
+a pipeline imports nothing from `src/`, and ESLint enforces both. Pipelines resolve this repo's omc-util, so there is one version, not two. See
 `pipelines/CLAUDE.md`.
 
 | Module | Role |
@@ -182,10 +179,6 @@ node src/vocabulary/generate.js --view view:media-creation --format skos-ttl --o
 node src/vocabulary/drift.js --schema ../omcUtil/src/omc/validation/schema/OMC-JSON-v3.0.schema.json
 node src/vocabulary/skosCheck.js --view view:media-creation
 ```
-
-**The store's migrations have all run and their scripts are deleted**; git history holds them.
-Nothing should re-run them: choosing which term heads each arrangement was a human decision, not a
-derivation. A `vmc:` or `omc:` id anywhere is a pre-migration artifact, not live data.
 
 **Seeding a fresh store has no entry point.** `store/facetSeeds.js` still holds `FACET_SEEDS` and
 `seedFacets`, but their only callers were those CLIs, so a new database cannot currently be seeded
@@ -307,8 +300,7 @@ Things that will bite:
 ### Auth
 
 Cognito issues every token: the user tokens the Portal presents, and the machine token this service
-presents to fMam (a client_credentials grant; `serviceToken.setup` in `api-server.js`). There is no
-Okta, Auth0 FGA or directory integration left here; git history has them.
+presents to fMam (a client_credentials grant; `serviceToken.setup` in `api-server.js`).
 
 ---
 
