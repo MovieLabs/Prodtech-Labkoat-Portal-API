@@ -3,6 +3,8 @@ import { fromTemporaryCredentials } from '@aws-sdk/credential-providers';
 
 import config from '../config.js';
 
+import { awsFailure, trace } from './trace.js';
+
 /**
  * The queue an approved Greenlight submission is sent to: a FIFO SQS queue owned by another
  * organisation, in their AWS account.
@@ -48,19 +50,39 @@ export function workflowMessage(submission) {
 /** @type {SQSClient|null} */
 let client = null;
 
+trace('queue configured', { queue: config.GREENLIGHT_QUEUE_URL, role: config.GREENLIGHT_QUEUE_ROLE_ARN });
+
+/**
+ * The assumed-role credentials, with a log line each time they are fetched. The SQS client holds
+ * what this returns until it is about to expire, so a line appears per session, not per message.
+ *
+ * @returns {Function} An AWS credential provider
+ */
+function tracedCredentials() {
+    const assume = fromTemporaryCredentials({
+        params: {
+            RoleArn: config.GREENLIGHT_QUEUE_ROLE_ARN,
+            RoleSessionName: 'labkoat-greenlight', // Shows in the other account's CloudTrail
+            DurationSeconds: SESSION_SECONDS,
+        },
+        clientConfig: { region: config.AWS_REGION },
+    });
+    return async (options) => {
+        trace('assuming role', { role: config.GREENLIGHT_QUEUE_ROLE_ARN });
+        try {
+            const credentials = await assume(options);
+            trace('role assumed', { expires: credentials.expiration?.toISOString?.() });
+            return credentials;
+        } catch (err) {
+            trace('assume role failed', awsFailure(err));
+            throw err;
+        }
+    };
+}
+
 /** @returns {SQSClient} */
 function queueClient() {
-    client = client ?? new SQSClient({
-        region: config.AWS_REGION,
-        credentials: fromTemporaryCredentials({
-            params: {
-                RoleArn: config.GREENLIGHT_QUEUE_ROLE_ARN,
-                RoleSessionName: 'labkoat-greenlight', // Shows in the other account's CloudTrail
-                DurationSeconds: SESSION_SECONDS,
-            },
-            clientConfig: { region: config.AWS_REGION },
-        }),
-    });
+    client = client ?? new SQSClient({ region: config.AWS_REGION, credentials: tracedCredentials() });
     return client;
 }
 
@@ -78,15 +100,21 @@ function queueClient() {
  * @returns {Promise<string>} The SQS MessageId
  */
 export async function sendToQueue({ submission, approvedBy }) {
+    const message = workflowMessage(submission);
+    trace('sending to queue', { jobId: submission.id, messageType: message.header.messageType });
     const response = await queueClient().send(new SendMessageCommand({
         QueueUrl: config.GREENLIGHT_QUEUE_URL,
-        MessageBody: JSON.stringify(workflowMessage(submission)),
+        MessageBody: JSON.stringify(message),
         MessageGroupId: config.GREENLIGHT_MESSAGE_GROUP,
         MessageDeduplicationId: submission.id,
         MessageAttributes: {
             jobId: { DataType: 'String', StringValue: submission.id },
             approvedBy: { DataType: 'String', StringValue: approvedBy },
         },
-    }));
+    })).catch((err) => {
+        trace('send failed', { jobId: submission.id, ...awsFailure(err) });
+        throw err;
+    });
+    trace('sent', { jobId: submission.id, messageId: response.MessageId });
     return response.MessageId;
 }
