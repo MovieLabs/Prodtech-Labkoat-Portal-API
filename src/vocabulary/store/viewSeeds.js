@@ -5,8 +5,7 @@
  * and inventing a dozen speculative ones would be inventing requirements. What has to exist is the
  * view that replaces today's single SKOS export, and the union it is published under.
  *
- * The controlled-values view is composed from the Media Creation hierarchy itself. What its
- * predecessor published is kept under `snapshots/`, for checking a rebuild against.
+ * The controlled-values view is composed from the Media Creation hierarchy itself.
  *
  * ## `ontology` is what makes a union expressible
  *
