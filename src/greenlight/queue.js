@@ -20,6 +20,31 @@ import config from '../config.js';
 
 const SESSION_SECONDS = 900; // The shortest session AssumeRole grants
 
+/**
+ * The header every workflow message carries, as the receiving organisation specified it.
+ * A change of shape here is a change of `messageTypeVersion`.
+ */
+export const WORKFLOW_HEADER = Object.freeze({
+    headerVersion: '0.1',
+    messageSchema: 'http://movielabs.com/greenlight.json',
+    messageType: 'greenlight.workflow-start',
+    messageTypeVersion: '0.1',
+});
+
+/**
+ * The message for one approved submission: the header, and the posted JSON, unchanged, as
+ * `body.contents.pullData`.
+ *
+ * @param {{data: *}} submission
+ * @returns {{header: object, body: {contents: {pullData: *}}}}
+ */
+export function workflowMessage(submission) {
+    return {
+        header: { ...WORKFLOW_HEADER },
+        body: { contents: { pullData: submission.data } },
+    };
+}
+
 /** @type {SQSClient|null} */
 let client = null;
 
@@ -42,7 +67,8 @@ function queueClient() {
 /**
  * Send one approved submission.
  *
- * The body is the submitted JSON, exactly as it was posted. The job id rides as a message attribute
+ * The body is `workflowMessage`: the header, wrapping the submitted JSON exactly as it was posted. The
+ * job id rides as a message attribute
  * and is also the **deduplication id**, so if an approval is retried after a send that did land,
  * SQS discards the second copy (within its five-minute window) rather than delivering the job twice.
  *
@@ -54,7 +80,7 @@ function queueClient() {
 export async function sendToQueue({ submission, approvedBy }) {
     const response = await queueClient().send(new SendMessageCommand({
         QueueUrl: config.GREENLIGHT_QUEUE_URL,
-        MessageBody: JSON.stringify(submission.data),
+        MessageBody: JSON.stringify(workflowMessage(submission)),
         MessageGroupId: config.GREENLIGHT_MESSAGE_GROUP,
         MessageDeduplicationId: submission.id,
         MessageAttributes: {

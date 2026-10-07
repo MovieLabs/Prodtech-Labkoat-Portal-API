@@ -15,6 +15,7 @@ import {
 
 import { GREENLIGHT_GROUP } from './access.js';
 import { useSender } from './publish.js';
+import { workflowMessage } from './queue.js';
 import { addSubmission, listSubmissions, takeSubmission } from './submissionStore.js';
 
 let checked = 0;
@@ -135,5 +136,17 @@ Date.now = realNow;
 for (let i = 0; i < config.GREENLIGHT_MAX_PER_USER; i += 1) addSubmission({ sub: 'sub-dave', data: block(i) });
 is('a sender at the cap is refused', addSubmission({ sub: 'sub-dave', data: block(0) }), null);
 is('another sender is not', addSubmission({ sub: 'sub-erin', data: block(0) }) !== null, true);
+
+// ---- the message the queue receives: the header, wrapping the posted JSON ----
+
+is('the workflow message wraps the posted JSON', workflowMessage({ id: 'job-9', data: block(7) }), {
+    header: {
+        headerVersion: '0.1',
+        messageSchema: 'http://movielabs.com/greenlight.json',
+        messageType: 'greenlight.workflow-start',
+        messageTypeVersion: '0.1',
+    },
+    body: { contents: { pullData: block(7) } },
+});
 
 console.log(`greenlight.verify: ${checked} checks passed`);

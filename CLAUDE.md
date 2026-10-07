@@ -153,7 +153,9 @@ tab. The contract is `Labkoat-Portal/docs/greenlight-contract.md`.
   their role with whatever identity the process has: the pod's service-account role in the
   cluster, a developer's own credentials locally. **Both sides must allow it**: their role's trust
   policy names each identity, and on ours the identity needs `sts:AssumeRole` on their role ARN.
-  The job id is the deduplication id, so a retried approval is not delivered twice.
+  The body is `workflowMessage`: their `header` (`WORKFLOW_HEADER`), with the posted JSON as
+  `body.contents.pullData`. The job id is the deduplication id, so a retried approval is not
+  delivered twice.
 - `npm run verify:greenlight` checks the gate, the store and the controllers without a token.
 
 ### Credentials
