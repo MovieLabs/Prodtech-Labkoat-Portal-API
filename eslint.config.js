@@ -1,10 +1,7 @@
-// eslint.config.js - Project A
+// eslint.config.js - Labkoat-API (Node only)
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import importPlugin from 'eslint-plugin-import';
-import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
-import reactPlugin from 'eslint-plugin-react';
-import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 export default [
@@ -17,43 +14,23 @@ export default [
         indent: 4,
         quotes: 'single',
         semi: true,
-        jsx: true,
     }),
 
     {
-        files: ['**/*.{js,mjs,cjs,jsx}'],
+        files: ['**/*.{js,mjs,cjs}'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: {
-                ...globals.browser,
-                ...globals.node,
-            },
-            parserOptions: {
-                ecmaFeatures: { jsx: true },
-            },
+            globals: { ...globals.node },
         },
     },
 
     {
-        plugins: {
-            'react': reactPlugin,
-            'react-hooks': reactHooksPlugin,
-            'jsx-a11y': jsxA11yPlugin,
-            'import': importPlugin,
-        },
-    },
-
-    {
+        plugins: { import: importPlugin },
         settings: {
-            react: {
-                version: 'detect',
-            },
-        },
-        rules: {
-            ...reactHooksPlugin.configs.recommended.rules,
-            ...jsxA11yPlugin.configs.recommended.rules,
-            ...reactPlugin.configs.recommended.rules,
+            // The typescript resolver reads package.json `exports` and `imports` maps, which the
+            // plugin's default node resolver does not, so `#pipelines/*` and `omc-util/*` resolve.
+            'import/resolver': { typescript: true, node: true },
         },
     },
 
@@ -76,8 +53,6 @@ export default [
             '@stylistic/arrow-parens': ['error', 'always'],
             '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
             '@stylistic/no-extra-parens': 'off',
-            // '@stylistic/jsx-indent': ['error', 2],
-            '@stylistic/jsx-indent-props': ['error', 2],
 
             // Modern JS best practices
             'prefer-const': 'error',
@@ -99,30 +74,18 @@ export default [
                 'error',
                 {
                     'groups': ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-                    'pathGroups': [{ pattern: '#pipelines{,/**}', group: 'internal' }],
+                    // mlHelpers is a `file:` dependency, which the resolver follows to a path outside
+                    // node_modules and would call internal; it is a package, so it sorts as one.
+                    'pathGroups': [
+                        { pattern: '#pipelines{,/**}', group: 'internal' },
+                        { pattern: 'mlHelpers{,/**}', group: 'external' },
+                    ],
                     'newlines-between': 'always',
                     'alphabetize': { order: 'asc', caseInsensitive: true },
                 },
             ],
             'import/no-duplicates': 'error',
-            // eslint-plugin-import's resolver reads neither package.json `imports` nor a dependency's
-            // `exports` map; Node reads both. The boundary below says which `#pipelines` names may be
-            // used, and omc-util's subpaths are its own published entry points.
-            'import/no-unresolved': ['error', { ignore: ['^#pipelines', '^omc-util/'] }],
-
-            // React rules
-            'react/self-closing-comp': 'error',
-            'react/jsx-no-useless-fragment': 'error',
-            'react/react-in-jsx-scope': 'off',
-            'react/jsx-uses-react': 'off',
-
-            // React Hooks
-            'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'warn',
-
-            // Accessibility
-            'jsx-a11y/anchor-is-valid': 'error',
-            'jsx-a11y/alt-text': 'error',
+            'import/no-unresolved': 'error',
         },
     },
 
