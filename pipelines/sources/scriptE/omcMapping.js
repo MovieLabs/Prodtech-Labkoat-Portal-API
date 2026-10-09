@@ -37,7 +37,7 @@ export const omcMappings = [
         properties: {
             'label': 'productionScene',
             'productionSceneName.fullName': 'productionScene',
-            'sceneNumber': 'productionScene',
+            'sceneDescriptor': 'productionScene',
             // Only where the production scene covers exactly one narrative scene. Where it
             // covers two (R13/15 covers 13 and 15) there is no one header, and inventing a
             // composite would assert something the script does not say — the edges carry
@@ -50,7 +50,7 @@ export const omcMappings = [
             },
             // shotDescription is take-level in Script-E and does vary within a slate, so it
             // is promoted to the scene only when every take agrees.
-            'sceneDescriptor': { from: 'shotDescription', when: 'unanimous' },
+            'description': { from: 'shotDescription', when: 'unanimous' },
         },
         customData: {
             domain: DOMAIN,
