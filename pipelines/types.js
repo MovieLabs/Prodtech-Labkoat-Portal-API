@@ -65,8 +65,9 @@
  *   properties as numbers (`shootDay`, `recordingFPS`) or dateTimes (`createdOn`) where a
  *   source delivers strings; `datetime` promotes a date-only value to midnight UTC.
  * @property {*} [const] - A fixed value the mapping supplies, rather than a source column —
- *   a decision (`assetFunctionType`, `Provenance.reason`), not data. Checked against the
- *   schema's controlled values by {@link DataPipeline.checkMappings}.
+ *   a decision (`assetFunctionType`, `Provenance.reason`), not data. Checked by
+ *   {@link DataPipeline.checkMappings}: a value outside a schema enum is a problem, and one
+ *   outside the controlled values is only a warning, since those are suggestions.
  * @property {string} [split] - Treat the column as a delimited list and split on this
  *   delimiter. Values are trimmed, de-duplicated and sorted, so a source that writes the
  *   same set in two orders yields one result.
@@ -240,6 +241,8 @@
  * @property {Object} checked - Counts of what was checked
  * @property {Array<DataPipeline.MappingNote>} problems - Properties and edges the schema
  *   does not accept, each naming the entity type and path
+ * @property {Array<DataPipeline.MappingNote>} warnings - Accepted, but worth a look: a fixed
+ *   value outside the property's controlled values (`valueNotSuggested`). Never affects `valid`
  */
 
 /**
