@@ -10,7 +10,7 @@ const PIPELINE_ID = 'script-e';
 const SOURCE_ROOT = path.join(wwdoat, 'sourceData/Script-E');
 const GOLDEN_DIR = path.join(wwdoat, 'omc');
 const GOLDEN_FILES = [
-    'productionScene', 'slate', 'narrativeScene', 'asset', 'assetStructure', 'provenance',
+    'productionScene', 'realization', 'slate', 'narrativeScene', 'asset', 'assetStructure', 'provenance',
 ];
 
 /**

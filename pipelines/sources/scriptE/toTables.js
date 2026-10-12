@@ -1,3 +1,5 @@
+import { splitList } from 'omc-util/mapping';
+
 import { SCENE_FIELDS, SHOOT_DAY_FIELDS, TAKE_FIELDS } from './fieldMap.js';
 
 /**
@@ -33,6 +35,26 @@ const TAKE_CHARACTER_COLUMNS = [
     'slateFullName', 'productionScene', 'narrativeScene', 'slate', 'camera', 'take',
     'characterNumber', 'characterName',
 ];
+
+/**
+ * One row per pairing of a production scene with a narrative scene it covers, from the takes. A
+ * take's `narrativeScene` may list several (`13;15`), split as the OMC mapping splits it. `pairKey`
+ * identifies the pairing, so a pair recorded on several days folds into one.
+ *
+ * @param {object[]} takes - The day's takes
+ * @returns {Array<{pairKey: string, productionScene: string, narrativeScene: string}>}
+ */
+const sceneCoverage = ((takes) => {
+    const pairs = new Map();
+    takes.forEach((take) => {
+        if (!take.productionScene) return;
+        splitList(take.narrativeScene, ';').forEach((narrativeScene) => {
+            const pairKey = `${take.productionScene}|${narrativeScene}`;
+            if (!pairs.has(pairKey)) pairs.set(pairKey, { pairKey, productionScene: take.productionScene, narrativeScene });
+        });
+    });
+    return [...pairs.values()];
+});
 
 /**
  * Project a row onto an explicit column list, so every row in a table has the same shape
@@ -72,5 +94,7 @@ export function toTables(model) {
             .map((r) => project(r, ['narrativeScene', 'characterNumber', 'characterName'], context)),
         takes: model.takes.map((r) => project(r, takeColumns(), context)),
         takeCharacters: model.takeCharacters.map((r) => project(r, TAKE_CHARACTER_COLUMNS, context)),
+        productionSceneNarrativeScenes: sceneCoverage(model.takes)
+            .map((r) => project(r, ['pairKey', 'productionScene', 'narrativeScene'], context)),
     };
 }

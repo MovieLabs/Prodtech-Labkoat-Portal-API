@@ -60,11 +60,19 @@ export const omcMappings = [
         },
         edges: [
             { to: 'Slate', via: 'slateFullName', inverse: true },
-            // A production scene can cover more than one narrative scene: slate R13/15
-            // covers scenes 13 and 15.
-            {
-                to: 'NarrativeScene', via: 'narrativeScene', split: ';', inverse: true,
-            },
+        ],
+    },
+    {
+        // The relationship between a production scene and a narrative scene it covers, reified:
+        // one Realization per pair (production scene R13/15 covers narrative scenes 13 and 15, so
+        // two). NarrativeScene -> Realization -> ProductionScene; each inverse is written too.
+        entityType: 'Realization',
+        table: 'productionSceneNarrativeScenes',
+        grain: 'group',
+        key: 'pairKey',
+        edges: [
+            { to: 'NarrativeScene', via: 'narrativeScene', inverse: true },
+            { to: 'ProductionScene', via: 'productionScene', inverse: true },
         ],
     },
     {
