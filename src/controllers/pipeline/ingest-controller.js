@@ -1,3 +1,6 @@
+import { pipeline } from 'node:stream/promises';
+
+import AuthorizationError from '../../errors/AuthorizationError.js';
 import InternalError from '../../errors/InternalError.js';
 import InvalidProject from '../../errors/InvalidProject.js';
 import InvalidQuery from '../../errors/InvalidQuery.js';
@@ -7,7 +10,9 @@ import {
     createRun, getRun, publicView,
 } from '../../pipeline/jobStore.js';
 import { getProjectConfig, getProjectStorage } from '../../pipeline/projectConfig.js';
-import { receiveUpload, writeSidecar } from '../../pipeline/storage.js';
+import {
+    contentTypeFor, objectWithin, openObject, receiveUpload, writeSidecar,
+} from '../../pipeline/storage.js';
 import { submit } from '../../pipeline/workerPool.js';
 
 /**
@@ -95,6 +100,7 @@ export async function uploadAsset(req, res, next) {
             identifierScope: record.primaryScope,
             schemaVersion: record.schemaVersion,
             storageUrl: file.ref,
+            contentType: file.contentType,
         });
 
         // The sidecar the ingest contract specifies, carrying the minted pair alongside the file's
@@ -202,4 +208,57 @@ export async function getProcessingResult(req, res, next) {
         return;
     }
     ok(res, { status: 'pending' });
+}
+
+/**
+ * Send a stored file back, named by the reference its AssetStructure carries in
+ * `fileDetails.filePath` — the `storageUrl` an upload returned.
+ *
+ * The reference is accepted only inside the named project's own storage, so a client can read the
+ * files a project holds and nothing else. The bytes are streamed, never buffered; when the client
+ * goes away (a sidebar selection changed) the pipe is torn down and the S3 read with it.
+ *
+ * `inline` rather than `attachment`: the Portal decides whether to show, open or save the file,
+ * and the filename travels either way.
+ */
+export async function getAssetFile(req, res, next) {
+    try {
+        const { project, ref } = req.query;
+        if (!project || !ref) {
+            next(new InvalidRequest(`missing: ${project ? 'ref' : 'project'}`));
+            return;
+        }
+        const destination = await getProjectStorage(project);
+        if (!destination) {
+            next(new InvalidProject(`${project} has no storage configured`));
+            return;
+        }
+        const object = objectWithin(ref, destination);
+        if (!object) {
+            next(new AuthorizationError(`${ref} is not stored in ${project}`));
+            return;
+        }
+        const opened = await openObject({ object, region: destination.region });
+        if (!opened) {
+            next(new InvalidQuery(`no stored file at ${ref}`));
+            return;
+        }
+
+        const fileName = String(ref).split('/').pop();
+        // Looked up again here, for files stored before uploads recorded a type of their own.
+        res.type(contentTypeFor(fileName, opened.contentType));
+        if (opened.contentLength != null) res.set('Content-Length', String(opened.contentLength));
+        const ascii = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_');
+        res.set(
+            'Content-Disposition',
+            `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+        );
+
+        await pipeline(opened.body, res).catch((err) => {
+            // A client that leaves mid-transfer is the expected way this ends early, not a fault.
+            if (err?.code !== 'ERR_STREAM_PREMATURE_CLOSE') console.warn(`getAssetFile: ${err.message}`);
+        });
+    } catch (err) {
+        next(err.status ? err : new InternalError(err.message));
+    }
 }

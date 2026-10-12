@@ -36,10 +36,12 @@
  * @param {string} params.identifierScope - The project's scope
  * @param {string} params.schemaVersion - The project's OMC schema version
  * @param {string} params.storageUrl - Where the bytes landed, recorded on the AssetStructure
+ * @param {string} [params.contentType] - The stored type, recorded as the AssetStructure's
+ *   `mediaType` when the client supplied none
  * @returns {Promise<Array<object>>} The identified, linked pair
  */
 export default async function mintAssetPair({
-    asset, assetStructure, md5, identifierScope, schemaVersion, storageUrl,
+    asset, assetStructure, md5, identifierScope, schemaVersion, storageUrl, contentType,
 }) {
     // Both come from the project's record, so an unreadable or incomplete record lands here. Say
     // which field is missing: without this the failure is `Cannot read properties of undefined
@@ -70,15 +72,21 @@ export default async function mintAssetPair({
     const identifiedAsset = identify(asset ?? {}, 'Asset');
     let identifiedStructure = identify(assetStructure ?? {}, 'AssetStructure');
 
-    // Where the bytes actually live is a fact only this service has.
+    // Where the bytes actually live is a fact only this service has. The media type is the
+    // client's when it gave one; a browser often cannot (it sends no type for `.heic` on Windows),
+    // and then the type the file was stored under stands in.
     if (storageUrl) {
+        const fileDetails = identifiedStructure.assetStructureProperties?.fileDetails;
+        const mediaType = fileDetails?.mediaType
+            || (contentType && contentType !== 'application/octet-stream' ? contentType : undefined);
         identifiedStructure = {
             ...identifiedStructure,
             assetStructureProperties: {
                 ...identifiedStructure.assetStructureProperties,
                 fileDetails: {
-                    ...identifiedStructure.assetStructureProperties?.fileDetails,
+                    ...fileDetails,
                     filePath: storageUrl,
+                    ...(mediaType ? { mediaType } : {}),
                 },
             },
         };

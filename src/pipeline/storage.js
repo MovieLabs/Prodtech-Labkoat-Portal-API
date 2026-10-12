@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
-import { createWriteStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import {
-    mkdir, readFile, rm, writeFile,
+    mkdir, readFile, rm, stat, writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -12,6 +12,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import busboy from 'busboy';
+import mime from 'mime-types';
 
 import config from '../config.js';
 import PayloadTooLarge from '../errors/PayloadTooLarge.js';
@@ -136,6 +137,82 @@ export async function readObject({ url, region, localRoot = localStorageRoot() }
     const chunks = [];
     for await (const chunk of res.Body) chunks.push(chunk);
     return Buffer.concat(chunks);
+}
+
+/**
+ * The content type to store a file under: the one the client sent, unless it sent none or only the
+ * generic `application/octet-stream` — what a browser does for any extension the OS has no type
+ * registered for, `.heic` on Windows among them — in which case it is looked up from the name.
+ *
+ * @param {string} fileName
+ * @param {string} [sent] - The type the client declared
+ * @returns {string}
+ */
+export function contentTypeFor(fileName, sent) {
+    if (sent && sent !== 'application/octet-stream') return sent;
+    return mime.lookup(fileName ?? '') || 'application/octet-stream';
+}
+
+/**
+ * Resolve a reference against a destination, accepting it only when it names an object inside
+ * that destination's own storage — the same bucket (or the local root) and under its prefix.
+ *
+ * This is the guard that lets a client name a file by its stored reference without being able to
+ * name any other object: a `filePath` read off an entity is the client's word, not the server's.
+ *
+ * @param {string} url - An `s3://bucket/key` or `file://relative/path` reference
+ * @param {{kind: 'local'|'s3', root?: string, bucket?: string, prefix: string}} destination
+ * @returns {{kind: 'local', full: string}|{kind: 's3', bucket: string, key: string}|null} Null
+ *   when the reference is outside the destination, or is not a reference this service writes
+ */
+export function objectWithin(url, destination) {
+    const ref = String(url ?? '');
+    if (destination.kind === 'local') {
+        if (!ref.startsWith('file://')) return null;
+        const bounds = path.resolve(destination.root, destination.prefix);
+        const full = path.resolve(destination.root, ref.slice('file://'.length));
+        return full.startsWith(bounds + path.sep) ? { kind: 'local', full } : null;
+    }
+    const match = /^s3:\/\/([^/]+)\/(.+)$/.exec(ref);
+    if (!match || match[1] !== destination.bucket || !match[2].startsWith(destination.prefix)) {
+        return null;
+    }
+    return { kind: 's3', bucket: match[1], key: match[2] };
+}
+
+/**
+ * Open a stored object as a stream, for sending straight on to a client.
+ *
+ * Unlike {@link readObject} nothing is buffered, so a large file costs the service no memory, and
+ * destroying the returned stream releases the S3 connection — which is what happens when the
+ * client goes away mid-transfer.
+ *
+ * @param {Object} params
+ * @param {ReturnType<typeof objectWithin>} params.object - A reference already checked by
+ *   {@link objectWithin}
+ * @param {string} params.region
+ * @returns {Promise<{body: import('node:stream').Readable, contentType: string|null,
+ *   contentLength: number|null}|null>} Null when there is no such object
+ */
+export async function openObject({ object, region }) {
+    if (object.kind === 'local') {
+        const info = await stat(object.full).catch(() => null);
+        if (!info?.isFile()) return null;
+        return { body: createReadStream(object.full), contentType: null, contentLength: info.size };
+    }
+    try {
+        const res = await clientFor(region).send(new GetObjectCommand({
+            Bucket: object.bucket, Key: object.key,
+        }));
+        return {
+            body: res.Body,
+            contentType: res.ContentType ?? null,
+            contentLength: res.ContentLength ?? null,
+        };
+    } catch (err) {
+        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+        throw err;
+    }
 }
 
 /** S3 accepts at most this many keys in one DeleteObjects call. */
@@ -337,7 +414,8 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
         });
 
         bb.on('file', (name, stream, info) => {
-            const { filename, mimeType } = info;
+            const { filename } = info;
+            const mimeType = contentTypeFor(filename, info.mimeType);
             const hash = crypto.createHash('md5');
             let size = 0;
             let truncated = false;
@@ -393,7 +471,7 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
                             Bucket: destination.bucket,
                             Key: key,
                             Body: body,
-                            ContentType: mimeType || 'application/octet-stream',
+                            ContentType: mimeType,
                         },
                     }).done());
 
@@ -408,7 +486,7 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
                         : storageUrl(destination.bucket, key),
                     md5,
                     size,
-                    contentType: mimeType || 'application/octet-stream',
+                    contentType: mimeType,
                     replaced: Boolean(previous),
                     changed: previous ? previous.file?.md5 !== md5 : null,
                 };

@@ -2,7 +2,7 @@ import express from 'express';
 import { awsJwtValidator } from 'mlHelpers';
 
 import {
-    getProcessingResult, startProcessing, uploadAsset,
+    getAssetFile, getProcessingResult, startProcessing, uploadAsset,
 } from '../controllers/pipeline/ingest-controller.js';
 
 const router = express.Router();
@@ -19,5 +19,6 @@ const router = express.Router();
 router.post('/upload', awsJwtValidator, uploadAsset);
 router.post('/process', awsJwtValidator, startProcessing);
 router.get('/process/:jobId', awsJwtValidator, getProcessingResult);
+router.get('/file', awsJwtValidator, getAssetFile);
 
 export default router;
