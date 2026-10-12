@@ -2,9 +2,8 @@
 
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
-> Cross-repo context — the OMC record, how omc-util is shared, pipeline credentials, deployment
-> topology — is in the parent `MovieLabs-POC/CLAUDE.md`, which loads
-> alongside this file.
+> Cross-repo context loads from the parent `MovieLabs-POC/CLAUDE.md`, whose table names the doc to
+> read in `MovieLabs-POC/docs/`: the OMC record, omc-util sharing and releases, deployment, pipelines.
 
 ---
 

@@ -2,8 +2,9 @@
 
 Guidance for Claude Code working in `pipelines/`.
 
-> Labkoat-API's own `CLAUDE.md` (the service hosting these pipelines) and the parent
-> `MovieLabs-POC/CLAUDE.md` (the OMC record, pipeline credentials) load alongside this file.
+> Labkoat-API's own `CLAUDE.md` and the parent `MovieLabs-POC/CLAUDE.md` load alongside this file.
+> The OMC record is `MovieLabs-POC/docs/omc-knowledge.md`; credentials and mapping templates are
+> `MovieLabs-POC/docs/pipelines.md`.
 
 ---
 
