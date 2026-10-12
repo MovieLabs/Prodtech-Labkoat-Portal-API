@@ -16,6 +16,7 @@ import mime from 'mime-types';
 
 import config from '../config.js';
 import PayloadTooLarge from '../errors/PayloadTooLarge.js';
+import StorageAccessDenied from '../errors/StorageAccessDenied.js';
 
 import { localStorageRoot } from './projectConfig.js';
 
@@ -56,6 +57,27 @@ function clientFor(region) {
         }));
     }
     return clients.get(region);
+}
+
+/**
+ * An S3 failure as the error to report: a refusal of this service's own credentials becomes a
+ * {@link StorageAccessDenied} naming the action and the object, and anything else is returned as it
+ * came. Without this a missing IAM permission reached the client as a bare 500.
+ *
+ * @param {*} err - What the S3 client threw
+ * @param {string} action - What was attempted, e.g. `read`
+ * @param {string} bucket
+ * @param {string} [key] - The object, or the prefix for a listing
+ * @returns {*}
+ */
+function storageFailure(err, action, bucket, key = '') {
+    const denied = err?.name === 'AccessDenied' || err?.Code === 'AccessDenied'
+        || err?.$metadata?.httpStatusCode === 403;
+    if (!denied) return err;
+    return new StorageAccessDenied(
+        `This service is not permitted to ${action} s3://${bucket}/${key}. Its AWS role needs that `
+        + `permission on the bucket. (${err.message})`,
+    );
 }
 
 /**
@@ -133,7 +155,10 @@ export async function readObject({ url, region, localRoot = localStorageRoot() }
     }
 
     const { bucket, key } = parseStorageUrl(url);
-    const res = await clientFor(region).send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const res = await clientFor(region).send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+        .catch((err) => {
+            throw storageFailure(err, 'read', bucket, key);
+        });
     const chunks = [];
     for await (const chunk of res.Body) chunks.push(chunk);
     return Buffer.concat(chunks);
@@ -211,7 +236,7 @@ export async function openObject({ object, region }) {
         };
     } catch (err) {
         if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
-        throw err;
+        throw storageFailure(err, 'read', object.bucket, object.key);
     }
 }
 
@@ -257,7 +282,9 @@ export async function purgePrefix({ destination }) {
             Prefix: destination.prefix,
             KeyMarker: keyMarker,
             VersionIdMarker: versionIdMarker,
-        }));
+        })).catch((err) => {
+            throw storageFailure(err, 'list the versions under', destination.bucket, destination.prefix);
+        });
 
         const objects = [...page.Versions ?? [], ...page.DeleteMarkers ?? []]
             .map(({ Key, VersionId }) => ({ Key, VersionId }));
@@ -267,7 +294,9 @@ export async function purgePrefix({ destination }) {
             const res = await client.send(new DeleteObjectsCommand({
                 Bucket: destination.bucket,
                 Delete: { Objects: batch, Quiet: true },
-            }));
+            })).catch((err) => {
+                throw storageFailure(err, 'delete objects under', destination.bucket, destination.prefix);
+            });
             deleted += batch.length - (res.Errors?.length ?? 0);
             for (const e of res.Errors ?? []) errors.push({ key: e.Key, message: e.Message });
         }
@@ -302,7 +331,10 @@ export async function readSidecar({ destination, key }) {
                 region: destination.region,
             }).then((b) => b.toString('utf8'));
         return JSON.parse(raw);
-    } catch {
+    } catch (err) {
+        // A refusal is not "no sidecar": the write that follows would be refused too, and saying so
+        // now beats reporting a first upload that is not one.
+        if (err instanceof StorageAccessDenied) throw err;
         return null;
     }
 }
@@ -352,7 +384,9 @@ export async function writeSidecar({
             Key: key,
             Body: body,
             ContentType: 'application/json',
-        }));
+        })).catch((err) => {
+            throw storageFailure(err, 'write', destination.bucket, key);
+        });
     }
     return sidecar;
 }
@@ -473,7 +507,9 @@ export function receiveUpload({ req, resolveDestination, maxBytes = config.PIPEL
                             Body: body,
                             ContentType: mimeType,
                         },
-                    }).done());
+                    }).done().catch((err) => {
+                        throw storageFailure(err, 'write', destination.bucket, key);
+                    }));
 
                 if (truncated) throw new PayloadTooLarge(`${filename} exceeds ${maxBytes} bytes`);
 
