@@ -5,9 +5,11 @@
  */
 
 import { claimedActor } from '../../auth/actor.js';
+import AuthorizationError from '../../errors/AuthorizationError.js';
 import InvalidQuery from '../../errors/InvalidQuery.js';
 import InvalidRequest from '../../errors/InvalidRequest.js';
 import UnsupportedMedia from '../../errors/UnsupportedMedia.js';
+import { callerName, organisationsOf } from '../../greenlight/access.js';
 import publishSubmission from '../../greenlight/publish.js';
 import {
     addSubmission, listSubmissions, restoreSubmission, takeSubmission,
@@ -32,7 +34,29 @@ export function greenlightPingController(req, res) {
 }
 
 /**
- * Hold a block of JSON for its sender, until they publish it from the Portal.
+ * The one organisation a post is for: the caller's only one, or the `?organisation=` it names when
+ * it has several.
+ *
+ * @param req
+ * @returns {string} The organisation
+ * @throws {AuthorizationError|InvalidRequest}
+ */
+function postingOrganisation(req) {
+    const organisations = organisationsOf(req);
+    const named = req.query?.organisation;
+    if (named) {
+        if (!organisations.includes(named)) throw new AuthorizationError(`not a greenlight member of ${named}`);
+        return named;
+    }
+    if (organisations.length === 0) throw new AuthorizationError('no greenlight organisation');
+    if (organisations.length > 1) {
+        throw new InvalidRequest(`name one of ${organisations.join(', ')} as ?organisation=`);
+    }
+    return organisations[0];
+}
+
+/**
+ * Hold a block of JSON for an organisation, until someone in it publishes it from the Portal.
  *
  * Each block is stored separately and answered with its own id, so a caller can post several.
  * The body must be JSON, an object or an array, and not empty.
@@ -40,10 +64,10 @@ export function greenlightPingController(req, res) {
  * @param req
  * @param res
  * @param next
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function createSubmissionController(req, res, next) {
-    trace('post received', { caller: claimedActor(req), contentType: req.headers?.['content-type'] });
+export async function createSubmissionController(req, res, next) {
+    trace('post received', { caller: claimedActor(req), kind: req.tokenKind, contentType: req.headers?.['content-type'] });
     if (!req.is('application/json')) {
         trace('post refused: not JSON');
         next(new UnsupportedMedia('a submission is sent as application/json'));
@@ -56,35 +80,50 @@ export function createSubmissionController(req, res, next) {
         next(new InvalidRequest('a submission is a non-empty JSON object or array'));
         return;
     }
+    let organisation;
+    try {
+        organisation = postingOrganisation(req);
+    } catch (err) {
+        trace('post refused', { error: err.message });
+        next(err);
+        return;
+    }
 
-    const submission = addSubmission({ sub: req.user.sub, data });
+    const submission = addSubmission({ organisation, submittedBy: await callerName(req), data });
     if (!submission) {
-        trace('post refused: sender at the cap');
+        trace('post refused: organisation at the cap', { organisation });
         next(new InvalidRequest('too many unpublished submissions; publish some before sending more'));
         return;
     }
-    trace('job stored', { jobId: submission.id, bytes: JSON.stringify(data).length, expiresAt: submission.expiresAt });
-    ok(res, { id: submission.id, receivedAt: submission.receivedAt, expiresAt: submission.expiresAt }, 201);
+    trace('job stored', {
+        jobId: submission.id, organisation, submittedBy: submission.submittedBy,
+        bytes: JSON.stringify(data).length, expiresAt: submission.expiresAt,
+    });
+    ok(res, {
+        id: submission.id, organisation, receivedAt: submission.receivedAt, expiresAt: submission.expiresAt,
+    }, 201);
 }
 
 /**
- * The caller's unpublished submissions, oldest first, each with its data.
+ * The unpublished submissions of every organisation the caller is in, oldest first, each with its
+ * data.
  *
  * @param req
  * @param res
  * @returns {void}
  */
 export function listSubmissionsController(req, res) {
-    const held = listSubmissions(req.user.sub);
-    trace('jobs listed', { caller: claimedActor(req), count: held.length });
+    const organisations = organisationsOf(req);
+    const held = listSubmissions(organisations);
+    trace('jobs listed', { caller: claimedActor(req), organisations, count: held.length });
     ok(res, held);
 }
 
 /**
- * Publish one of the caller's submissions, which removes it from the store.
+ * Publish one submission of the caller's organisations, which removes it from the store.
  *
  * Publishing sends the block to the workflow queue (`greenlight/publish.js`). An id that is unknown,
- * expired, already published or someone else's is a 404 either way. If the send throws, the
+ * expired, already published or another organisation's is a 404 either way. If the send throws, the
  * submission is put back so it can be approved again.
  *
  * @param req
@@ -93,20 +132,19 @@ export function listSubmissionsController(req, res) {
  * @returns {Promise<void>}
  */
 export async function publishSubmissionController(req, res, next) {
-    const { sub } = req.user;
     trace('approve received', { jobId: req.params.id, caller: claimedActor(req) });
-    const submission = takeSubmission({ sub, id: req.params.id });
+    const submission = takeSubmission({ organisations: organisationsOf(req), id: req.params.id });
     if (!submission) {
         trace('approve refused: no such job for this caller', { jobId: req.params.id });
         next(new InvalidQuery(`no unpublished submission ${req.params.id}`));
         return;
     }
     try {
-        const { publishedAt, messageId } = await publishSubmission({ submission, caller: claimedActor(req) });
+        const { publishedAt, messageId } = await publishSubmission({ submission, caller: await callerName(req) });
         trace('approve done', { jobId: submission.id, messageId });
         ok(res, { id: submission.id, publishedAt, messageId });
     } catch (err) {
-        restoreSubmission({ sub, submission });
+        restoreSubmission(submission);
         trace('approve failed: job put back to try again', { jobId: submission.id, error: err?.message });
         next(err);
     }

@@ -35,7 +35,15 @@ const configEnv = {
 
         // Greenlight submissions: held in memory until published, or until they expire unread
         GREENLIGHT_TTL_MS: 24 * 60 * 60 * 1000,
-        GREENLIGHT_MAX_PER_USER: 100,
+        GREENLIGHT_MAX_PER_ORGANISATION: 100,
+        // Machine clients (client_credentials) that may post submissions, by Cognito app client id.
+        // A machine token carries no groups, so this names the organisation whose Portal users see
+        // what it posts, and how the Portal shows who posted it. Each client gets its own app client,
+        // so one can be revoked without the others.
+        GREENLIGHT_SCOPE: 'labkoat/greenlight.submit',
+        GREENLIGHT_CLIENTS: {
+            '169eueoe57vqubof61bens5qlb': { organisation: 'labkoat', name: 'Labkoat test client' }, // greenlight.labkoat-test
+        },
         // Where an approved submission is sent: a FIFO SQS queue in another organisation's account,
         // reached by assuming their role. Whatever identity this process already has (the pod's
         // service-account role, or a developer's own credentials locally) must be trusted by it.

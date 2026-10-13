@@ -31,6 +31,7 @@ npm run lint             # eslint src pipelines app.js
 npm test                 # the pipeline tests — PIPELINE_FIXTURES=.. to include the fixture ones
 npm run pipeline -- <cmd>  # the pipeline CLI (pipelines/cli.js)
 npm run greenlight -- post <file.json> | list | publish <id>  # SRP login, then the submission routes
+npm run greenlight -- post <file.json> --client  # post as a machine: the client_credentials grant
 npm run greenlight -- peek [--delete]  # read the workflow SQS queue, leaving messages in place unless --delete
 
 npm run link:local       # links omc-util
@@ -137,16 +138,22 @@ multi-gigabyte delivery stream to S3 rather than buffer in memory.
 
 ### Greenlight submissions (`src/greenlight/`)
 
-A person posts JSON blocks from a script and publishes each one later from the Portal's Greenlight
-tab. The contract is `Labkoat-Portal/docs/greenlight-contract.md`.
+A person or a machine posts JSON blocks from a script, and someone in the same organisation
+publishes each one later from the Portal's Greenlight tab. The contract is
+`Labkoat-Portal/docs/greenlight-contract.md`; `tools/greenlight/greenlight.mjs` is the harness and
+the example to hand over.
 
-- **One user, two logins, joined by `sub`.** The script signs in with Cognito's `USER_SRP_AUTH`
-  (`tools/greenlight/greenlight.mjs` is the harness and the example to hand over), and the Portal
-  with PKCE. Both use the Portal's app client, so both tokens carry the same `sub`, and every
-  submission is held, listed and published under it.
-- **The gate is a group named `greenlight` under any organisation** (`GREENLIGHT_GROUP` in
-  `access.js`), checked with `cognitoValidator`, not `awsJwtValidator`, which would demand a
-  `labkoat` group and shut other organisations out.
+- **Jobs are held by organisation, not by person** (`access.js`). Anyone in an organisation's
+  greenlight group lists and publishes all of its jobs; each records `submittedBy` for the Portal.
+- **People are gated by a group named `greenlight` under any organisation** (`GREENLIGHT_GROUP`):
+  `konsol:greenlight` is `konsol`, a bare `greenlight` is `labkoat`. Checked with
+  `cognitoValidator`, not `awsJwtValidator`, which would demand a `labkoat` group and shut other
+  organisations out. A script signs in with `USER_SRP_AUTH` against the Portal's app client.
+- **Machines may only post.** Each has its own Cognito app client, granted the
+  `GREENLIGHT_SCOPE` scope and used with client_credentials; its token carries no groups, so
+  `GREENLIGHT_CLIENTS` in `config.js` maps its client id to an organisation and a display name. An
+  app client must be listed there, as well as hold the scope, before its tokens are accepted.
+  Listing and publishing take a person, so every job is approved by someone.
 - **In memory, like pipeline runs**: lost on restart, correct only on a single replica, swept after
   `GREENLIGHT_TTL_MS`.
 - **Publishing sends the JSON to another organisation's FIFO SQS queue** (`queue.js`), by assuming

@@ -18,22 +18,25 @@ import {
 } from '../controllers/greenlight/greenlight-controller.js';
 import { GREENLIGHT_GROUP } from '../greenlight/access.js';
 
-/**
- * A user of the Portal's app client in a `greenlight` group, under any organisation. The same
- * person posts from a script (Cognito SRP login) and publishes from the Portal (PKCE login); both
- * tokens carry the same `sub`, which is what joins the two.
- */
-const greenlightAccess = cognitoValidator({
-    userPoolId: config.USER_POOL_ID,
-    user: { clientId: config.CLIENT_ID, group: GREENLIGHT_GROUP },
-});
+/** A user of the Portal's app client in a `greenlight` group, under any organisation. */
+const user = { clientId: config.CLIENT_ID, group: GREENLIGHT_GROUP };
+
+/** A configured machine client holding the greenlight scope; none until one is configured. */
+const machineClients = Object.keys(config.GREENLIGHT_CLIENTS);
+const machine = machineClients.length ? { clientId: machineClients, scope: config.GREENLIGHT_SCOPE } : null;
+
+/** Posting: a person, from a script or the Portal, or a machine client. */
+const submitAccess = cognitoValidator({ userPoolId: config.USER_POOL_ID, user, machine });
+
+/** Listing and publishing: people only, so a job is always approved by someone. */
+const approveAccess = cognitoValidator({ userPoolId: config.USER_POOL_ID, user });
 
 const router = express.Router();
 
 router.post('/ping', awsJwtValidator, greenlightPingController);
 
-router.post('/submissions', greenlightAccess, createSubmissionController);
-router.get('/submissions', greenlightAccess, listSubmissionsController);
-router.post('/submissions/:id/publish', greenlightAccess, publishSubmissionController);
+router.post('/submissions', submitAccess, createSubmissionController);
+router.get('/submissions', approveAccess, listSubmissionsController);
+router.post('/submissions/:id/publish', approveAccess, publishSubmissionController);
 
 export default router;

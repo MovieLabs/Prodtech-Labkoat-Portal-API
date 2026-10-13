@@ -1,7 +1,7 @@
 /**
  * Test harness for the Greenlight submissions, and the example to hand whoever posts them.
  *
- *   npm run greenlight -- post <file.json> [--api <url>]
+ *   npm run greenlight -- post <file.json> [--api <url>] [--client] [--organisation <name>]
  *   npm run greenlight -- list             [--api <url>]
  *   npm run greenlight -- publish <id>     [--api <url>]
  *   npm run greenlight -- peek [--delete]
@@ -11,8 +11,14 @@
  * token it holds is the Portal's kind of token, for the same person, and what it posts is what that
  * person sees in the Portal's Greenlight tab.
  *
+ * `post --client` signs in as a machine instead: the OAuth client_credentials grant, a plain HTTPS
+ * POST of the client id and secret to Cognito's token endpoint, with no AWS library. A machine may
+ * only post; listing and publishing are for people. `--organisation` picks which one a person in
+ * several greenlight groups posts for.
+ *
  * Credentials come from the environment, never from a file in the repo or the command line:
- * GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD, set for the command or in the gitignored `.env`.
+ * GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD for a person, GREENLIGHT_CLIENT_ID and
+ * GREENLIGHT_CLIENT_SECRET for a machine, set for the command or in the gitignored `.env`.
  * A bare file name for `post` is looked for in `tools/greenlight/data/`.
  *
  * `--api` defaults to http://localhost:8080; https://service.labkoat.media is production.
@@ -60,6 +66,27 @@ function signIn(username, password) {
             totpRequired: () => reject(new Error('Sign-in asks for MFA, which a script cannot answer')),
         });
     });
+}
+
+/**
+ * Get a machine token: the client_credentials grant, which is all a machine caller needs to do.
+ *
+ * @param {string} clientId
+ * @param {string} clientSecret
+ * @returns {Promise<string>} A Cognito access token carrying the greenlight scope
+ */
+async function machineToken(clientId, clientSecret) {
+    const response = await fetch(config.COGNITO_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ grant_type: 'client_credentials', scope: config.GREENLIGHT_SCOPE }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(`Token request failed: ${response.status} ${body?.error ?? response.statusText}`);
+    return body.access_token;
 }
 
 /**
@@ -139,12 +166,28 @@ async function peek({ remove }) {
     }
 }
 
+/** A person's token, from the environment's credentials. */
+function signInPerson() {
+    const { GREENLIGHT_USERNAME: username, GREENLIGHT_PASSWORD: password } = process.env;
+    if (!username || !password) throw new Error('Set GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD');
+    return signIn(username, password);
+}
+
+/** A machine's token, from the environment's credentials. */
+function signInMachine() {
+    const { GREENLIGHT_CLIENT_ID: clientId, GREENLIGHT_CLIENT_SECRET: clientSecret } = process.env;
+    if (!clientId || !clientSecret) throw new Error('Set GREENLIGHT_CLIENT_ID and GREENLIGHT_CLIENT_SECRET');
+    return machineToken(clientId, clientSecret);
+}
+
 async function main() {
     const { values, positionals } = parseArgs({
         allowPositionals: true,
         options: {
             api: { type: 'string', default: 'http://localhost:8080' },
             delete: { type: 'boolean', default: false },
+            client: { type: 'boolean', default: false },
+            organisation: { type: 'string' },
         },
     });
     const [command, arg] = positionals;
@@ -156,24 +199,25 @@ async function main() {
     const base = `${values.api.replace(/\/$/, '')}/api/greenlight/submissions`;
 
     if (!['post', 'list', 'publish'].includes(command) || (command !== 'list' && !arg)) {
-        console.log('Usage: npm run greenlight -- post <file.json> | list | publish <id> [--api <url>] | peek [--delete]');
+        console.log('Usage: npm run greenlight -- post <file.json> [--client] [--organisation <name>] | list | publish <id> '
+            + '[--api <url>] | peek [--delete]');
         process.exitCode = 1;
         return;
     }
-
-    const { GREENLIGHT_USERNAME: username, GREENLIGHT_PASSWORD: password } = process.env;
-    if (!username || !password) throw new Error('Set GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD');
+    if (values.client && command !== 'post') throw new Error('A machine client may only post');
 
     const body = command === 'post' ? readSubmission(arg) : null; // Read before signing in
-    const token = await signIn(username, password);
+    const token = values.client ? await signInMachine() : await signInPerson();
 
     if (command === 'post') {
-        const created = await api(base, token, { method: 'POST', body });
-        console.log(`Posted ${arg} as ${created.id} (expires ${created.expiresAt})`);
+        const query = values.organisation ? `?organisation=${encodeURIComponent(values.organisation)}` : '';
+        const created = await api(`${base}${query}`, token, { method: 'POST', body });
+        console.log(`Posted ${arg} as ${created.id} for ${created.organisation} (expires ${created.expiresAt})`);
     } else if (command === 'list') {
         const held = await api(base, token);
         if (!held.length) console.log('No unpublished submissions');
-        held.forEach((s) => console.log(`${s.id}  received ${s.receivedAt}  ${JSON.stringify(s.data).length} bytes`));
+        held.forEach((s) => console.log(`${s.id}  ${s.organisation}  from ${s.submittedBy}  received ${s.receivedAt}  `
+            + `${JSON.stringify(s.data).length} bytes`));
     } else {
         const done = await api(`${base}/${encodeURIComponent(arg)}/publish`, token, { method: 'POST' });
         const sent = done.messageId ? `, sent as message ${done.messageId}` : ', but the API reported no message (is it running the queue code?)';
