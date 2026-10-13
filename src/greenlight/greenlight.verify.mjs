@@ -13,7 +13,7 @@ import {
     createSubmissionController, listSubmissionsController, publishSubmissionController,
 } from '../controllers/greenlight/greenlight-controller.js';
 
-import { GREENLIGHT_GROUP, organisationsOf } from './access.js';
+import { greenlightGroupPattern, organisationsOf, parseGroup } from './access.js';
 import { useSender } from './publish.js';
 import { workflowMessage } from './queue.js';
 import { addSubmission, listSubmissions, takeSubmission } from './submissionStore.js';
@@ -44,18 +44,27 @@ function is(what, got, wanted) {
     checked += 1;
 }
 
-// ---- the gate: `greenlight`, under any organisation ----
+// ---- group names: `<organisation>:<permission>,<permission>…` ----
 
-for (const group of ['greenlight', 'labkoat:greenlight', 'konsol:greenlight']) {
-    is(`${group} opens the routes`, GREENLIGHT_GROUP.test(group), true);
+is('a bare name is an organisation', parseGroup('greenlight'), { organisation: 'greenlight', permissions: [] });
+is('permissions follow the colon', parseGroup('labkoat:task.reshoot,task.task3'),
+    { organisation: 'labkoat', permissions: ['task.reshoot', 'task.task3'] });
+
+// ---- the gate: a group in an organisation a machine client is configured for ----
+
+for (const id of Object.keys(config.GREENLIGHT_CLIENTS)) delete config.GREENLIGHT_CLIENTS[id];
+config.GREENLIGHT_CLIENTS['client-greenlight'] = { organisation: 'greenlight', name: 'Greenlight service' };
+config.GREENLIGHT_CLIENTS['client-konsol'] = { organisation: 'konsol', name: 'Konsol pipeline' };
+
+const gate = greenlightGroupPattern();
+for (const group of ['greenlight', 'greenlight:approve', 'greenlight:a,b', 'konsol']) {
+    is(`${group} opens the routes`, gate.test(group), true);
 }
-for (const group of ['labkoat', 'labkoat:admin', 'greenlight-admin', 'labkoat:greenlight:extra', 'xgreenlight', ':greenlight']) {
-    is(`${group} does not`, GREENLIGHT_GROUP.test(group), false);
+for (const group of ['labkoat', 'labkoat:greenlight', 'labkoat:admin', 'greenlight-admin', 'xgreenlight', ':greenlight']) {
+    is(`${group} does not`, gate.test(group), false);
 }
 
 // ---- requests that have passed the token check, and a response that records what it was sent ----
-
-config.GREENLIGHT_CLIENTS['client-konsol'] = { organisation: 'konsol', name: 'Konsol pipeline' };
 
 /** A person, in the given groups. */
 const person = ((sub, groups) => ({ tokenKind: 'user', user: { sub, 'username': sub, 'cognito:groups': groups } }));
@@ -94,18 +103,20 @@ async function call(controller, req) {
     return outcome;
 }
 
-const alice = person('sub-alice', ['labkoat:greenlight']);
-const amy = person('sub-amy', ['greenlight', 'labkoat:admin']);
-const kim = person('sub-kim', ['konsol:greenlight']);
-const both = person('sub-bo', ['labkoat:greenlight', 'konsol:greenlight']);
+const alice = person('sub-alice', ['greenlight']);
+const amy = person('sub-amy', ['greenlight:approve,view', 'labkoat:admin']);
+const kim = person('sub-kim', ['konsol']);
+const both = person('sub-bo', ['greenlight', 'konsol:x']);
+const lab = person('sub-lab', ['labkoat', 'labkoat:greenlight']);
 const konsolPipeline = client('client-konsol');
 const block = (n) => ({ shot: n, takes: [1, 2, 3] });
 
 // ---- organisations: from the group, or from the client's configuration ----
 
-is('labkoat:greenlight is labkoat', organisationsOf(alice), ['labkoat']);
-is('a bare greenlight is labkoat too', organisationsOf(amy), ['labkoat']);
-is('two greenlight groups are two organisations', organisationsOf(both), ['labkoat', 'konsol']);
+is('a bare greenlight is greenlight', organisationsOf(alice), ['greenlight']);
+is('permissions do not change the organisation', organisationsOf(amy), ['greenlight']);
+is('two Greenlight organisations are both', organisationsOf(both), ['greenlight', 'konsol']);
+is('an organisation without a client is none', organisationsOf(lab), []);
 is('a configured client is its organisation', organisationsOf(konsolPipeline), ['konsol']);
 is('an unconfigured client is none', organisationsOf(client('client-unknown')), []);
 
@@ -116,7 +127,7 @@ const second = await call(createSubmissionController, request(alice, { body: blo
 is('a post is a 201', first.status, 201);
 is('each post gets its own id', first.body.data.id !== second.body.data.id, true);
 is('the id is a uuid', /^[0-9a-f-]{36}$/.test(first.body.data.id), true);
-is('and it says whose it is', first.body.data.organisation, 'labkoat');
+is('and it says whose it is', first.body.data.organisation, 'greenlight');
 
 is('an empty object is refused', (await call(createSubmissionController, request(alice, { body: {} }))).error.status, 400);
 is('an empty array is refused', (await call(createSubmissionController, request(alice, { body: [] }))).error.status, 400);
@@ -128,6 +139,8 @@ const named = await call(createSubmissionController, request(both, { body: block
 is('and then post for it', named.body.data.organisation, 'konsol');
 const notMine = await call(createSubmissionController, request(alice, { body: block(3), query: { organisation: 'konsol' } }));
 is('naming one you are not in is a 403', notMine.error.status, 403);
+const notGreenlight = await call(createSubmissionController, request(lab, { body: block(3) }));
+is('a labkoat member is a 403', notGreenlight.error.status, 403);
 const unknownClient = await call(createSubmissionController, request(client('client-unknown'), { body: block(3) }));
 is('an unconfigured client is a 403', unknownClient.error.status, 403);
 
@@ -137,11 +150,12 @@ is('a machine client posts for its organisation', fromMachine.body.data.organisa
 // ---- listing: every job of your organisations, oldest first, with the data ----
 
 const listed = (await call(listSubmissionsController, request(amy))).body.data;
-is("anyone in labkoat sees labkoat's jobs, oldest first", listed.map((s) => s.data.shot), [1, 2]);
+is("anyone in greenlight sees greenlight's jobs, oldest first", listed.map((s) => s.data.shot), [1, 2]);
 is('with who posted them', listed[0].submittedBy, 'sub-alice');
 const konsolJobs = (await call(listSubmissionsController, request(kim))).body.data;
 is('konsol sees its own, from a person or a machine', konsolJobs.map((s) => s.data.shot), [3, 4]);
 is("a machine's are posted under its name", konsolJobs[1].submittedBy, 'Konsol pipeline');
+is('a labkoat member sees none', (await call(listSubmissionsController, request(lab))).body.data, []);
 is('two organisations see both', (await call(listSubmissionsController, request(both))).body.data.length, 4);
 
 // ---- publishing: removes it, and only its organisation may ----
@@ -152,7 +166,7 @@ is("another organisation's id is a 404", kimTries.error.status, 404);
 const published = await call(publishSubmissionController, request(amy, { params: { id: first.body.data.id } }));
 is('anyone in the organisation may publish', published.status, 200);
 is('publishing answers with the id', published.body.data.id, first.body.data.id);
-is('a published submission is gone', listSubmissions(['labkoat']).map((s) => s.data.shot), [2]);
+is('a published submission is gone', listSubmissions(['greenlight']).map((s) => s.data.shot), [2]);
 is('publishing sends the posted JSON', sent[0].submission.data, block(1));
 is('and the job id with it', sent[0].submission.id, first.body.data.id);
 is('and who approved it', sent[0].approvedBy, 'sub-amy');
@@ -161,8 +175,8 @@ is('and answers with the message id', published.body.data.messageId, 'msg-1');
 failNext = true;
 const refused = await call(publishSubmissionController, request(alice, { params: { id: second.body.data.id } }));
 is('a failed send is an error', refused.error.message, 'queue unreachable');
-is('and the submission stays, to approve again', listSubmissions(['labkoat']).map((s) => s.id), [second.body.data.id]);
-is('as it was', listSubmissions(['labkoat'])[0].submittedBy, 'sub-alice');
+is('and the submission stays, to approve again', listSubmissions(['greenlight']).map((s) => s.id), [second.body.data.id]);
+is('as it was', listSubmissions(['greenlight'])[0].submittedBy, 'sub-alice');
 
 const again = await call(publishSubmissionController, request(alice, { params: { id: first.body.data.id } }));
 is('publishing it twice is a 404', again.error.status, 404);

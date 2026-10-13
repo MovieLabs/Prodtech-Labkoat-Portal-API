@@ -143,17 +143,20 @@ publishes each one later from the Portal's Greenlight tab. The contract is
 `Labkoat-Portal/docs/greenlight-contract.md`; `tools/greenlight/greenlight.mjs` is the harness and
 the example to hand over.
 
-- **Jobs are held by organisation, not by person** (`access.js`). Anyone in an organisation's
-  greenlight group lists and publishes all of its jobs; each records `submittedBy` for the Portal.
-- **People are gated by a group named `greenlight` under any organisation** (`GREENLIGHT_GROUP`):
-  `konsol:greenlight` is `konsol`, a bare `greenlight` is `labkoat`. Checked with
-  `cognitoValidator`, not `awsJwtValidator`, which would demand a `labkoat` group and shut other
-  organisations out. A script signs in with `USER_SRP_AUTH` against the Portal's app client.
-- **Machines may only post.** Each has its own Cognito app client, granted the
-  `GREENLIGHT_SCOPE` scope and used with client_credentials; its token carries no groups, so
-  `GREENLIGHT_CLIENTS` in `config.js` maps its client id to an organisation and a display name. An
-  app client must be listed there, as well as hold the scope, before its tokens are accepted.
-  Listing and publishing take a person, so every job is approved by someone.
+- **A group name is `<organisation>:<permission>,<permission>…`**; a bare name is an organisation
+  (`parseGroup` in `access.js`). `labkoat:greenlight` is organisation `labkoat`, not Greenlight.
+- **Greenlight organisations are those `GREENLIGHT_CLIENTS` names**: each entry maps a machine
+  client's id to an organisation and a display name. Today that is `greenlight`, with app client
+  `greenlight.greenlight`.
+- **Jobs are held by organisation, not by person.** Anyone with a group in that organisation lists
+  and publishes all of its jobs; each records `submittedBy` for the Portal. Members of other
+  organisations get a 403. Checked with `cognitoValidator`, not `awsJwtValidator`, which would
+  demand a `labkoat` group. A person may post too, signing in with `USER_SRP_AUTH` against the
+  Portal's app client.
+- **Machines may only post**, for their configured organisation. Each has its own Cognito app
+  client, allowed only `GREENLIGHT_SCOPE` (`labkoat/greenlight.submit`) with client_credentials,
+  and must be listed in `GREENLIGHT_CLIENTS` before its tokens are accepted. The API never holds a
+  client's secret. Listing and publishing take a person, so every job is approved by someone.
 - **In memory, like pipeline runs**: lost on restart, correct only on a single replica, swept after
   `GREENLIGHT_TTL_MS`.
 - **Publishing sends the JSON to another organisation's FIFO SQS queue** (`queue.js`), by assuming

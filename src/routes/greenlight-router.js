@@ -16,10 +16,10 @@ import {
     listSubmissionsController,
     publishSubmissionController,
 } from '../controllers/greenlight/greenlight-controller.js';
-import { GREENLIGHT_GROUP } from '../greenlight/access.js';
+import { greenlightGroupPattern } from '../greenlight/access.js';
 
-/** A user of the Portal's app client in a `greenlight` group, under any organisation. */
-const user = { clientId: config.CLIENT_ID, group: GREENLIGHT_GROUP };
+/** A user of the Portal's app client with a group in a Greenlight organisation. */
+const user = { clientId: config.CLIENT_ID, group: greenlightGroupPattern() };
 
 /** A configured machine client holding the greenlight scope; none until one is configured. */
 const machineClients = Object.keys(config.GREENLIGHT_CLIENTS);

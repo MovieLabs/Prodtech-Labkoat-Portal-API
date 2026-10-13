@@ -14,7 +14,7 @@
  * `post --client` signs in as a machine instead: the OAuth client_credentials grant, a plain HTTPS
  * POST of the client id and secret to Cognito's token endpoint, with no AWS library. A machine may
  * only post; listing and publishing are for people. `--organisation` picks which one a person in
- * several greenlight groups posts for.
+ * several Greenlight organisations posts for.
  *
  * Credentials come from the environment, never from a file in the repo or the command line:
  * GREENLIGHT_USERNAME and GREENLIGHT_PASSWORD for a person, GREENLIGHT_CLIENT_ID and

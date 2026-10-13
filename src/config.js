@@ -38,11 +38,12 @@ const configEnv = {
         GREENLIGHT_MAX_PER_ORGANISATION: 100,
         // Machine clients (client_credentials) that may post submissions, by Cognito app client id.
         // A machine token carries no groups, so this names the organisation whose Portal users see
-        // what it posts, and how the Portal shows who posted it. Each client gets its own app client,
-        // so one can be revoked without the others.
+        // what it posts, and how the Portal shows who posted it. The organisations named here are the
+        // ones Greenlight is enabled for. Each client gets its own app client, so one can be revoked
+        // without the others.
         GREENLIGHT_SCOPE: 'labkoat/greenlight.submit',
         GREENLIGHT_CLIENTS: {
-            '169eueoe57vqubof61bens5qlb': { organisation: 'labkoat', name: 'Labkoat test client' }, // greenlight.labkoat-test
+            '7en94ns9aa9l4qsljd80f4djaq': { organisation: 'greenlight', name: 'Greenlight service' }, // greenlight.greenlight
         },
         // Where an approved submission is sent: a FIFO SQS queue in another organisation's account,
         // reached by assuming their role. Whatever identity this process already has (the pod's
