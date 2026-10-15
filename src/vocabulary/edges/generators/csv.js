@@ -7,11 +7,26 @@
 
 import { document } from '../../generators/csv.js';
 import { DIRECTIONS, carries } from '../check.js';
+import { isSpread } from '../spread.js';
 
 const COLUMNS = [
     'Edge', 'Status', 'Direction', 'Domain', 'Range', 'OMC-JSON domain', 'OMC-JSON range', 'Placement',
     'Predicate', 'Path', 'RDF name', 'Inverse RDF name', 'Publishes to OMC-JSON', 'Publishes to RDF', 'Set by hand',
+    'Spread',
 ].map((header) => ({ header }));
+
+/**
+ * What the Spread column says: blank for an ordinary edge, otherwise who it reaches.
+ *
+ * @param {object} edge
+ * @param {object} index
+ * @returns {string}
+ */
+const spreadCell = ((edge, index) => {
+    if (!isSpread(edge)) return '';
+    const except = (edge.spread.except ?? []).map((id) => index.classes.get(id)?.label ?? id);
+    return `every entity class below both ends${except.length ? `; except ${except.join(', ')}` : ''}`;
+});
 
 /**
  * The CSV document.
@@ -44,6 +59,7 @@ export function toEdgeCsv({ edges, index }) {
                 stored.json?.include ? 'yes' : 'no',
                 stored.rdf?.include === false ? 'no' : 'yes',
                 overridden.join(' '),
+                spreadCell(edge, index),
             ];
         }));
     return { body: document(COLUMNS, rows, ','), problems: {} };

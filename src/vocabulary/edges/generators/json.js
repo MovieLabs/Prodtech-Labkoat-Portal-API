@@ -15,12 +15,17 @@
  * RDF edges may project to the same row — `depictedBy` a Depiction and `realizedBy` a Realization
  * are both a Character's `realizedBy.Realization` — and those collapse into one.
  *
+ * A spread edge becomes a row for each pairing it publishes to OMC-JSON, and those rows form groups
+ * of their own marked `spread: true`. omc-util keeps such a group as one statement and expands it when
+ * the table is loaded, rather than writing out a row per pairing.
+ *
  * Deterministic: the same edges give the same document, in the order the edges were created.
  *
  * @module vocabulary/edges/generators/json
  */
 
 import { DIRECTIONS, carries } from '../check.js';
+import { isSpread, spreadJsonPairings } from '../spread.js';
 
 /** A value's identity for grouping, where `null` and a string must stay distinct. */
 const keyOf = ((value) => JSON.stringify(value ?? null));
@@ -74,12 +79,6 @@ function rowsOf({ edges, index, settings }, problems) {
         .forEach(({ direction, from, to }) => {
             const stored = edge[direction];
             if (!stored?.json?.include) return;
-            const domain = index.classes.get(edge[from]?.term);
-            const range = index.classes.get(edge[to]?.term);
-            if (!domain?.jsonType || !range?.jsonType) {
-                problems.skipped.push({ edgeId: edge._id, direction, reason: 'noProjection' });
-                return;
-            }
             const names = stored.names ?? {};
             const other = direction === 'forward' ? 'reverse' : 'forward';
             let inverse = null;
@@ -88,15 +87,28 @@ function rowsOf({ edges, index, settings }, problems) {
             } else if (carries(edge, other) && edge[other]?.json?.include) {
                 inverse = edge[other]?.names?.predicate?.value ?? null;
             }
-            rows.push({
+            const row = {
                 edgeId: edge._id,
                 predicate: names.predicate?.value,
                 placement: names.placement?.value ?? 'edges',
-                path: names.path?.value ?? null,
-                domain: domain.jsonType,
-                range: range.jsonType,
                 inverse,
                 rdf: rdfTokenOf(stored, names, settings),
+            };
+
+            if (isSpread(edge)) {
+                spreadJsonPairings(edge, from, index.classes).forEach(([domain, range]) => rows.push({
+                    ...row, path: `edges.${row.predicate}.${range.jsonType}`, domain: domain.jsonType, range: range.jsonType, spread: true,
+                }));
+                return;
+            }
+            const domain = index.classes.get(edge[from]?.term);
+            const range = index.classes.get(edge[to]?.term);
+            if (!domain?.jsonType || !range?.jsonType) {
+                problems.skipped.push({ edgeId: edge._id, direction, reason: 'noProjection' });
+                return;
+            }
+            rows.push({
+                ...row, path: names.path?.value ?? null, domain: domain.jsonType, range: range.jsonType, spread: false,
             });
         }));
     return rows;
@@ -161,17 +173,17 @@ export function toEdgeDefinitions(ctx) {
             ? def.rows[0].spec
             : null;
 
-        // Rows sharing a placement, an inverse and a path form a group; within one, each domain keeps
-        // its ranges in the order they were created. Alignment notes were part of this key while
+        // Rows sharing a placement, an inverse, a path and whether they are spread form a group;
+        // within one, each domain keeps its ranges in the order they were created. Alignment notes were part of this key while
         // `rdfMap` was published: groups that differed only by their note stayed apart, which split a
         // predicate into more groups than its modelling called for.
         const groups = new Map();
         def.rows.forEach((row) => {
             const spec = uniformSpec ? {} : row.spec;
-            const key = keyOf([row.inverse, row.placement, spec]);
+            const key = keyOf([row.inverse, row.placement, spec, row.spread]);
             if (!groups.has(key)) {
                 groups.set(key, {
-                    inverse: row.inverse, placement: row.placement, spec, byDomain: new Map(),
+                    inverse: row.inverse, placement: row.placement, spec, spread: row.spread, byDomain: new Map(),
                 });
             }
             const ranges = groups.get(key).byDomain.get(row.domain) ?? [];
@@ -198,6 +210,7 @@ export function toEdgeDefinitions(ctx) {
                     ...(keyOf(group.inverse) !== keyOf(inverse) ? { inverse: group.inverse } : {}),
                     ...(group.placement !== placement ? { placement: group.placement } : {}),
                     ...group.spec,
+                    ...(group.spread ? { spread: true } : {}),
                 });
             });
         });

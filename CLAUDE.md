@@ -275,6 +275,14 @@ simply be re-pointed at one. `classes.js` reads the trees out of the view; `qual
 - Three problem codes cover a tree that moves underneath a stored narrowing: `qualifierGone`,
   `qualifierNotCarried`, `qualifierRenamed`.
 
+**A spread edge stands for every entity class below its two ends** — `{ spread: { except } }` on
+an ordinary edge, all its rules in `spread.js`. It reaches each class marked `spreadTarget` (role
+`entity`) at or below an end, less `except`. RDF declares its property over every class it reaches;
+OMC-JSON gets one connects group marked `spread: true` over the classes that are an entityType in
+their own right, which omc-util keeps as a definition and expands into rows when it loads the table,
+rather than writing out a row per pairing. A concrete edge the spread already covers is reported as
+`redundantInherited` with `spread: true`.
+
 **Turtle and SHACL are not generated here.** The four formats are `json`, `csv`, `matrix-csv` and
 `markdown`; the RDF is built outside this service from the published JSON, which is why
 `generators/owl.js` and `edges/handoff/` were deleted rather than kept as a second implementation to

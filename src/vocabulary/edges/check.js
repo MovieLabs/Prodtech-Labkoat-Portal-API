@@ -13,6 +13,7 @@
 
 import { isEdgeClass, qualifierFor, takesQualifier } from './classes.js';
 import { generateNames, namesDrift } from './naming.js';
+import { isSpread, spreadEnds, strayExceptions } from './spread.js';
 
 /**
  * @typedef {object} EdgeProblem
@@ -213,6 +214,20 @@ export function checkEdges({
             }
         });
 
+        if (isSpread(edge)) {
+            const ends = spreadEnds(edge, classes);
+            ['domain', 'range'].forEach((end) => {
+                if (classes.get(edge[end]?.term) && !ends[end].length) {
+                    report({
+                        edgeId: edge._id, termId: edge[end].term, end, code: 'spreadEmpty', level: 'error',
+                    });
+                }
+            });
+            strayExceptions(edge, classes).forEach((termId) => report({
+                edgeId: edge._id, termId, code: 'spreadExceptStray', level: 'warning',
+            }));
+        }
+
         if (!pair) {
             report({ edgeId: edge._id, code: 'pairMissing', level: 'error' });
             return;
@@ -223,7 +238,8 @@ export function checkEdges({
 
         DIRECTIONS.filter(({ direction }) => carries(edge, direction)).forEach(({ direction, from, to }) => {
             const stored = edge[direction] ?? {};
-            if (stored.json?.include) {
+            // A spread edge publishes the classes below its ends, not the ends themselves.
+            if (stored.json?.include && !isSpread(edge)) {
                 [from, to].forEach((end) => {
                     const entry = classes.get(edge[end]?.term);
                     if (entry && !entry.jsonType) {
@@ -343,22 +359,34 @@ function crossEdgeProblems({ edges, index, pairs }) {
         });
     });
 
-    // The same pair already joins an ancestor of each end, so this edge is inherited as it stands.
+    // The same pair already joins an ancestor of each end, or spreads to both, so this edge is
+    // inherited as it stands.
     const selfAndAncestors = ((id) => [id, ...(classes.get(id)?.ancestors ?? [])]);
+    const spreadReach = new Map(edges.filter(isSpread).map((edge) => {
+        const ends = spreadEnds(edge, classes);
+        return [edge._id, { domain: new Set(ends.domain.map((entry) => entry.id)), range: new Set(ends.range.map((entry) => entry.id)) }];
+    }));
+    const covers = ((other, edge, domains, ranges) => {
+        if (isSpread(other)) {
+            const reach = spreadReach.get(other._id);
+            return reach.domain.has(edge.domain?.term) && reach.range.has(edge.range?.term);
+        }
+        return domains.has(other.domain?.term) && ranges.has(other.range?.term)
+            && !(other.domain?.term === edge.domain?.term && other.range?.term === edge.range?.term);
+    });
     const byPair = new Map();
     edges.forEach((edge) => {
         if (!byPair.has(edge.pair)) byPair.set(edge.pair, []);
         byPair.get(edge.pair).push(edge);
     });
-    edges.forEach((edge) => {
+    edges.filter((edge) => !isSpread(edge)).forEach((edge) => {
         const domains = new Set(selfAndAncestors(edge.domain?.term));
         const ranges = new Set(selfAndAncestors(edge.range?.term));
         const covering = (byPair.get(edge.pair) ?? []).find((other) => other._id !== edge._id
-            && domains.has(other.domain?.term) && ranges.has(other.range?.term)
-            && !(other.domain?.term === edge.domain?.term && other.range?.term === edge.range?.term));
+            && covers(other, edge, domains, ranges));
         if (covering) {
             problems.push({
-                edgeId: edge._id, code: 'redundantInherited', level: 'info', coveredBy: covering._id,
+                edgeId: edge._id, code: 'redundantInherited', level: 'info', coveredBy: covering._id, spread: isSpread(covering),
             });
         }
     });

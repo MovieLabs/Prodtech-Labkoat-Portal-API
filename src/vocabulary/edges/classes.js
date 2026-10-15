@@ -75,6 +75,10 @@ export const className = ((label) => String(label ?? '')
  * @property {string[]} tags - As published
  * @property {string[]} supers - Direct superclasses, by term id
  * @property {string[]} ancestors - Every superclass, nearest first
+ * @property {boolean} joinable - An edge may start or end at it
+ * @property {boolean} spreadTarget - A spread edge drawn at or above it reaches it
+ * @property {boolean} root - The settings' `rootClass`: every entity class's superclass in RDF,
+ *   whether or not the structure places them under it
  * @property {number} placements
  * @property {string|null} jsonTerm - The class this one projects to in OMC-JSON
  * @property {string|null} jsonType - That class's OMC-JSON entityType
@@ -192,8 +196,11 @@ export function classIndex(doc, settings = {}) {
             definition: node.term.definition ?? null,
             name: className(node.term.label),
             role: roleOf(node),
-            // Asked here so a client never restates which roles an edge may join.
+            // Asked here so a client never restates which roles an edge may join, or which a spread
+            // edge reaches: only entities, since an abstract class is somewhere a spread is drawn from.
             joinable: EDGE_ROLES.includes(roleOf(node)),
+            spreadTarget: roleOf(node) === 'entity',
+            root: node.term.id === settings.rootClass,
             tags: node.tags,
             supers: [],
             ancestors: [],

@@ -39,11 +39,15 @@
  * so naming the narrow class there would change what the ontology says instead of what it checks.
  * The narrowing does decide the property's name: `hasScript`, not `hasAsset`.
  *
+ * **A spread edge declares every class it reaches.** Drawn between two abstract classes, its property
+ * takes each entity class below them, less those it excludes, as its domains and ranges.
+ *
  * @module vocabulary/edges/generators/rdfBundle
  */
 
 import { DIRECTIONS, carries, sideOf } from '../check.js';
 import { qualifierFor } from '../classes.js';
+import { isSpread, spreadEnds } from '../spread.js';
 
 const lowerFirst = ((word) => word.charAt(0).toLowerCase() + word.slice(1));
 
@@ -166,8 +170,9 @@ export function edgeProperties({
                 });
             }
             const property = properties.get(id);
-            property.domains.add(`${prefix}:${domain.name}`);
-            property.ranges.add(`${prefix}:${range.name}`);
+            const reach = isSpread(edge) ? spreadEnds(edge, index.classes) : null;
+            (reach ? reach[from] : [domain]).forEach((entry) => property.domains.add(`${prefix}:${entry.name}`));
+            (reach ? reach[to] : [range]).forEach((entry) => property.ranges.add(`${prefix}:${entry.name}`));
 
             // A narrowed end says what the property points at more exactly than its class does: an
             // Asset whose Asset Function is a Script. The declared range stays the broad class,
