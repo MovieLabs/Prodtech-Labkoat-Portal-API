@@ -51,7 +51,7 @@
     "mlHelpers": "file:./mlHelpers",
     "mongodb": "^6.21.0",
     "node-fetch": "^2.6.9",
-    "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.16.0",
+    "omc-util": "git+https://github.com/MovieLabs/omc-util.git#semver:^1.18.0",
     "papaparse": "^5.5.3",
     "pdfjs-dist": "^6.1.200",
     "swagger-ui-express": "^5.0.1",
