@@ -42,6 +42,9 @@ export const DEFAULT_SETTINGS = {
     // Asset(Script) rather than any Asset at all. A default in the same sense `viewId` is one — the
     // vocabulary decides what these are, and this is where the first of them was found.
     qualifiers: ['mlv:c-00004D'],
+    // The abstract class the RDF build makes every entity class a subclass of, without the entity
+    // structure placing them under it. A spread edge drawn at it reaches every entity class.
+    rootClass: 'mlv:c-000552',
     json: {
         edgesTemplate: DEFAULT_TEMPLATES.edgesTemplate,
         propertyTemplate: DEFAULT_TEMPLATES.propertyTemplate,
@@ -100,6 +103,7 @@ export async function saveSettings(input, actor, expected) {
         qualifiers: Array.isArray(input.qualifiers)
             ? [...new Set(input.qualifiers.map(text).filter(Boolean))]
             : DEFAULT_SETTINGS.qualifiers,
+        rootClass: text(input.rootClass) ?? DEFAULT_SETTINGS.rootClass,
         json: {
             edgesTemplate: text(input.json?.edgesTemplate) ?? DEFAULT_TEMPLATES.edgesTemplate,
             propertyTemplate: text(input.json?.propertyTemplate) ?? DEFAULT_TEMPLATES.propertyTemplate,
@@ -305,6 +309,16 @@ const normaliseEnd = ((input) => ({
 }));
 
 /**
+ * A spread as a client sent it: the classes it excludes, each once.
+ *
+ * @param {object} input
+ * @returns {{except: string[]}}
+ */
+const normaliseSpread = ((input) => ({
+    except: [...new Set((Array.isArray(input.except) ? input.except : []).map((id) => text(id)).filter(Boolean))],
+}));
+
+/**
  * An edge as it would be stored, before its names are worked out.
  *
  * @param {object} input
@@ -319,6 +333,8 @@ const normaliseEdge = ((input) => ({
     status: text(input.status) ?? 'proposed',
     note: Array.isArray(input.note) ? input.note : [],
     ...(input.source ? { source: input.source } : {}),
+    // Only a spread edge carries the field, so an ordinary one stores exactly what it always did.
+    ...(input.spread ? { spread: normaliseSpread(input.spread) } : {}),
 }));
 
 /**

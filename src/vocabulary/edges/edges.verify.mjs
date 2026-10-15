@@ -21,6 +21,7 @@ import { toEdgeMarkdown } from './generators/markdown.js';
 import { toEdgeMatrix } from './generators/matrix.js';
 import { edgeProperties, toRdfBundle } from './generators/rdfBundle.js';
 import { applyNames, generateNames, namesDrift } from './naming.js';
+import { spreadEnds } from './spread.js';
 import { validateEdge, validatePair } from './validate.js';
 
 let passed = 0;
@@ -613,6 +614,136 @@ check('a narrowing the vocabulary no longer offers is reported', () => {
         edges: [edge], pairs: new Map([[pair._id, pair]]), settings: {}, index, terms,
     });
     assert.ok(report.byEdge['n:17'].some((problem) => problem.code === 'qualifierGone'));
+});
+
+// ---------------------------------------------------------------------------
+// Spread edges: one edge for every entity below two abstract classes
+// ---------------------------------------------------------------------------
+
+const spreadDoc = {
+    view: { id: VIEW },
+    tree: [
+        term('s:entity', 'Entity', ['RDF-Abstract'], [
+            term('s:asset', 'Asset', ['RDF-Entity', 'JSON-Entity'], [
+                term('s:group', 'Asset Group', ['RDF-Entity']),
+            ]),
+            term('s:narr', 'Narrative Entity', ['RDF-Abstract'], [
+                term('s:character', 'Character', ['RDF-Entity', 'JSON-Entity']),
+            ]),
+            term('s:task', 'Task', ['RDF-Entity', 'JSON-Entity']),
+            term('s:location', 'Location', ['RDF-Entity', 'JSON-Entity']),
+            term('s:empty', 'Empty Abstract', ['RDF-Abstract']),
+        ]),
+        // Every entity class's superclass in RDF, with nothing placed under it in the structure.
+        term('s:root', 'Root', ['RDF-Abstract']),
+    ],
+};
+const spreadIndex = classIndex(spreadDoc, { rootClass: 's:root' });
+const informs = {
+    _id: 'p:informs',
+    kind: 'pair',
+    forward: { verb: 'informs', json: { placement: 'edges' } },
+    reverse: { verb: 'informedBy', json: { placement: 'edges' } },
+    modified: 't1',
+};
+const spreadPairs = new Map([[informs._id, informs]]);
+
+/** An informs edge, spread when `except` is given, with its names generated. */
+const informsEdge = ((id, domain, range, except = null) => {
+    const edge = {
+        _id: id,
+        pair: informs._id,
+        domain: { term: domain },
+        range: { term: range },
+        forward: { mode: 'owned', json: { include: true }, rdf: { include: true } },
+        reverse: { mode: 'owned', json: { include: true }, rdf: { include: true } },
+        ...(except ? { spread: { except } } : {}),
+    };
+    ['forward', 'reverse'].forEach((direction) => {
+        edge[direction].names = applyNames({}, namesNow({
+            edge, pair: informs, direction, classes: spreadIndex.classes, qualifiers: [], settings: {},
+        }));
+    });
+    return edge;
+});
+const everyEntity = (() => informsEdge('s:1', 's:entity', 's:entity', ['s:location']));
+const spreadCtx = ((edges) => ({
+    edges, pairs: spreadPairs, index: spreadIndex, settings: SETTINGS,
+}));
+const spreadValidation = ((edges) => ({
+    classes: spreadIndex.classes, qualifiers: [], pairs: spreadPairs, edges, statuses: new Set(['proposed']),
+}));
+const spreadCheck = ((edges) => checkEdges({
+    edges,
+    pairs: spreadPairs,
+    settings: {},
+    index: spreadIndex,
+    terms: new Map([...spreadIndex.classes.keys()].map((id) => [id, { status: 'published' }])),
+}));
+
+check('a spread end is every entity class at or below it, less the exclusions', () => {
+    const ends = spreadEnds(everyEntity(), spreadIndex.classes);
+    assert.deepEqual(ends.domain.map((entry) => entry.id), ['s:asset', 's:group', 's:character', 's:task']);
+    assert.deepEqual(ends.range.map((entry) => entry.id), ends.domain.map((entry) => entry.id));
+});
+
+check('a spread at the root class reaches every entity class, though none is placed under it', () => {
+    const ends = spreadEnds(informsEdge('s:9', 's:root', 's:root', ['s:location']), spreadIndex.classes);
+    assert.deepEqual(ends.domain.map((entry) => entry.id), ['s:asset', 's:group', 's:character', 's:task']);
+    assert.equal(validateEdge(informsEdge('s:9', 's:root', 's:root', []), spreadValidation([])).ok, true);
+});
+
+check('OMC-JSON gets one spread group per direction, of the classes that are their own entityType', () => {
+    const { body } = toEdgeDefinitions(spreadCtx([everyEntity()]));
+    const types = ['Asset', 'Character', 'Task'];
+    assert.deepEqual(body.edgeDefinitions.informs.connects, [{ domain: types, range: types, spread: true }]);
+    assert.deepEqual(body.edgeDefinitions.informedBy.connects, [{ domain: types, range: types, spread: true }]);
+    assert.equal(body.edgeDefinitions.informs.inverse, 'informedBy');
+    assert.equal(body.edgeDefinitions.informs.rdf, 'const:omc:informsEntity');
+});
+
+check('a concrete edge on the same predicate stays a group of its own', () => {
+    const { body } = toEdgeDefinitions(spreadCtx([everyEntity(), informsEdge('s:2', 's:location', 's:task')]));
+    const groups = body.edgeDefinitions.informs.connects;
+    assert.equal(groups.length, 2);
+    assert.deepEqual(groups.find((group) => !group.spread), { domain: ['Location'], range: ['Task'] });
+});
+
+check('RDF declares every class the spread reaches, RDF-only ones included', () => {
+    const { body } = toRdfBundle(spreadCtx([everyEntity()]));
+    const forward = body.properties.find((one) => one.id === 'omc:informsEntity');
+    const reached = ['omc:Asset', 'omc:AssetGroup', 'omc:Character', 'omc:Task'];
+    assert.deepEqual(forward.domains, reached);
+    assert.deepEqual(forward.ranges, reached);
+    assert.deepEqual(forward.verbs, ['omc:informs']);
+});
+
+check('a clean spread edge checks clean', () => {
+    assert.deepEqual(spreadCheck([everyEntity()]).summary, { error: 0, warning: 0, info: 0 });
+});
+
+check('a concrete edge the spread reaches is reported as restating it, an excluded one is not', () => {
+    const report = spreadCheck([everyEntity(), informsEdge('s:3', 's:asset', 's:task'), informsEdge('s:4', 's:location', 's:task')]);
+    assert.deepEqual(report.byEdge['s:3'].map((one) => [one.code, one.spread]), [['redundantInherited', true]]);
+    assert.equal(report.byEdge['s:4'], undefined);
+});
+
+check('a spread is validated before it is written', () => {
+    assert.equal(validateEdge(everyEntity(), spreadValidation([])).ok, true);
+    // Excluding a class the spread does not reach does nothing, so it is refused.
+    assert.equal(validateEdge(informsEdge('s:5', 's:narr', 's:narr', ['s:task']), spreadValidation([])).ok, false);
+    // An abstract class with no entity below it spreads to nothing.
+    assert.equal(validateEdge(informsEdge('s:6', 's:empty', 's:entity', []), spreadValidation([])).ok, false);
+    // A spread and a concrete edge between the same two classes are not duplicates.
+    assert.equal(validateEdge(informsEdge('s:7', 's:entity', 's:entity'), spreadValidation([everyEntity()])).ok, true);
+});
+
+check('an exclusion the spread no longer reaches is reported, not refused once stored', () => {
+    const stale = informsEdge('s:8', 's:narr', 's:narr', ['s:task']);
+    assert.deepEqual(spreadCheck([stale]).byEdge['s:8'].map((one) => one.code), ['spreadExceptStray']);
+    const result = validateEdge(stale, spreadValidation([]), stale);
+    assert.equal(result.ok, true);
+    assert.equal(result.warnings.length, 1);
 });
 
 console.log(`edges.verify: ${passed} checks passed`);

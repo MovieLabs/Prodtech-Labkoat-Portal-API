@@ -19,6 +19,7 @@
  */
 
 import { DIRECTIONS, carries } from '../check.js';
+import { isSpread } from '../spread.js';
 
 /** A cell's text, with the pipes and newlines a table cannot hold taken out. */
 const cell = ((text) => String(text ?? '').replace(/\r?\n/g, ' ').replace(/\|/g, '\\|').trim());
@@ -51,9 +52,13 @@ function rowFor({ edge, direction, index }) {
     const range = index.classes.get(edge[to]?.term);
     const names = ((one) => [one.json, one.rdf === one.json ? null : one.rdf].filter(Boolean).join(' / '));
 
-    const points = range
-        ? `**${range.label}**${range.definition ? ` — ${range.definition}` : ''}`
-        : `\`${edge[to]?.term}\` — no longer in the entity structure`;
+    const except = (edge.spread?.except ?? []).map((id) => index.classes.get(id)?.label ?? id);
+    let points = `\`${edge[to]?.term}\` — no longer in the entity structure`;
+    if (range && isSpread(edge)) {
+        points = `**Every entity class at or below ${range.label}**${except.length ? `, except ${except.join(', ')}` : ''}`;
+    } else if (range) {
+        points = `**${range.label}**${range.definition ? ` — ${range.definition}` : ''}`;
+    }
 
     return [
         `${names(out)} →`,

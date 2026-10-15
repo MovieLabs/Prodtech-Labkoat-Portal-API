@@ -11,9 +11,10 @@
 
 import { fail, result } from '../store/validate.js';
 
-import { carries } from './check.js';
+import { carries, sideOf } from './check.js';
 import { isEdgeClass, qualifierFor, takesQualifier } from './classes.js';
 import { PLACEMENTS } from './naming.js';
+import { isSpread, spreadEnds, strayExceptions } from './spread.js';
 
 /** The kinds of predicate pair. */
 export const PAIR_KINDS = ['pair', 'symmetric', 'none'];
@@ -176,8 +177,30 @@ export function validateEdge(edge, {
     }
     if (edge.status && !statuses.has(edge.status)) fail(found, `"${edge.status}" is not a status`);
 
+    if (isSpread(edge)) {
+        const ends = spreadEnds(edge, classes);
+        ['domain', 'range'].forEach((end) => {
+            if (!ends[end].length && classes.get(edge[end]?.term)) {
+                fail(found, `No entity class is at or below "${classes.get(edge[end].term).label}" to spread to`);
+            }
+        });
+        const before = new Set(stored?.spread?.except ?? []);
+        strayExceptions(edge, classes).forEach((termId) => {
+            const label = classes.get(termId)?.label ?? termId;
+            refuseOrWarn(!before.has(termId), `"${label}" is excluded, but the spread does not reach it`);
+        });
+        // A spread is expanded to `edges.<predicate>.<Range>` paths; a named property has one path
+        // per entity, which a spread over many ranges cannot share.
+        ['forward', 'reverse'].filter((direction) => carries(edge, direction)).forEach((direction) => {
+            if (pair && sideOf(pair, direction)?.json?.placement === 'property') {
+                fail(found, `A spread edge is stored under edges, but the ${direction} verb is a named property`);
+            }
+        });
+    }
+
     ['forward', 'reverse'].filter((direction) => carries(edge, direction)).forEach((direction) => {
-        if (!edge[direction]?.json?.include) return;
+        // A spread edge publishes the classes below its ends, not the ends themselves.
+        if (!edge[direction]?.json?.include || isSpread(edge)) return;
         const ends = direction === 'forward' ? ['domain', 'range'] : ['range', 'domain'];
         ends.forEach((end) => {
             const entry = classes.get(edge[end]?.term);
@@ -194,6 +217,7 @@ export function validateEdge(edge, {
     const sameEnd = ((other, end) => other[end]?.term === edge[end]?.term
         && (other[end]?.qualifier ?? null) === (edge[end]?.qualifier ?? null));
     const duplicate = edges.find((other) => other._id !== edge._id && other.pair === edge.pair
+        && isSpread(other) === isSpread(edge)
         && sameEnd(other, 'domain') && sameEnd(other, 'range')
         && predicateOf(other, 'forward') === predicateOf(edge, 'forward')
         && predicateOf(other, 'reverse') === predicateOf(edge, 'reverse'));

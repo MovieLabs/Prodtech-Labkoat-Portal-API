@@ -57,7 +57,13 @@ export function describeEdgeProblem(problem, labelOf) {
         case 'structuralDuplicate':
             return `The entity structure already relates these classes as ${problem.structural}.`;
         case 'redundantInherited':
-            return 'The same predicate already joins superclasses of both ends, so this edge is inherited.';
+            return problem.spread
+                ? 'A spread edge on the same predicate already joins both ends, so this edge restates it.'
+                : 'The same predicate already joins superclasses of both ends, so this edge is inherited.';
+        case 'spreadEmpty':
+            return `No entity class is at or below ${term}, so this spread edge joins nothing at its ${end}.`;
+        case 'spreadExceptStray':
+            return `${term} is excluded from this spread edge, but the spread no longer reaches it.`;
         default:
             return problem.code;
     }
