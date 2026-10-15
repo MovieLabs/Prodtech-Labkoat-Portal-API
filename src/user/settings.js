@@ -41,8 +41,8 @@ export const MAX_VALUE_BYTES = 16 * 1024;
 const usableName = ((name) => typeof name === 'string' && name.length <= MAX_NAME && !name.startsWith('$'));
 
 /**
- * The changes a write asks for, checked: one `{ project, key, value }` per setting, `value` null
- * for a setting to forget. `project` is `''` for a setting held once rather than per project.
+ * The changes a write asks for, checked: one `{ project, key, value }` per setting. `project` is
+ * `''` for a setting held once rather than per project.
  *
  * @param {object} body - `{ values?: {key: value}, projects?: {project: {key: value}} }`
  * @returns {Array<{project: string, key: string, value: *}>}
@@ -130,7 +130,9 @@ export async function readSettings(user) {
 }
 
 /**
- * Store what a write asks for. Each setting replaces what was there; a null value removes it.
+ * Store what a write asks for. Each setting replaces what was there. A null is stored as a null,
+ * not as an absence, so a setting cleared in one browser reads back cleared in the next rather than
+ * keeping whatever that browser held.
  *
  * @param {string} user - The Cognito `sub`
  * @param {object} body - As `settingChanges` takes it
@@ -141,14 +143,12 @@ export async function writeSettings(user, body) {
     const changes = settingChanges(body);
     if (!changes.length) return { changed: 0 };
     const modified = new Date();
-    await settingsCollection().bulkWrite(changes.map(({ project, key, value }) => (value === null
-        ? { deleteOne: { filter: { user, project, key } } }
-        : {
-            updateOne: {
-                filter: { user, project, key },
-                update: { $set: { value, modified } },
-                upsert: true,
-            },
-        })), { ordered: false });
+    await settingsCollection().bulkWrite(changes.map(({ project, key, value }) => ({
+        updateOne: {
+            filter: { user, project, key },
+            update: { $set: { value, modified } },
+            upsert: true,
+        },
+    })), { ordered: false });
     return { changed: changes.length };
 }

@@ -173,8 +173,8 @@ the example to hand over.
 
 The Portal's preference store keeps the settings it marks `preference` in the reader's own record
 here, so they follow the reader between machines. `GET /api/user/v1/settings` returns
-`{ values, projects }`; `PATCH` takes the same shape with only the settings that changed, a null value
-removing one.
+`{ values, projects }`; `PATCH` takes the same shape with only the settings that changed. A null is
+stored, not treated as a removal, so a setting cleared in one browser reads back cleared in another.
 
 - **Keyed by the token's `sub`**, and people only: a machine token has no user to hold settings for.
 - **One document per user, project and setting** in `user_settings` (database `app_config`, beside

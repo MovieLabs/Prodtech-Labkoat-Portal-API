@@ -50,7 +50,7 @@ same('a setting for every project', settingChanges({ values: { 'split.omcGraph':
 same('a setting for one project', settingChanges({ projects: { alpha: { 'merge.setup': { ignoreCase: true } } } }), [
     { project: 'alpha', key: 'merge.setup', value: { ignoreCase: true } },
 ]);
-same('null forgets a setting', settingChanges({ values: { currentProject: null } }), [
+same('null is a value like any other', settingChanges({ values: { currentProject: null } }), [
     { project: '', key: 'currentProject', value: null },
 ]);
 same('an empty body changes nothing', settingChanges({}), []);

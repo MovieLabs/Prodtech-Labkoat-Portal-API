@@ -51,7 +51,7 @@ router.get('/settings', userOnly, subject, async (req, res, next) => {
 });
 
 /**
- * Change some settings. Only the settings named are touched; a null value removes one. Answers
+ * Change some settings. Only the settings named are touched; a null is stored as one. Answers
  * `{ changed }`, or 422 with every problem in the body.
  */
 router.patch('/settings', userOnly, subject, async (req, res, next) => {
