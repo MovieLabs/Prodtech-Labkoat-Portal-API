@@ -77,6 +77,7 @@ npm run link:local
 | `/api/greenlight` | `greenlight-router` | the Portal's Greenlight tab: `POST /ping` echoes the body and the caller; `/submissions` holds JSON a script posts until its sender publishes it from the Portal |
 | `/api/pipeline/v1` | `pipeline-router` | catalog, upload, run, run status, cancel |
 | `/api/ingest/v1` | `ingest-router` | upload, process, process status — files as OMC assets |
+| `/api/user/v1` | `user-v1-router` | `GET`/`PATCH /settings`: the signed-in user's remembered preferences |
 
 Every route is guarded by `awsJwtValidator` (Cognito) from `mlHelpers` except two, deliberately:
 `POST /api/omc/v1/identifier`, and `/api-docs`, which serves the OpenAPI description a client needs
@@ -167,6 +168,22 @@ the example to hand over.
   `body.contents.pullData`. The job id is the deduplication id, so a retried approval is not
   delivered twice.
 - `npm run verify:greenlight` checks the gate, the store and the controllers without a token.
+
+### User settings (`src/user/`)
+
+The Portal's preference store keeps the settings it marks `preference` in the reader's own record
+here, so they follow the reader between machines. `GET /api/user/v1/settings` returns
+`{ values, projects }`; `PATCH` takes the same shape with only the settings that changed. A null is
+stored, not treated as a removal, so a setting cleared in one browser reads back cleared in another.
+
+- **Keyed by the token's `sub`**, and people only: a machine token has no user to hold settings for.
+- **One document per user, project and setting** in `user_settings` (database `app_config`, beside
+  the vocabulary's), so two browsers writing different settings never overwrite each other and the
+  same setting ends with whichever wrote last. Keys contain dots, which is the other reason they are
+  stored as values rather than as field paths.
+- **The service does not interpret a setting.** It enforces only the limits in `settings.js` (name
+  length, value size, changes per write); the Portal decides whether a value is still usable.
+- `npm run verify:user-settings` checks the request parsing and the read-back shape.
 
 ### Credentials
 

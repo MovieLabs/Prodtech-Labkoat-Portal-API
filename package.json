@@ -21,6 +21,7 @@
     "verify:edges": "node src/vocabulary/edges/edges.verify.mjs",
     "verify:greenlight": "node src/greenlight/greenlight.verify.mjs",
     "verify:frameio": "node pipelines/sources/frameio/frameio.verify.mjs",
+    "verify:user-settings": "node src/user/settings.verify.mjs",
     "link:local": "npm link omc-util",
     "unlink:local": "npm uninstall --no-save omc-util && npm install"
   },
