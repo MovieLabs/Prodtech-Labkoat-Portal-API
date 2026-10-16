@@ -27,6 +27,7 @@ const NO_INFORMATION = ['distance', 'productionName'];
  */
 export const omcMappings = [
     {
+        id: 'productionScene',
         entityType: 'ProductionScene',
         table: 'takes',
         grain: 'group',
@@ -59,23 +60,25 @@ export const omcMappings = [
             exclude: [...NO_INFORMATION, 'slate', 'slateFullName', 'take'],
         },
         edges: [
-            { to: 'Slate', via: 'slateFullName', inverse: true },
+            { to: 'slate', via: 'slateFullName', inverse: true },
         ],
     },
     {
         // The relationship between a production scene and a narrative scene it covers, reified:
         // one Realization per pair (production scene R13/15 covers narrative scenes 13 and 15, so
         // two). NarrativeScene -> Realization -> ProductionScene; each inverse is written too.
+        id: 'realization',
         entityType: 'Realization',
         table: 'productionSceneNarrativeScenes',
         grain: 'group',
         key: 'pairKey',
         edges: [
-            { to: 'NarrativeScene', via: 'narrativeScene', inverse: true },
-            { to: 'ProductionScene', via: 'productionScene', inverse: true },
+            { to: 'narrativeScene', via: 'narrativeScene', inverse: true },
+            { to: 'productionScene', via: 'productionScene', inverse: true },
         ],
     },
     {
+        id: 'slate',
         entityType: 'Slate',
         table: 'takes',
         grain: 'row',
@@ -112,6 +115,7 @@ export const omcMappings = [
         // edge is declared there rather than here.
     },
     {
+        id: 'narrativeScene',
         entityType: 'NarrativeScene',
         table: 'narrativeScenes',
         // Narrative scenes recur across filming days — scene 5 was shot on Days 1 and 4,
@@ -143,10 +147,9 @@ export const omcMappings = [
             // joined on the scene number; the reference is seeded exactly as the Character
             // entity will be, so it resolves as soon as that pass runs.
             {
-                to: 'Character',
+                toType: 'Character',
                 from: { table: 'narrativeSceneCharacters', on: 'narrativeScene' },
                 via: 'characterName',
-                external: true,
             },
         ],
     },
@@ -156,6 +159,7 @@ export const omcMappings = [
     // the identifier hash, so one key yields three distinct entities that point at each
     // other.
     {
+        id: 'asset',
         entityType: 'Asset',
         table: 'assets',
         grain: 'row',
@@ -174,11 +178,12 @@ export const omcMappings = [
                 'fileSize', 'assetStructureType', 'assetFunctionType', 'printDate'],
         },
         edges: [
-            { to: 'AssetStructure', via: 'fileName' },
-            { to: 'Provenance', via: 'fileName' },
+            { to: 'assetStructure', via: 'fileName' },
+            { to: 'provenance', via: 'fileName' },
         ],
     },
     {
+        id: 'assetStructure',
         entityType: 'AssetStructure',
         table: 'assets',
         grain: 'row',
@@ -196,6 +201,7 @@ export const omcMappings = [
         },
     },
     {
+        id: 'provenance',
         entityType: 'Provenance',
         table: 'assets',
         grain: 'row',

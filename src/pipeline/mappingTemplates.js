@@ -113,6 +113,13 @@ export async function resolveMappings({ definition, settings }) {
             problems.push(`mapping template "${template.name ?? templateId}" maps nothing`);
             continue;
         }
+        // An edge names its target by entry id, so a template whose entries have none would run
+        // with every edge unresolved — refused here rather than producing entities with no links.
+        if (!template.mapping.every((entry) => typeof entry?.id === 'string' && entry.id)) {
+            problems.push(`mapping template "${template.name ?? templateId}" has entries without an id; `
+                + 'it predates entry ids and must be migrated before a pipeline can use it');
+            continue;
+        }
         mappings[dataset] = template.mapping;
     }
 
