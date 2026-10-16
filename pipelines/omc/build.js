@@ -2,7 +2,9 @@ import { omcEdges, omcMerge, omcTemplate } from 'omc-util';
 // The per-value rules are shared with omc-util's row-oriented interpreter rather than kept in two
 // places: a cast is a cast, and a delimited cell splits the same way whoever is reading it.
 // `writeShaped` replaces a naive dotted-path writer this file used to carry — see setPath below.
-import { cast, identityColumn, splitList, writeShaped } from 'omc-util/mapping';
+import {
+    cast, edgeTarget, identityColumn, splitList, writeShaped,
+} from 'omc-util/mapping';
 
 import '../types.js'; // Type definitions, resolved globally by JSDoc
 
@@ -349,18 +351,36 @@ function buildEntityType(mapping, tables, options, notes) {
  * Create the edges declared by a mapping, once every entity exists.
  *
  * Edges are created through `omcEdges.edgeCreate`, so the path, the storage shape and the
- * inverse all come from the schema rather than from this file.
+ * inverse all come from the schema rather than from this file. An edge's target is resolved by
+ * omc-util's `edgeTarget`, exactly as the row interpreter resolves it: `to` names an entry in the
+ * mapping set, `toType` an entityType none of them builds.
  *
  * @param {DataPipeline.EntityMapping} mapping - The mapping declaring the edges
+ * @param {Array<DataPipeline.EntityMapping>} mappings - Every mapping in the set, for `to`
  * @param {DataPipeline.TableSet} tables - The interim tables
  * @param {Map<string, DataPipeline.Table>} groupsByKey - Rows behind each entity of this type
  * @param {Map<string, Map<string, OmcEntity>>} registry - Built entities, by type then key
  * @param {DataPipeline.OmcOptions} options - Resolved options
+ * @param {Array<DataPipeline.MappingNote>} notes - Appended to in place
  */
-function applyEdges(mapping, tables, groupsByKey, registry, options) {
+function applyEdges(mapping, mappings, tables, groupsByKey, registry, options, notes) {
     const source = registry.get(mapping.entityType);
 
     for (const edge of mapping.edges ?? []) {
+        const resolvedTarget = edgeTarget(mappings, edge);
+        if (!resolvedTarget) {
+            notes.push({
+                kind: 'unknownEdgeTarget',
+                where: mapping.entityType,
+                detail: `an edge names "${edge.to ?? edge.toType}", which is no mapping in this set; it was not written`,
+            });
+            continue;
+        }
+        // No entry builds a `toType` target, so the reference is seeded exactly as that entity
+        // will be, and resolves once whatever builds it runs.
+        const external = !resolvedTarget.entry;
+        const targetType = resolvedTarget.entityType;
+
         for (const [keyValue, ownRows] of groupsByKey) {
             // An edge can be sourced from a different table than the entity — a narrative
             // scene's characters live in their own table, joined on the scene number.
@@ -375,9 +395,9 @@ function applyEdges(mapping, tables, groupsByKey, registry, options) {
                     .map(String))];
 
             for (const targetKey of targetKeys) {
-                const target = edge.external
-                    ? entityRef({ entityType: edge.to, key: targetKey, options })
-                    : registry.get(edge.to)?.get(targetKey);
+                const target = external
+                    ? entityRef({ entityType: targetType, key: targetKey, options })
+                    : registry.get(targetType)?.get(targetKey);
                 if (!target) continue;
 
                 const result = omcEdges.edgeCreate({
@@ -392,7 +412,7 @@ function applyEdges(mapping, tables, groupsByKey, registry, options) {
                 if (!result) continue;
 
                 source.set(keyValue, result.fromEntity);
-                if (edge.inverse && !edge.external) registry.get(edge.to).set(targetKey, result.toEntity);
+                if (edge.inverse && !external) registry.get(targetType).set(targetKey, result.toEntity);
             }
         }
     }
@@ -441,7 +461,7 @@ export function buildEntities({ tables, mappings, options = {} }) {
     }
 
     for (const { mapping, groups } of built) {
-        applyEdges(mapping, tables, groups, registry, resolved);
+        applyEdges(mapping, mappings, tables, groups, registry, resolved, notes);
     }
 
     const entitiesByType = Object.fromEntries(

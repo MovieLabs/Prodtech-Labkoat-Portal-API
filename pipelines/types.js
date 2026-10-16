@@ -92,10 +92,13 @@
 /**
  * A relationship to another entity. The edge itself is created by omcUtil, which decides
  * the path and the inverse from the schema — this only says which entity to point at and
- * which column holds its key.
+ * which column holds its key. The target is named by exactly one of `to` and `toType`.
  * @memberof DataPipeline
  * @typedef {Object} EdgeMapping
- * @property {string} to - The entityType being pointed at.
+ * @property {string} [to] - The `id` of the mapping, in the same set, that builds the target.
+ * @property {string} [toType] - The target's entityType, when no mapping in the set builds it.
+ *   The reference is seeded exactly as the entity itself would be, so it resolves once whatever
+ *   builds it runs.
  * @property {string} via - The column holding the target's key value. For a `group` grain
  *   the column is read across every row in the group, so one production scene reaches all
  *   of its slates through a single mapping.
@@ -106,8 +109,6 @@
  * @property {string} [split] - Split the column as a delimited list, one edge per member.
  * @property {boolean} [inverse] - Also write the inverse edge on the target. Set it on one
  *   side of a pair only, or the same relationship is written twice.
- * @property {boolean} [external] - The target is not built by this mapping. The reference is
- *   seeded exactly as the entity itself would be, so it resolves once that pass runs.
  */
 
 /**
@@ -141,6 +142,8 @@
  * declares its mapping and the generic builder applies it.
  * @memberof DataPipeline
  * @typedef {Object} EntityMapping
+ * @property {string} id - Identifies this mapping within its set; what an edge's `to` names.
+ *   It is not part of the entity's identifier, which comes from the entityType and key value.
  * @property {string} entityType - The OMC entityType to build.
  * @property {string} table - The table in the {@link DataPipeline.TableSet} to read.
  * @property {'row'|'group'} [grain] - `row` builds one entity per row (a Slate per take);

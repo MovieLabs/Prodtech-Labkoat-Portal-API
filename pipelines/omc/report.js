@@ -1,9 +1,10 @@
 import { omcTemplate } from 'omc-util';
+import { edgeTarget } from 'omc-util/mapping';
 
 import '../types.js'; // Type definitions, resolved globally by JSDoc
 
 /** Render one mapping's property table, so the report states the mapping actually applied. */
-function renderMapping(mapping) {
+function renderMapping(mapping, mappings) {
     const source = (spec) => {
         if (typeof spec === 'string') return `\`${spec}\``;
         const parts = [`\`${spec.from}\``];
@@ -24,8 +25,9 @@ function renderMapping(mapping) {
         .join('\n');
 
     const edges = (mapping.edges ?? [])
-        .map((e) => `| \`edges → ${e.to}\` | via \`${e.via}\`${e.split ? `, split on \`${e.split}\`` : ''}`
-            + `${e.external ? ' — referenced, built by a later pass' : ''} |`).join('\n');
+        .map((e) => `| \`edges → ${edgeTarget(mappings, e)?.entityType ?? e.to}\` | via \`${e.via}\``
+            + `${e.split ? `, split on \`${e.split}\`` : ''}`
+            + `${e.toType ? ' — referenced, built by a later pass' : ''} |`).join('\n');
 
     const custom = mapping.customData
         ? `| \`customData[]\` | every remaining \`${mapping.table}\` column, domain \`${mapping.customData.domain}\``
@@ -115,7 +117,7 @@ ${external}
 ## Mapping
 
 ${checkLine}
-${mappings.map(renderMapping).join('\n')}
+${mappings.map((m) => renderMapping(m, mappings)).join('\n')}
 The schema sets \`unevaluatedProperties: false\`, so no source field can ride along as a
 custom property. \`customData\` is the schema's own catch-all — *"used where the formal schema
 lacks required properties"* — and carries the source's key/value pairs as an object under its

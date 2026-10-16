@@ -56,6 +56,7 @@ const SOURCE_IDENTITY = [
  */
 export const omcMappings = [
     {
+        id: 'asset',
         entityType: 'Asset',
         table: 'files',
         grain: 'row',
@@ -73,10 +74,11 @@ export const omcMappings = [
             exclude: [...STRUCTURAL, ...TECHNICAL],
         },
         edges: [
-            { to: 'AssetStructure', via: 'fileId' },
+            { to: 'assetStructure', via: 'fileId' },
         ],
     },
     {
+        id: 'assetStructure',
         entityType: 'AssetStructure',
         table: 'files',
         grain: 'row',
@@ -129,6 +131,7 @@ export const omcMappings = [
  */
 export const commentMappings = [
     {
+        id: 'commentAsset',
         entityType: 'Asset',
         table: 'comments',
         grain: 'row',

@@ -445,6 +445,7 @@ await check('uses a configured mapping template in place of its own', async () =
             omcOptions: { schemaVersion: V3, identifierScope: 'movielabs.com', seedNamespace: 'TEST' },
             mappings: {
                 files: [{
+                    id: 'e_template-asset',
                     entityType: 'Asset',
                     key: 'fileId',
                     properties: { label: 'fileName' },
