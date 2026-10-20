@@ -155,9 +155,8 @@ export const omcMappings = [
     },
 
     // The files Script-E delivers are themselves production assets. All three mappings read
-    // the same `assets` table keyed on the file name; `seedFor` folds the entityType into
-    // the identifier hash, so one key yields three distinct entities that point at each
-    // other.
+    // the same `assets` table keyed on the file name; each entityType's identifier prefix keeps
+    // them apart, so one key yields three distinct entities that point at each other.
     {
         id: 'asset',
         entityType: 'Asset',
