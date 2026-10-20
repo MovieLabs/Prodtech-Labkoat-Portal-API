@@ -3,7 +3,7 @@ import { omcEdges, omcMerge, omcTemplate } from 'omc-util';
 // places: a cast is a cast, and a delimited cell splits the same way whoever is reading it.
 // `writeShaped` replaces a naive dotted-path writer this file used to carry — see setPath below.
 import {
-    cast, edgeTarget, identityColumn, splitList, writeShaped,
+    cast, edgeTarget, identitySource, sourceValue, splitList, writeShaped,
 } from 'omc-util/mapping';
 
 import '../types.js'; // Type definitions, resolved globally by JSDoc
@@ -49,7 +49,8 @@ function resolveProperty(mapping, rows, tables) {
     // A fixed value is a decision the mapping makes, not something the source says.
     if (spec.const !== undefined) return { value: spec.const, withheld: null };
 
-    const present = rows.map((r) => r[from]).filter((v) => v !== null && v !== undefined && v !== '');
+    const read = spec.template !== undefined ? { template: spec.template } : from;
+    const present = rows.map((r) => sourceValue(r, read)).filter((v) => v !== null);
     if (!present.length) return { value: null, withheld: null };
 
     if (when === 'unanimous') {
@@ -57,7 +58,7 @@ function resolveProperty(mapping, rows, tables) {
         if (distinct.size > 1) {
             return {
                 value: null,
-                withheld: `${distinct.size} different values of "${from}" across ${rows.length} rows`,
+                withheld: `${distinct.size} different values of "${from ?? spec.template}" across ${rows.length} rows`,
             };
         }
     }
@@ -69,7 +70,7 @@ function resolveProperty(mapping, rows, tables) {
         if (when === 'single' && members.length !== 1) {
             return {
                 value: null,
-                withheld: `"${from}" holds ${members.length} values (${members.join(', ')}); `
+                withheld: `"${from ?? spec.template}" holds ${members.length} values (${members.join(', ')}); `
                     + 'no single value applies',
             };
         }
@@ -154,14 +155,14 @@ function buildCustomData(mapping, rows, consumed) {
     }];
 }
 
-/** Group rows by the value of a column, preserving first-seen order. */
+/** Group rows by the value of a column or template, preserving first-seen order. */
 function groupRows(rows, key, skipWhenKeyEmpty) {
     const groups = new Map();
     for (const row of rows) {
-        const value = row[key];
-        if (value === null || value === undefined || value === '') {
+        const value = sourceValue(row, key);
+        if (value === null) {
             if (skipWhenKeyEmpty) continue;
-            throw new Error(`Row has no value for key column "${key}"`);
+            throw new Error(`Row has no value for key "${key?.template ?? key}"`);
         }
         if (!groups.has(String(value))) groups.set(String(value), []);
         groups.get(String(value)).push(row);
@@ -187,12 +188,12 @@ function rowsByKey(mapping, rows) {
     // agrees with the reference an edge records — join on one column and group by another and the
     // lookup finds nothing. Read straight off `.key`, a key-less mapping grouped every row under
     // "undefined" and produced a single entity for the whole table.
-    const key = identityColumn(mapping);
+    const key = identitySource(mapping);
     if (grain === 'group') return groupRows(rows, key, skipWhenKeyEmpty);
     const groups = new Map();
     for (const row of rows) {
-        const value = row[key];
-        if (skipWhenKeyEmpty && (value === null || value === undefined || value === '')) continue;
+        const value = sourceValue(row, key);
+        if (skipWhenKeyEmpty && value === null) continue;
         const asKey = String(value);
         if (!groups.has(asKey)) groups.set(asKey, []);
         groups.get(asKey).push(row);
@@ -389,9 +390,9 @@ function applyEdges(mapping, mappings, tables, groupsByKey, registry, options, n
                 : ownRows;
 
             const targetKeys = edge.split
-                ? [...new Set(rows.flatMap((r) => splitList(r[edge.via], edge.split)))]
-                : [...new Set(rows.map((r) => r[edge.via])
-                    .filter((v) => v !== null && v !== undefined && v !== '')
+                ? [...new Set(rows.flatMap((r) => splitList(sourceValue(r, edge.via), edge.split)))]
+                : [...new Set(rows.map((r) => sourceValue(r, edge.via))
+                    .filter((v) => v !== null)
                     .map(String))];
 
             for (const targetKey of targetKeys) {
