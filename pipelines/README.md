@@ -271,9 +271,9 @@ error partway through a run, a removed edge as a silently missing relationship, 
 
 Two further consequences worth knowing:
 
-- **Identifiers are deterministic.** `omcIdentifier.idHash` seeds them from the production
-  name plus the entity's natural key, so re-running produces byte-identical files instead of
-  duplicating the graph. Edges to entities a later pass will generate (`NarrativeScene`) use
+- **Identifiers are deterministic.** `omcIdentifier.idMint` hashes the production name plus the
+  entity's natural key, and adds the entityType's prefix, so re-running produces byte-identical
+  files instead of duplicating the graph. Edges to entities a later pass will generate (`NarrativeScene`) use
   the same seeding, so they resolve as soon as that pass runs.
 - **The v3.0 schema sets `unevaluatedProperties: false`.** No source field can ride along as
   a custom property. `customData[]` is the schema's own catch-all — *"used where the formal

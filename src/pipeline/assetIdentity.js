@@ -20,10 +20,9 @@
  * AssetStructure   asts-9e107d9d372bb6826bd81d3542a419d6
  * ```
  *
- * `idFromValue`, not `idHash`: `idHash` folds the entity type into the hash, which would destroy
- * the property that the hash is readable straight off the identifier. The prefixes are what keep
- * the pair distinct, so nothing trips the import pipeline's rule that no two entities share an
- * identifier.
+ * `idMint` with `hash: false`, so the MD5 is not hashed again and stays readable straight off the
+ * identifier. The prefixes are what keep the pair distinct, so nothing trips the import pipeline's
+ * rule that no two entities share an identifier.
  *
  * Re-uploading the same bytes reproduces the same identifiers. That is the point: the Portal's
  * staging lookup then finds the entities already in fMam and the import is an update rather than a
@@ -64,8 +63,8 @@ export default async function mintAssetPair({
         ...entity,
         schemaVersion,
         entityType,
-        identifier: [omcIdentifier.idFromValue({
-            identifierScope, value: md5, entityType, prefix: true, schemaVersion,
+        identifier: [omcIdentifier.idMint({
+            identifierScope, value: md5, hash: false, entityType, schemaVersion,
         })],
     });
 

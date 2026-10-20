@@ -42,8 +42,8 @@ const SOURCE_IDENTITY = [
  * This is data, not code. The generic builder in `pipelines/omc/build.js` applies it; nothing here knows
  * how to construct an entity, and nothing in the builder knows about Frame.io.
  *
- * Both mappings read the same table at the same grain, keyed on `fileId`. `seedFor` folds the
- * entityType into the identifier hash, so one key yields two distinct entities — and the edge
+ * Both mappings read the same table at the same grain, keyed on `fileId`. Each entityType's
+ * identifier prefix keeps them apart, so one key yields two distinct entities — and the edge
  * between them is created from the schema's own definition rather than written out here.
  *
  * **`assetFunction` is deliberately not set.** Frame.io is a review platform holding whatever a

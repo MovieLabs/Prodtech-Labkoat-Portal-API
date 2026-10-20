@@ -105,9 +105,10 @@ function addSourceIdentifiers(assets) {
     for (const asset of assets) {
         const fileId = asset.customData?.find((entry) => entry?.value?.fileId)?.value?.fileId;
         if (!fileId) continue;
-        asset.identifier.push(omcIdentifier.idFromValue({
+        asset.identifier.push(omcIdentifier.idMint({
             identifierScope: SOURCE_SCOPE,
             value: fileId,
+            hash: false,
         }));
         added += 1;
     }
