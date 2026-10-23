@@ -10,8 +10,8 @@
  * gain.
  *
  * **No new database.** The four collections sit in `app_config`, beside `projects` and
- * `mappingTemplates`. A vocabulary is editorial tooling rather than a project's production data,
- * which is the same reasoning fMam's `mongo-templates.js` records for mapping templates.
+ * `templates`. A vocabulary is editorial tooling rather than a project's production data,
+ * which is the same reasoning fMam's `mongo-templates.js` records for templates.
  *
  * @module vocabulary/store/mongoConnection
  */

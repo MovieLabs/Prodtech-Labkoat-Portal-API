@@ -14,6 +14,7 @@ import ingestRouter from '../src/routes/ingest-router.js';
 import omcRouter from '../src/routes/omc-router.js';
 import pipelineRouter from '../src/routes/pipeline-router.js';
 import routeLog from '../src/routes/routeLog.js';
+import templatesRouter from '../src/routes/templates-router.js';
 import userV1Router from '../src/routes/user-v1-router.js';
 import vocabEdgesV1Router from '../src/routes/vocab-edges-v1-router.js';
 import vocabV1Router from '../src/routes/vocab-v1-router.js';
@@ -149,6 +150,7 @@ export default async function apiServer() {
     app.use('/api/greenlight', greenlightRouter); // Internal test bench for the Portal's Greenlight tab
     app.use('/api/pipeline/v1', pipelineRouter); // Select, feed and run an OMC processing pipeline
     app.use('/api/ingest/v1', ingestRouter); // Files as OMC assets; same modules, its own contract
+    app.use('/api/templates', templatesRouter); // Saved templates: CSV mappings, queries, projections
     app.use('/api/user/v1', userV1Router); // The signed-in user's remembered preferences
 
     // Where pipeline uploads go is the first thing anyone asks when a run behaves unexpectedly,

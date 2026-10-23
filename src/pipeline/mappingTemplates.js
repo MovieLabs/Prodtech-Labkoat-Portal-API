@@ -101,7 +101,7 @@ export async function resolveMappings({ definition, settings }) {
         // Sequential: a pipeline has a handful of datasets, and one failure should name itself
         // rather than arriving as one of several rejected promises.
         const { status, payload } = await fMamRequest({
-            method: 'GET', route: '/mappingTemplate', query: { id: templateId },
+            method: 'GET', route: '/template', query: { id: templateId },
         });
         const template = payload?.data;
         if (status < 200 || status >= 300 || !template) {
