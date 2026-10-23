@@ -109,6 +109,11 @@ export async function resolveMappings({ definition, settings }) {
                 + 'read; it may have been deleted');
             continue;
         }
+        if (template.kind !== 'csv') {
+            problems.push(`template "${template.name ?? templateId}" for dataset "${dataset}" is a `
+                + `${template.kind} template, not a CSV mapping`);
+            continue;
+        }
         if (!Array.isArray(template.mapping) || !template.mapping.length) {
             problems.push(`mapping template "${template.name ?? templateId}" maps nothing`);
             continue;
