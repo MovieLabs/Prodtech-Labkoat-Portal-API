@@ -62,7 +62,7 @@ const configEnv = {
         COGNITO_USERINFO_URL: 'https://us-west-2ew6ovss8m.auth.us-west-2.amazoncognito.com/oauth2/userInfo',
         // The vocabulary's Mongo store. Same cluster and same credentials fMam uses — the
         // gateway already holds SECRET_ARN.FMAM, so this needs no new secret to rotate. The
-        // collections sit in `app_config` beside `projects` and `mappingTemplates`, all of them
+        // collections sit in `app_config` beside `projects` and `templates`, all of them
         // prefixed `vocab_`, because the cluster is shared and users name their own collections.
         VOCAB_MONGO_URL: 'mongodb+srv://${username}:${password}@ml-prodtech.inwvg0.mongodb.net/?appName=ML-Prodtech',
         VOCAB_DB: 'app_config',
