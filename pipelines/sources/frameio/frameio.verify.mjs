@@ -356,7 +356,7 @@ await check('derives assetStructureType from media type, and reports what it can
     const out = await runFrameio({ fetch: stubFetch() });
     const typeOf = (label) => out.omc
         .find((e) => e.entityType === 'AssetStructure' && e.label === label)?.assetStructureType;
-    assert(typeOf('slate_01.mov') === 'digital.movingImage', 'video did not become digital.movingImage');
+    assert(typeOf('slate_01.mov') === 'digital.visual.movingImage', 'video did not become digital.visual.movingImage');
     assert(typeOf('callsheet.pdf') === 'digital.document', 'pdf did not become digital.document');
     assert(typeOf('notes.xyzzy') === 'digital', 'unknown media type did not fall back to digital');
     assert(out.notes.some((n) => n.kind === 'unclassifiedMediaType'), 'unclassified media type was not reported');

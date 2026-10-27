@@ -129,10 +129,10 @@ test('yamdu reads the API and delivers the project schema version', needsFixture
 
         assert.deepEqual(
             cxt.contextProperties,
-            { shootDay: { shootDay: 1, shootDate: '2026-01-23' } },
-            'contextProperties is nested under the sub-type, values untouched',
+            { shootDay: 1, shootDate: '2026-01-23' },
+            'contextProperties carries across unchanged',
         );
-        assert.equal(typeof cxt.contextProperties.shootDay.shootDay, 'number',
+        assert.equal(typeof cxt.contextProperties.shootDay, 'number',
             'the day stays a number — both versions type it string|number|null');
 
         assert.ok(Array.isArray(cxt.edges?.has?.ProductionScene),

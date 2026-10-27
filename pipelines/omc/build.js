@@ -87,18 +87,18 @@ function resolveProperty(mapping, rows, tables) {
 }
 
 /**
- * Build a note-shaped property — an array of `{author, title, text}`.
+ * Build a note-shaped property — an array of labelled text: `{author, title, text}` for
+ * `annotation`, `{piece, text}` for `NarrativeScene.slugline`.
  *
- * OMC uses that shape for more than `annotation`: `NarrativeScene.slugline` has it too. One
- * construct covers them all, so a mapping names the property rather than the builder
- * hard-coding which properties are note-shaped.
+ * One construct covers them all, so a mapping names the property and the label its shape uses
+ * rather than the builder hard-coding which properties are note-shaped.
  *
- * @param {Array<{title: string, from: string, author: string}>} entries - Note mappings
+ * @param {Array<DataPipeline.NoteMapping>} entries - Note mappings
  * @param {Object} row - The row
  * @returns {Array<Object>} The notes, empty ones dropped
  */
 const buildNotes = (entries, row) => (entries ?? [])
-    .map(({ title, author, from }) => ({ author, title, text: row[from] }))
+    .map(({ title, piece, author, from }) => ({ author, title, piece, text: row[from] }))
     .filter((n) => n.text !== null && n.text !== undefined && n.text !== '')
     .map((n) => Object.fromEntries(Object.entries(n).filter(([, v]) => v !== undefined)));
 

@@ -115,7 +115,8 @@
  * One note carried from a column into a note-shaped OMC property.
  * @memberof DataPipeline
  * @typedef {Object} NoteMapping
- * @property {string} title - The note's title, written verbatim.
+ * @property {string} [title] - The note's title, written verbatim (`annotation`).
+ * @property {string} [piece] - The slugline piece the text is, written verbatim (`slugline`).
  * @property {string} from - The column holding the note's text.
  * @property {string} [author] - The note's author, written verbatim when given.
  */
@@ -159,8 +160,8 @@
  *   path to source. Dotted paths address nested properties: `slateName.fullName`.
  * @property {Object.<string, Array<DataPipeline.NoteMapping>>} [notes] - Columns carried as
  *   note-shaped OMC properties, keyed by the property path they are written to. `annotation`
- *   is the home for human commentary; `slugline` takes the same shape, which is why this is
- *   keyed by path rather than fixed to one property. An entry whose column is empty is
+ *   is the home for human commentary; `slugline` holds labelled text too, under `piece`
+ *   rather than `title`, which is why this is keyed by path rather than fixed to one property. An entry whose column is empty is
  *   dropped, so a property with nothing to say is absent rather than an empty array.
  * @property {DataPipeline.CustomDataMapping} [customData] - The catch-all.
  * @property {Array<DataPipeline.EdgeMapping>} [edges] - Relationships to other entities.

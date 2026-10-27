@@ -23,8 +23,8 @@ import '../../types.js'; // Type definitions, resolved globally by JSDoc
  * @type {Array<[string, string]>}
  */
 const MEDIA_TYPE_STRUCTURE = [
-    ['image/', 'digital.image'],
-    ['video/', 'digital.movingImage'],
+    ['image/', 'digital.visual.image'],
+    ['video/', 'digital.visual.movingImage'],
     ['audio/', 'digital.audio'],
     ['text/csv', 'digital.data'],
     ['text/', 'digital.document'],

@@ -39,16 +39,6 @@ export const omcMappings = [
             'label': 'productionScene',
             'productionSceneName.fullName': 'productionScene',
             'sceneDescriptor': 'productionScene',
-            // Only where the production scene covers exactly one narrative scene. Where it
-            // covers two (R13/15 covers 13 and 15) there is no one header, and inventing a
-            // composite would assert something the script does not say — the edges carry
-            // the relationship instead.
-            'sceneHeader': {
-                from: 'narrativeScene',
-                split: ';',
-                when: 'single',
-                lookup: { table: 'narrativeScenes', on: 'narrativeScene', select: 'heading' },
-            },
             // shotDescription is take-level in Script-E and does vary within a slate, so it
             // is promoted to the scene only when every take agrees.
             'description': { from: 'shotDescription', when: 'unanimous' },
@@ -131,8 +121,8 @@ export const omcMappings = [
         },
         notes: {
             // Script-E's `scene_slug` is the one-line synopsis of the scene's action, which
-            // is what OMC's note-shaped `slugline` holds.
-            slugline: [{ title: 'Scene Slug', from: 'slug' }],
+            // is what OMC's `slugline` holds, as a piece of its own.
+            slugline: [{ piece: 'Scene Slug', from: 'slug' }],
             annotation: [{ title: 'Script Supervisor Questions', from: 'questions' }],
         },
         customData: {

@@ -21,7 +21,10 @@ function renderMapping(mapping, mappings) {
 
     const notes = Object.entries(mapping.notes ?? {})
         .map(([propertyPath, entries]) => `| \`${propertyPath}[]\` | `
-            + `${entries.map(({ title, from }) => `\`${from}\`${title ? ` as "${title}"` : ''}`).join(', ')} |`)
+            + `${entries.map(({ title, piece, from }) => {
+                const label = title ?? piece;
+                return `\`${from}\`${label ? ` as "${label}"` : ''}`;
+            }).join(', ')} |`)
         .join('\n');
 
     const edges = (mapping.edges ?? [])
