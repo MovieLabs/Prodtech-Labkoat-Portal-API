@@ -121,8 +121,8 @@ export const omcMappings = [
         },
         notes: {
             // Script-E's `scene_slug` is the one-line synopsis of the scene's action, which
-            // is what OMC's `slugline` holds, as a piece of its own.
-            slugline: [{ piece: 'Scene Slug', from: 'slug' }],
+            // is what OMC's `slugline` holds, as its `full` piece.
+            slugline: [{ piece: 'full', from: 'slug' }],
             annotation: [{ title: 'Script Supervisor Questions', from: 'questions' }],
         },
         customData: {
