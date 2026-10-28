@@ -1,4 +1,4 @@
-# Script-E source analysis — WWDOAT, Filming Day 1
+# Script-E source analysis — WDOAT, Filming Day 1
 
 What each file in a Script-E filming-day folder contains, how the files overlap, and what
 survives into `processedData`.

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { wwdoat } from './harness.js';
+import { wdoat } from './harness.js';
 
 /**
  * The golden bundle's recorded checksums.
@@ -15,7 +15,7 @@ import { wwdoat } from './harness.js';
 export const MANIFEST = path.join(import.meta.dirname, 'golden.sha256.json');
 
 /** The directory the manifest describes. */
-export const GOLDEN_DIR = path.join(wwdoat, 'omc');
+export const GOLDEN_DIR = path.join(wdoat, 'omc');
 
 /**
  * Checksum every file in the golden directory. Line endings are normalised first, so a checkout

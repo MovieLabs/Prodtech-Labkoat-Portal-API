@@ -276,7 +276,7 @@ async function nameReplyAuthors({
  *
  * The only part of this source that costs a request per file, which is why it is driven by
  * `Comment Count`: that arrives free with the walk, so the files with nothing to say cost nothing.
- * In the WWDOAT sample that is 81 requests rather than 239.
+ * In the WDOAT sample that is 81 requests rather than 239.
  *
  * Sequential, for the same reason the walk is — Frame.io rate-limits per user, and this is a burst
  * of small identical requests, which is exactly the shape that trips it.

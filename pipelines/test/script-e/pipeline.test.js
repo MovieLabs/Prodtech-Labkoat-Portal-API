@@ -4,11 +4,11 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { fsContext, getPipeline, runPipeline } from '../../catalog/index.js';
-import { indexByIdentity, needsFixtures, wwdoat } from '../harness.js';
+import { indexByIdentity, needsFixtures, wdoat } from '../harness.js';
 
 const PIPELINE_ID = 'script-e';
-const SOURCE_ROOT = path.join(wwdoat, 'sourceData/Script-E');
-const GOLDEN_DIR = path.join(wwdoat, 'omc');
+const SOURCE_ROOT = path.join(wdoat, 'sourceData/Script-E');
+const GOLDEN_DIR = path.join(wdoat, 'omc');
 const GOLDEN_FILES = [
     'productionScene', 'realization', 'slate', 'narrativeScene', 'asset', 'assetStructure', 'provenance',
 ];

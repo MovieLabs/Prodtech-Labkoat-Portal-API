@@ -78,7 +78,7 @@ export const slateFullName = (slate, take) => (slate && take ? `${slate}-${take}
 
 /**
  * Script-E slates wild tracks (sound recorded without camera) in a 1000-block that runs
- * unbroken across the whole production — 1001–1011 over the four WWDOAT days, matching the
+ * unbroken across the whole production — 1001–1011 over the four WDOAT days, matching the
  * list in the Report to Editor. That number is a wild-track identifier, not a scene, so it
  * is separated out rather than left sitting in the slate/production-scene column, where it
  * would map into OMC as a scene that does not exist. The scene a wild track belongs to is

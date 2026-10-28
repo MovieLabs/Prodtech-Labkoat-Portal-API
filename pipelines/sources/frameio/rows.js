@@ -217,7 +217,7 @@ function withoutStructuralNames(metadata, collisions) {
  * through.
  *
  * It names a **take, not a file**: several files can share one slate-take, and 237 rows of the
- * WWDOAT sample carry only 228 distinct values. Seed a Slate or Take from it; key an Asset on it and
+ * WDOAT sample carry only 228 distinct values. Seed a Slate or Take from it; key an Asset on it and
  * those files fold into one.
  *
  * Null unless both parts are present — half of a key is not a key, and `13A-` would collide with

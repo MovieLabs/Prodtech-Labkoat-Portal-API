@@ -24,7 +24,7 @@ const T = process.env.FRAMEIO_TOKEN;
 const S = process.env.FRAMEIO_OUT || fileURLToPath(new URL('./data', import.meta.url));
 const A = '4d3ecf78-9dfb-4271-a87e-5f35248b549d';
 const ROOT = '4021a1d2-314e-4ba4-a8fc-5396180a2a4e';
-const PROJECT = { id: 'sample', name: 'WWDOAT sample', workspace_id: null };
+const PROJECT = { id: 'sample', name: 'WDOAT sample', workspace_id: null };
 
 const get = async (p) => (await fetch(`https://api.frame.io${p}`, {
     headers: { Authorization: `Bearer ${T}` },

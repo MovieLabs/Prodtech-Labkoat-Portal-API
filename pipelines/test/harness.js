@@ -5,11 +5,11 @@ import { fsContext, getPipeline, runPipeline } from '../catalog/index.js';
 import { fixturesRoot } from '../lib/paths.js';
 
 /**
- * The WWDOAT production, under `PIPELINE_FIXTURES`. Its sources and golden bundle are production
+ * The WDOAT production, under `PIPELINE_FIXTURES`. Its sources and golden bundle are production
  * data and live outside every repository. When the variable is unset this names a directory that
  * does not exist, so a test refused before reading anything still runs; one that reads is skipped.
  */
-export const wwdoat = path.join(fixturesRoot ?? path.resolve('PIPELINE_FIXTURES-unset'), 'WWDOAT');
+export const wdoat = path.join(fixturesRoot ?? path.resolve('PIPELINE_FIXTURES-unset'), 'WDOAT');
 
 /** Test options for a test that reads the fixtures: skipped, saying why, when they are absent. */
 export const needsFixtures = fixturesRoot ? {} : { skip: 'PIPELINE_FIXTURES is not set' };

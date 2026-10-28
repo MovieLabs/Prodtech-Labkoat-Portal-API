@@ -442,7 +442,7 @@ function applyEdges(mapping, mappings, tables, groupsByKey, registry, options, n
  * buildEntities({
  *     tables,
  *     mappings: scriptE.omcMappings,
- *     options: { identifierScope: 'movielabs.com', seedNamespace: 'WWDOAT' },
+ *     options: { identifierScope: 'movielabs.com', seedNamespace: 'WDOAT' },
  * });
  */
 export function buildEntities({ tables, mappings, options = {} }) {

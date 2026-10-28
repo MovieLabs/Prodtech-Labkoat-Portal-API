@@ -49,15 +49,15 @@ Run from the repository root:
 npm test                            # pipeline tests (node --test over pipelines/test)
 npm run lint                        # covers src, pipelines and app.js
 npm run pipeline -- pipelines       # list the catalogue
-npm run pipeline -- run --pipeline script-e --dir "../WWDOAT/sourceData/Script-E/Filming Day 1"
+npm run pipeline -- run --pipeline script-e --dir "../WDOAT/sourceData/Script-E/Filming Day 1"
 PIPELINE_FIXTURES=.. npm run pipeline -- validate --day 1
 npm run verify:frameio
 ```
 
 ### Fixtures live outside the repository
 
-The production sample data (`WWDOAT/`, about 364 MB) is real production material and is in no
-repository. It sits at `MovieLabs-POC/WWDOAT/`. **`PIPELINE_FIXTURES` names the directory that
+The production sample data (`WDOAT/`, about 364 MB) is real production material and is in no
+repository. It sits at `MovieLabs-POC/WDOAT/`. **`PIPELINE_FIXTURES` names the directory that
 holds production folders**, not a production itself:
 
 ```bash
@@ -71,7 +71,7 @@ PIPELINE_FIXTURES=.. npm run pipeline -- omc --day 1,2,3,4
 - **`lib/paths.js` exports `fixturesRoot`** (null when unset). `dayPaths` and `omcPath`, which the
   `extract`/`validate`/`omc` commands use, throw a message naming the variable rather than guessing.
   `run --dir` takes a path relative to the current directory and does not use it.
-- **The golden bundle (`WWDOAT/omc/`) is guarded by checksums, not by git.** It is in no
+- **The golden bundle (`WDOAT/omc/`) is guarded by checksums, not by git.** It is in no
   repository, so `test/golden.sha256.json` records it and `golden.test.js` fails when it changes.
   `extract`, `validate` and `omc` write under `.scratchpad/pipeline/` by default; only
   `--write-fixtures` writes into the fixtures. To regenerate the golden on purpose: run `omc` with

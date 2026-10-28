@@ -16,7 +16,7 @@ rates, frame rate, audio layout, duration) is *only* available this way; it is n
 record, and the search endpoint reports it only as an explanation of why a result matched a query,
 which is no use as a dump.
 
-And on **99% of WWDOAT files**:
+And on **99% of WDOAT files**:
 
 ```
 OMC Take ID   me-nexus:871f0abe-590d-57d9-89f1-2295e236a72b
@@ -30,7 +30,7 @@ offers, that field is the join into existing project data, and it was put there 
 | File | What it is |
 |---|---|
 | `data/frameio-field-inventory.csv` | **Start here.** One row per field: source, type, system-derived vs user-entered, how often populated, distinct value count, three real examples. 80 fields across both projects. |
-| `data/frameio-wwdoat.csv` | 239 WWDOAT files × 62 columns — **the pipeline's own `files` rows**, written to disk instead of mapped. 18 structural (including the derived `SlateId`) plus every metadata field the sample carried. |
+| `data/frameio-wwdoat.csv` | 239 WDOAT files × 62 columns — **the pipeline's own `files` rows**, written to disk instead of mapped. 18 structural (including the derived `SlateId`) plus every metadata field the sample carried. |
 | `data/frameio-wwdoat-comments.csv` | The `comments` dataset: one row per comment, keyed on `fileId`. Only written when a run reads live comments. |
 | `data/frameio-wwdoat.json` | The raw records behind that CSV, including the untouched `metadata` arrays. |
 | `data/frameio-sample.json` | One file probed every way: plain, with every `include`, its `/metadata`, its `/comments`, and the (403) account field definitions. Shows the response envelopes. |
@@ -81,7 +81,7 @@ fields but defined by nobody: resolution, codecs, bit rates, frame rate, duratio
 
 **The field set differs two ways, and neither is "per project" exactly.** The derived fields depend
 on the *media* — `Color Space` appears on images, `Page Count` on PDFs — while the user-entered ones
-depend on how the account is configured: WWDOAT defines 19, ETC Europa defines one (`Status`). So a
+depend on how the account is configured: WDOAT defines 19, ETC Europa defines one (`Status`). So a
 mapping must tolerate fields appearing and vanishing; it cannot assume a fixed schema.
 
 **A field appears on a file only when it has a value.** `Rating` and `VFX Reqiured` were each seen on
@@ -111,7 +111,7 @@ one value per file and never more. `Comment Count` is system-derived and counts 
 Count: 3` still shows one `Comments` cell, and the three comments are not in this CSV at all.
 
 **Comments cost one request per file, and are a second dataset.** `Comment Count` arrives with the
-metadata, so the walk asks only where it is non-zero — 81 of 239 files in the WWDOAT sample, 22 of
+metadata, so the walk asks only where it is non-zero — 81 of 239 files in the WDOAT sample, 22 of
 them with more than one. They become the `comments` dataset: **one row per comment**, keyed on
 `fileId`, which is how a table says "many". A mapping keyed on `fileId` folds those rows back onto
 the file's one Asset as several `annotation` entries, because `mergeEntity` unions arrays by value —

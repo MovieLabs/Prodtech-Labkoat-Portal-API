@@ -27,7 +27,7 @@ Sources are read from PIPELINE_FIXTURES. extract, validate, all and omc write un
   run        Run a pipeline over a directory and print the OMC it produces
 
 Options:
-  --production <name>   Production folder, e.g. WWDOAT          (default: WWDOAT)
+  --production <name>   Production folder, e.g. WDOAT          (default: WDOAT)
   --source <name>       Source folder, e.g. Script-E            (default: Script-E)
   --day <n>             Filming day number, or a comma list     (default: 1)
   --identifier-scope    identifierScope for generated OMC ids   (omc, run)
@@ -114,7 +114,7 @@ async function main() {
     const { values, positionals } = parseArgs({
         allowPositionals: true,
         options: {
-            'production': { type: 'string', default: 'WWDOAT' },
+            'production': { type: 'string', default: 'WDOAT' },
             'source': { type: 'string', default: 'Script-E' },
             'day': { type: 'string', default: '1' },
             'identifier-scope': { type: 'string' },

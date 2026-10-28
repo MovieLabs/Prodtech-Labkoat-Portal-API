@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
- * The directory holding production folders (`WWDOAT/`, …), from `PIPELINE_FIXTURES`; null when
+ * The directory holding production folders (`WDOAT/`, …), from `PIPELINE_FIXTURES`; null when
  * it is unset. Production data is kept outside every repository, so its location is configuration
  * rather than something this file can work out from where it sits.
  *

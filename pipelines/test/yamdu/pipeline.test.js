@@ -4,10 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { createContext, getPipeline, runPipeline } from '../../catalog/index.js';
-import { needsFixtures, wwdoat } from '../harness.js';
+import { needsFixtures, wdoat } from '../harness.js';
 
 const PIPELINE_ID = 'yamdu';
-const FIXTURES = path.join(wwdoat, 'sourceData/Yamdu');
+const FIXTURES = path.join(wdoat, 'sourceData/Yamdu');
 const V3 = 'https://movielabs.com/omc/json/schema/v3.0';
 
 /**

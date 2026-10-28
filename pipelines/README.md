@@ -94,7 +94,7 @@ const { scriptEMappings } = sources;
 const result = buildEntities({
     tables,                       // { takes: [...], narrativeScenes: [...] }
     mappings: scriptEMappings,
-    options: { identifierScope: 'movielabs.com', seedNamespace: 'WWDOAT' },
+    options: { identifierScope: 'movielabs.com', seedNamespace: 'WDOAT' },
 });
 await writeBundle({ entitiesByType: result.entitiesByType, outDir });
 ```
@@ -129,16 +129,16 @@ breaks standard JSDoc.
 ```bash
 export PIPELINE_FIXTURES=..     # the directory holding production folders
 
-npm run pipeline -- extract  --production WWDOAT --source Script-E --day 1
-npm run pipeline -- validate --production WWDOAT --source Script-E --day 1
+npm run pipeline -- extract  --production WDOAT --source Script-E --day 1
+npm run pipeline -- validate --production WDOAT --source Script-E --day 1
 npm run pipeline -- all      --day 1,2,3,4
 npm run pipeline -- omc      --day 1,2,3,4
 
 npm run pipeline -- pipelines
-npm run pipeline -- run --pipeline script-e --dir "../WWDOAT/sourceData/Script-E/Filming Day 1"
+npm run pipeline -- run --pipeline script-e --dir "../WDOAT/sourceData/Script-E/Filming Day 1"
 ```
 
-`--production WWDOAT --source Script-E --day 1` are the defaults. Productions resolve under
+`--production WDOAT --source Script-E --day 1` are the defaults. Productions resolve under
 `PIPELINE_FIXTURES`; `--dir` resolves against the current directory. Output goes under
 `.scratchpad/pipeline/<production>/` unless `--write-fixtures` sends it into the fixtures, which
 is how the golden bundle is regenerated (then `npm run fixtures:record`).
@@ -161,7 +161,7 @@ PIPELINE_FIXTURES=.. npm test
 ```
 
 Each pipeline has a harness under `test/<pipelineId>/` that runs it over the fixtures in
-`WWDOAT/sourceData/` and compares the result against the bundle in `WWDOAT/omc/`. The
+`WDOAT/sourceData/` and compares the result against the bundle in `WDOAT/omc/`. The
 fixtures are production data kept outside every repository; without `PIPELINE_FIXTURES` the
 tests that read them are skipped and the rest still run. Because the bundle is in no repository,
 `test/golden.sha256.json` records its checksums and a test fails when it changes.
