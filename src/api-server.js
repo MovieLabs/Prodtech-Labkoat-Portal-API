@@ -120,16 +120,18 @@ export default async function apiServer() {
 
     app.use(cookieParser());
 
+    // Before the body parsers, so a request they refuse — too large, malformed — still carries the
+    // CORS headers and reaches the browser as that error rather than an opaque CORS block.
+    app.use(cors(corsOptions));
+
     app.use(express.urlencoded()); // Need both of these to receive JSON in body
+    // A Project save is one request holding every changed entity: 2,664 entities is 1.8 MB.
     app.use(express.json({
-        limit: 1024 * 1024,
+        limit: 50 * 1024 * 1024,
         type: 'application/json',
     }));
 
     app.use(express.static('public')); // Folder for images
-
-    // app.use(bodyParser.json({ limit: 1024 * 1024, type: 'application/json' }));
-    app.use(cors(corsOptions)); // Enable CORS
 
     app.use(routeLog); // Console log the route being requested
 
