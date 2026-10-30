@@ -226,7 +226,8 @@ const yamdu = {
     produces: [
         'Character', 'CreativeWork', 'NarrativeLocation', 'NarrativeObject', 'NarrativeScene',
         'NarrativeWardrobe', 'Participant', 'ProductionLocation', 'ProductionScene',
-        'SpecialAction', 'Context',
+        // Context below v3.0, Bundle from it: Yamdu emits a Context, which migration renames.
+        'SpecialAction', 'Context', 'Bundle',
     ],
     // Nothing to upload: this pipeline reads an API. A caller offering a file picker for it is
     // reading `roles`, which is empty, rather than assuming every pipeline takes a delivery.

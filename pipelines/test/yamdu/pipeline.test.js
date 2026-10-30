@@ -119,27 +119,30 @@ test('yamdu reads the API and delivers the project schema version', needsFixture
             JSON.stringify(result.report.validation.failures.slice(0, 3)));
     });
 
-    await t.test('a shootDay Context survives migration intact', () => {
+    await t.test('a shootDay Context arrives as a Bundle, intact', () => {
         // The case that broke: v2.6 carries contextProperties flat, and the v2.8->v3.0 step treated
         // anything it did not recognise as an edge predicate — filing scalars where reference
-        // arrays belong, then deleting them from the entity. Asserted here because the rest of the
-        // Yamdu fixtures contain no Context at all, so nothing else covers it.
-        const cxt = result.omc.find((e) => e.entityType === 'Context');
-        assert.ok(cxt, 'a Context came through');
+        // arrays belong, then deleting them from the entity. v3.0 names a Context a Bundle, so
+        // it arrives as one. Asserted here because the rest of the Yamdu fixtures contain no
+        // Context at all, so nothing else covers it.
+        const bundle = result.omc.find((e) => e.entityType === 'Bundle');
+        assert.ok(bundle, 'a Bundle came through');
+        assert.ok(!result.omc.some((e) => e.entityType === 'Context'), 'no Context is left at v3.0');
 
+        assert.equal(bundle.bundleType, 'shootDay', 'contextType becomes bundleType');
         assert.deepEqual(
-            cxt.contextProperties,
+            bundle.bundleProperties,
             { shootDay: 1, shootDate: '2026-01-23' },
-            'contextProperties carries across unchanged',
+            'contextProperties carries across unchanged as bundleProperties',
         );
-        assert.equal(typeof cxt.contextProperties.shootDay, 'number',
+        assert.equal(typeof bundle.bundleProperties.shootDay, 'number',
             'the day stays a number — both versions type it string|number|null');
 
-        assert.ok(Array.isArray(cxt.edges?.has?.ProductionScene),
+        assert.ok(Array.isArray(bundle.edges?.has?.ProductionScene),
             'the has predicate became an edge with a reference array');
-        assert.ok(Array.isArray(cxt.edges?.for?.CreativeWork),
+        assert.ok(Array.isArray(bundle.edges?.for?.CreativeWork),
             'the for predicate became an edge with a reference array');
-        assert.equal(cxt.edges.contextProperties, undefined,
+        assert.equal(bundle.edges.contextProperties, undefined,
             'contextProperties must never be filed as an edge');
     });
 
@@ -150,14 +153,14 @@ test('yamdu reads the API and delivers the project schema version', needsFixture
     });
 
     await t.test('customData is named only where Yamdu actually keyed it by domain', () => {
-        // Yamdu uses customData two ways, and telling them apart matters. A Context carries
-        // `{ yamdu: {…} }` — a domain map. A ProductionScene carries production fields directly:
-        // `{ scheduledDuration: "0:00", hasBeenShot: false, subject: "Phoebe eating", … }`.
-        // Lifting keys to domains unconditionally would shred that second one into nineteen
-        // entries with domains called "scheduledDuration" and "hasBeenShot".
-        const cxt = result.omc.find((e) => e.entityType === 'Context');
+        // Yamdu uses customData two ways, and telling them apart matters. A Context (a Bundle at
+        // v3.0) carries `{ yamdu: {…} }` — a domain map. A ProductionScene carries production
+        // fields directly: `{ scheduledDuration: "0:00", hasBeenShot: false, subject: "Phoebe
+        // eating", … }`. Lifting keys to domains unconditionally would shred that second one into
+        // nineteen entries with domains called "scheduledDuration" and "hasBeenShot".
+        const bundle = result.omc.find((e) => e.entityType === 'Bundle');
         assert.deepEqual(
-            cxt.customData,
+            bundle.customData,
             [{
                 domain: 'yamdu',
                 value: {
@@ -232,19 +235,15 @@ test('the real pull is scoped to one production', needsFixtures, async () => {
         'the discarded works are reported rather than silently dropped');
 });
 
-test('migrating an already-migrated Context does not bury its properties deeper', needsFixtures, async () => {
+test('migrating a Context twice does not bury its properties deeper', needsFixtures, async () => {
     // Migration has to be safe to run twice: the Portal offers a Migrate control the user can press
     // again, and without a guard each press would add another wrapper.
     const { omcMigrate } = await import('omc-util');
     const source = JSON.parse(await readFile(path.join(FIXTURES, 'allShootDayContexts.json'), 'utf8'));
 
-    const once = omcMigrate(source, V3);
-    // Re-label as the previous version so the chain runs over it a second time.
-    const twice = omcMigrate(
-        once.map((e) => ({ ...e, schemaVersion: 'https://movielabs.com/omc/json/schema/v2.8' })),
-        V3,
-    );
-    assert.deepEqual(twice[0].contextProperties, once[0].contextProperties);
+    const once = omcMigrate(structuredClone(source), V3);
+    once.forEach((bundle, n) => assert.deepEqual(bundle.bundleProperties, source[n].contextProperties));
+    assert.deepEqual(omcMigrate(structuredClone(once), V3), once, 'a second migration changes nothing');
 });
 
 test('a run with no Yamdu project configured says what to do about it', needsFixtures, async () => {
